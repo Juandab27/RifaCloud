@@ -28,6 +28,7 @@ Estado actual: **Fase 1 (Week 1)** del plan aprobado en `docs/sdd/04-implementat
 # 1. Variables de Compose y de la aplicación
 cp .env.example .env
 cp src/.env.example src/.env
+# En PowerShell: Copy-Item .env.example .env; Copy-Item src/.env.example src/.env
 
 # 2. Dependencias PHP (el código se monta en el contenedor)
 docker compose run --rm app composer install
@@ -55,6 +56,14 @@ omite y no existe ningún administrador por defecto.
 
 ```sh
 docker compose exec app php artisan test
+```
+
+Antes de la primera ejecución, crea `src/.env.testing` a partir de la plantilla y
+coloca la misma contraseña de base de datos que usaste en `src/.env`:
+
+```sh
+cp src/.env.testing.example src/.env.testing
+# edita DB_PASSWORD en src/.env.testing
 ```
 
 Los tests usan el esquema `rifacloud_test` (creado por

@@ -15,6 +15,7 @@
 /src/.env
 /src/.env.*
 !/src/.env.example
+!/src/.env.testing.example
 *.pem
 *.key
 *.p12
