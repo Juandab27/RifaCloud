@@ -1,0 +1,38 @@
+# =============================================================================
+# RifaCloud - root .gitignore
+# =============================================================================
+
+# --- Specification documents: local only, never committed ---
+/docs/sdd/
+/AGENTS.md
+
+# --- Secrets and environment ---
+/.env
+/.env.*
+!/.env.example
+/src/.env
+/src/.env.*
+!/src/.env.example
+*.pem
+*.key
+*.p12
+*.pfx
+
+# --- Installed dependencies ---
+/src/vendor/
+/frontend/node_modules/
+
+# --- Generated builds ---
+/frontend/dist/
+/frontend/.vite/
+/src/public/build/
+/src/public/hot
+/src/public/storage
+
+# --- Local artifacts and logs ---
+*.log
+.DS_Store
+Thumbs.db
+/backups/
+/.idea/
+/.vscode/
