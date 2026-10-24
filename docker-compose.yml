@@ -1,0 +1,52 @@
+name: rifacloud
+
+services:
+  nginx:
+    build:
+      context: .
+      dockerfile: docker/nginx/Dockerfile
+    container_name: rifacloud-nginx
+    ports:
+      - "80:80"
+    volumes:
+      # Laravel public/index.php is required by PHP-FPM for /api and /sanctum.
+      - ./src:/var/www:ro
+    depends_on:
+      - app
+    restart: unless-stopped
+
+  app:
+    build:
+      context: .
+      dockerfile: docker/php/Dockerfile
+    container_name: rifacloud-app
+    working_dir: /var/www
+    volumes:
+      - ./src:/var/www
+    depends_on:
+      mysql:
+        condition: service_healthy
+    restart: unless-stopped
+
+  mysql:
+    image: mysql:8.4
+    container_name: rifacloud-mysql
+    environment:
+      MYSQL_DATABASE: ${DB_DATABASE:-rifacloud}
+      MYSQL_USER: ${DB_USERNAME:-rifacloud}
+      MYSQL_PASSWORD: ${DB_PASSWORD:?Set DB_PASSWORD in the root .env file}
+      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD:?Set DB_ROOT_PASSWORD in the root .env file}
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./docker/mysql/init:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -u root -p$$MYSQL_ROOT_PASSWORD --silent"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 30s
+    restart: unless-stopped
+    # Intentionally no published ports: MySQL is internal-network only (NFR-011 / AC-029).
+
+volumes:
+  mysql_data:

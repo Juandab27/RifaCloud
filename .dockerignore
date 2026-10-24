@@ -1,0 +1,17 @@
+.git
+.gitignore
+docs
+AGENTS.md
+README.md
+.env
+.env.*
+src/.env
+src/.env.*
+src/vendor
+src/node_modules
+src/storage/logs
+src/storage/framework/cache
+src/storage/framework/sessions
+src/storage/framework/views
+frontend/node_modules
+frontend/dist

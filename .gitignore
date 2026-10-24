@@ -5,6 +5,8 @@
 # --- Specification documents: local only, never committed ---
 /docs/sdd/
 /AGENTS.md
+/src/AGENTS.md
+/src/CLAUDE.md
 
 # --- Secrets and environment ---
 /.env
@@ -31,6 +33,8 @@
 
 # --- Local artifacts and logs ---
 *.log
+*.sqlite
+*.sqlite3
 .DS_Store
 Thumbs.db
 /backups/
