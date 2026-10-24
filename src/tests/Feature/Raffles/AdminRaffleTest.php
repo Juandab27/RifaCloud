@@ -3,6 +3,7 @@
 namespace Tests\Feature\Raffles;
 
 use App\Modules\Auth\Models\User;
+use App\Modules\Numbers\Enums\NumberStatus;
 use App\Modules\Numbers\Models\RaffleNumber;
 use App\Modules\Raffles\Enums\RaffleStatus;
 use App\Modules\Raffles\Models\Raffle;
@@ -127,6 +128,87 @@ class AdminRaffleTest extends TestCase
             ->putJson("/api/admin/raffles/{$raffle->id}", $this->payload())
             ->assertUnprocessable()
             ->assertJsonValidationErrors('status');
+    }
+
+    public function test_admin_can_update_raffle_details_while_draft(): void
+    {
+        $admin = User::factory()->admin()->create();
+        $raffle = $this->createRaffle($admin);
+
+        $this->actingAs($admin)
+            ->putJson("/api/admin/raffles/{$raffle->id}", $this->payload([
+                'title' => 'Rifa actualizada',
+                'price_per_number' => 7500,
+            ]))
+            ->assertOk()
+            ->assertJsonPath('data.title', 'Rifa actualizada')
+            ->assertJsonPath('data.price_per_number', 7500);
+
+        $this->assertDatabaseHas('raffles', [
+            'id' => $raffle->id,
+            'title' => 'Rifa actualizada',
+            'price_per_number' => 7500,
+        ]);
+    }
+
+    public function test_admin_can_delete_draft_raffle_with_only_available_numbers(): void
+    {
+        $admin = User::factory()->admin()->create();
+        $raffle = $this->createRaffle($admin);
+
+        $this->actingAs($admin)
+            ->deleteJson("/api/admin/raffles/{$raffle->id}")
+            ->assertNoContent();
+
+        $this->assertDatabaseMissing('raffles', ['id' => $raffle->id]);
+        $this->assertDatabaseCount('raffle_numbers', 0);
+    }
+
+    public function test_published_raffle_cannot_be_deleted(): void
+    {
+        $admin = User::factory()->admin()->create();
+        $raffle = $this->createRaffle($admin);
+
+        $raffle->status = RaffleStatus::PUBLISHED;
+        $raffle->save();
+
+        $this->actingAs($admin)
+            ->deleteJson("/api/admin/raffles/{$raffle->id}")
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors('status');
+
+        $this->assertDatabaseHas('raffles', ['id' => $raffle->id]);
+    }
+
+    public function test_raffle_with_reserved_numbers_cannot_be_deleted(): void
+    {
+        $admin = User::factory()->admin()->create();
+        $raffle = $this->createRaffle($admin);
+
+        $raffle->numbers()->firstOrFail()->update([
+            'status' => NumberStatus::RESERVED->value,
+        ]);
+
+        $this->actingAs($admin)
+            ->deleteJson("/api/admin/raffles/{$raffle->id}")
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors('status');
+
+        $this->assertDatabaseHas('raffles', ['id' => $raffle->id]);
+        $this->assertDatabaseCount('raffle_numbers', 100);
+    }
+
+    public function test_user_role_cannot_delete_raffles(): void
+    {
+        $admin = User::factory()->admin()->create();
+        $raffle = $this->createRaffle($admin);
+        $user = User::factory()->create();
+
+        $this->actingAs($user)
+            ->deleteJson("/api/admin/raffles/{$raffle->id}")
+            ->assertForbidden();
+
+        $this->assertDatabaseHas('raffles', ['id' => $raffle->id]);
     }
 
     /**

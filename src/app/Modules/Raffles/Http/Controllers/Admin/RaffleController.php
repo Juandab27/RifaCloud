@@ -46,6 +46,13 @@ class RaffleController extends Controller
         return new RaffleResource($updated->loadCount('numbers'));
     }
 
+    public function destroy(Raffle $raffle): Response
+    {
+        $this->raffleService->delete($raffle);
+
+        return response()->noContent();
+    }
+
     public function publish(Raffle $raffle): RaffleResource
     {
         return new RaffleResource($this->raffleService->publish($raffle)->loadCount('numbers'));

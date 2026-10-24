@@ -48,12 +48,35 @@ export default function AdminRafflesPage() {
     }
   }
 
+  async function remove(id: number) {
+    if (
+      !window.confirm(
+        '¿Eliminar esta rifa? Solo se pueden eliminar borradores sin números reservados ni vendidos.',
+      )
+    ) {
+      return
+    }
+
+    setBusyId(id)
+
+    try {
+      await api.delete(`/admin/raffles/${id}`)
+      await refresh()
+    } catch (caught) {
+      setError(apiErrorMessage(caught))
+    } finally {
+      setBusyId(null)
+    }
+  }
+
   return (
     <section>
       <header className="page-header">
         <div>
           <h1>Administración de rifas</h1>
-          <p className="muted">Crea, publica y cierra rifas.</p>
+          <p className="muted">
+            Crea, edita, publica y cierra rifas. Solo los borradores se pueden editar o eliminar.
+          </p>
         </div>
         <Link className="button" to="/admin/raffles/new">
           Nueva rifa
@@ -94,13 +117,26 @@ export default function AdminRafflesPage() {
                   <td>{raffle.numbers_count ?? raffle.total_numbers}</td>
                   <td className="actions">
                     {raffle.status === 'DRAFT' && (
-                      <button
-                        type="button"
-                        disabled={busyId === raffle.id}
-                        onClick={() => void transition(raffle.id, 'publish')}
-                      >
-                        Publicar
-                      </button>
+                      <>
+                        <Link className="button" to={`/admin/raffles/${raffle.id}/edit`}>
+                          Editar
+                        </Link>
+                        <button
+                          type="button"
+                          disabled={busyId === raffle.id}
+                          onClick={() => void transition(raffle.id, 'publish')}
+                        >
+                          Publicar
+                        </button>
+                        <button
+                          type="button"
+                          className="danger"
+                          disabled={busyId === raffle.id}
+                          onClick={() => void remove(raffle.id)}
+                        >
+                          Eliminar
+                        </button>
+                      </>
                     )}
                     {raffle.status === 'PUBLISHED' && (
                       <button

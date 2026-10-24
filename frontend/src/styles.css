@@ -327,7 +327,16 @@ tr:last-child td {
   gap: 0.5rem;
 }
 
-.actions button {
+.actions button,
+.actions .button {
   padding: 0.35rem 0.7rem;
   font-size: 0.82rem;
+}
+
+.actions button.danger {
+  background: var(--danger);
+}
+
+.actions button.danger:hover {
+  background: #991b1b;
 }

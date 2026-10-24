@@ -10,6 +10,7 @@ Route::middleware(['auth:sanctum', 'admin'])
         Route::post('/raffles', [RaffleController::class, 'store']);
         Route::get('/raffles/{raffle}', [RaffleController::class, 'show']);
         Route::put('/raffles/{raffle}', [RaffleController::class, 'update']);
+        Route::delete('/raffles/{raffle}', [RaffleController::class, 'destroy']);
         Route::post('/raffles/{raffle}/publish', [RaffleController::class, 'publish']);
         Route::post('/raffles/{raffle}/close', [RaffleController::class, 'close']);
     });

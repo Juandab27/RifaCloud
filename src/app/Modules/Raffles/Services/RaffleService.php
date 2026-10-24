@@ -57,6 +57,35 @@ class RaffleService
         });
     }
 
+    /**
+     * Delete a DRAFT raffle that has no reserved or sold numbers.
+     *
+     * Published/closed raffles are preserved for audit and dispute resolution
+     * (03-data-model.md §6). The FK cascade removes only AVAILABLE numbers.
+     */
+    public function delete(Raffle $raffle): void
+    {
+        if ($raffle->status !== RaffleStatus::DRAFT) {
+            throw ValidationException::withMessages([
+                'status' => 'Only DRAFT raffles can be deleted.',
+            ]);
+        }
+
+        $hasAssignedNumbers = $raffle->numbers()
+            ->where('status', '!=', NumberStatus::AVAILABLE->value)
+            ->exists();
+
+        if ($hasAssignedNumbers) {
+            throw ValidationException::withMessages([
+                'status' => 'Raffles with reserved or sold numbers cannot be deleted.',
+            ]);
+        }
+
+        DB::transaction(function () use ($raffle): void {
+            $raffle->delete();
+        });
+    }
+
     public function publish(Raffle $raffle): Raffle
     {
         return $this->transition($raffle, RaffleStatus::PUBLISHED);

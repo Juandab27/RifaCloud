@@ -29,6 +29,7 @@ export default function App() {
         <Route element={<AdminRoute />}>
           <Route path="admin/raffles" element={<AdminRafflesPage />} />
           <Route path="admin/raffles/new" element={<AdminRaffleFormPage />} />
+          <Route path="admin/raffles/:raffleId/edit" element={<AdminRaffleFormPage />} />
         </Route>
 
         <Route path="*" element={<NotFoundPage />} />
