@@ -1,15 +1,22 @@
+import axios from 'axios'
 import { useEffect, useState } from 'react'
-import { Link, useParams } from 'react-router-dom'
+import { Link, useNavigate, useParams } from 'react-router-dom'
 import { api, apiErrorMessage } from '../api/client'
+import { useAuth } from '../auth/AuthContext'
 import { formatCents } from '../lib/format'
-import type { NumberAvailabilityResponse, Raffle } from '../types'
+import type { NumberAvailabilityResponse, Order, Raffle } from '../types'
 
 export default function RaffleDetailPage() {
   const { raffleId } = useParams()
+  const { user } = useAuth()
+  const navigate = useNavigate()
   const [raffle, setRaffle] = useState<Raffle | null>(null)
   const [numbers, setNumbers] = useState<NumberAvailabilityResponse | null>(null)
   const [page, setPage] = useState(1)
+  const [reloadToken, setReloadToken] = useState(0)
+  const [selectedNumbers, setSelectedNumbers] = useState<number[]>([])
   const [loading, setLoading] = useState(true)
+  const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
@@ -45,7 +52,6 @@ export default function RaffleDetailPage() {
       .then((response) => {
         if (active) {
           setNumbers(response.data)
-          setError(null)
         }
       })
       .catch((caught) => {
@@ -62,9 +68,72 @@ export default function RaffleDetailPage() {
     return () => {
       active = false
     }
-  }, [raffleId, page])
+  }, [raffleId, page, reloadToken])
 
-  if (error) {
+  function toggleNumber(number: number) {
+    if (!user) {
+      setError('Debes iniciar sesión para reservar números.')
+      return
+    }
+
+    if (
+      raffle &&
+      !selectedNumbers.includes(number) &&
+      selectedNumbers.length >= raffle.max_numbers_per_order
+    ) {
+      setError(`Puedes reservar hasta ${raffle.max_numbers_per_order} números por orden.`)
+      return
+    }
+
+    setError(null)
+    setSelectedNumbers((current) =>
+      current.includes(number)
+        ? current.filter((selected) => selected !== number)
+        : [...current, number].sort((left, right) => left - right),
+    )
+  }
+
+  async function handleReserve() {
+    if (!raffle || selectedNumbers.length === 0 || submitting) {
+      return
+    }
+
+    if (!user) {
+      setError('Debes iniciar sesión para reservar números.')
+      return
+    }
+
+    setSubmitting(true)
+    setError(null)
+
+    try {
+      const response = await api.post<{ data: Order }>('/orders', {
+        raffle_id: raffle.id,
+        numbers: selectedNumbers,
+      })
+
+      navigate(`/orders/${response.data.data.id}`)
+    } catch (caught) {
+      if (axios.isAxiosError(caught) && caught.response?.status === 409) {
+        const data = caught.response.data as { unavailable_numbers?: number[] }
+        const unavailable = data.unavailable_numbers ?? []
+
+        if (unavailable.length > 0) {
+          setSelectedNumbers((current) =>
+            current.filter((number) => !unavailable.includes(number)),
+          )
+        }
+
+        setReloadToken((current) => current + 1)
+      }
+
+      setError(apiErrorMessage(caught))
+    } finally {
+      setSubmitting(false)
+    }
+  }
+
+  if (error && !raffle) {
     return (
       <section className="card narrow">
         <p className="alert">{error}</p>
@@ -72,6 +141,8 @@ export default function RaffleDetailPage() {
       </section>
     )
   }
+
+  const totalAmount = raffle ? raffle.price_per_number * selectedNumbers.length : 0
 
   return (
     <section>
@@ -92,6 +163,8 @@ export default function RaffleDetailPage() {
         </header>
       )}
 
+      {error && <p className="alert">{error}</p>}
+
       {numbers && (
         <p className="legend">
           <span className="badge available">Disponibles: {numbers.meta.counts.available}</span>
@@ -105,11 +178,23 @@ export default function RaffleDetailPage() {
       {numbers && (
         <>
           <div className="number-grid">
-            {numbers.data.map((item) => (
-              <span key={item.id} className={`number ${item.status.toLowerCase()}`}>
-                {item.number}
-              </span>
-            ))}
+            {numbers.data.map((item) => {
+              const selected = selectedNumbers.includes(item.number)
+
+              return (
+                <button
+                  key={item.id}
+                  type="button"
+                  className={`number ${item.status.toLowerCase()}${selected ? ' selected' : ''}`}
+                  disabled={item.status !== 'AVAILABLE'}
+                  aria-pressed={selected}
+                  aria-label={`Número ${item.number}`}
+                  onClick={() => toggleNumber(item.number)}
+                >
+                  {item.number}
+                </button>
+              )
+            })}
           </div>
 
           <div className="pagination">
@@ -130,6 +215,51 @@ export default function RaffleDetailPage() {
             >
               Siguiente
             </button>
+          </div>
+
+          <div className="selection-bar">
+            <div>
+              <strong>
+                {selectedNumbers.length} {selectedNumbers.length === 1 ? 'número' : 'números'}
+              </strong>{' '}
+              <span className="muted">· Total {formatCents(totalAmount)}</span>
+              <p className="muted selection-detail">
+                {selectedNumbers.length === 0
+                  ? 'Selecciona uno o más números disponibles.'
+                  : `Seleccionados: ${selectedNumbers.join(', ')}`}
+              </p>
+              <p className="muted selection-detail">
+                La reserva es temporal ({raffle?.reservation_minutes ?? 10} minutos); los números
+                se liberan si no se completa el pago. Máximo {raffle?.max_numbers_per_order ?? 50}{' '}
+                números por orden.
+              </p>
+            </div>
+
+            <div className="selection-actions">
+              {selectedNumbers.length > 0 && (
+                <button
+                  type="button"
+                  className="link-button"
+                  onClick={() => setSelectedNumbers([])}
+                >
+                  Limpiar
+                </button>
+              )}
+
+              {user ? (
+                <button
+                  type="button"
+                  disabled={selectedNumbers.length === 0 || submitting}
+                  onClick={handleReserve}
+                >
+                  {submitting ? 'Reservando…' : 'Reservar números'}
+                </button>
+              ) : (
+                <Link className="button" to="/login">
+                  Inicia sesión para reservar
+                </Link>
+              )}
+            </div>
           </div>
         </>
       )}

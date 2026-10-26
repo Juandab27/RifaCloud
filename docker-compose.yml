@@ -28,6 +28,20 @@ services:
         condition: service_healthy
     restart: unless-stopped
 
+  scheduler:
+    build:
+      context: .
+      dockerfile: docker/php/Dockerfile
+    container_name: rifacloud-scheduler
+    working_dir: /var/www
+    volumes:
+      - ./src:/var/www
+    depends_on:
+      mysql:
+        condition: service_healthy
+    command: php artisan schedule:work
+    restart: unless-stopped
+
   mysql:
     image: mysql:8.4
     container_name: rifacloud-mysql

@@ -2,7 +2,11 @@
 
 namespace App\Providers;
 
+use App\Modules\Payments\Contracts\PaymentGateway;
+use App\Modules\Payments\Gateways\FakePaymentGateway;
 use Illuminate\Support\ServiceProvider;
+use InvalidArgumentException;
+use RuntimeException;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -11,7 +15,16 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-        //
+        $this->app->bind(PaymentGateway::class, function (): PaymentGateway {
+            $driver = (string) config('rifacloud.payment_gateway');
+
+            return match ($driver) {
+                'fake' => new FakePaymentGateway,
+                default => throw new InvalidArgumentException(
+                    "Unsupported payment gateway driver [{$driver}].",
+                ),
+            };
+        });
     }
 
     /**
@@ -19,6 +32,21 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        //
+        self::assertPaymentGatewayIsAllowed(
+            $this->app->environment(),
+            (string) config('rifacloud.payment_gateway'),
+        );
+    }
+
+    /**
+     * The simulated gateway must never be able to take money in production.
+     */
+    public static function assertPaymentGatewayIsAllowed(string $environment, string $driver): void
+    {
+        if ($environment === 'production' && $driver === 'fake') {
+            throw new RuntimeException(
+                'PAYMENT_GATEWAY=fake is not allowed in production: the simulated gateway does not process real money. Configure a real payment gateway before deploying.',
+            );
+        }
     }
 }

@@ -60,4 +60,15 @@ class Raffle extends Model
     {
         return $this->status === RaffleStatus::PUBLISHED;
     }
+
+    /**
+     * A configured schedule is valid only when the end date is strictly after
+     * the start date. Null dates add no restriction.
+     */
+    public function hasValidSchedule(): bool
+    {
+        return $this->starts_at === null
+            || $this->ends_at === null
+            || $this->starts_at->lessThan($this->ends_at);
+    }
 }

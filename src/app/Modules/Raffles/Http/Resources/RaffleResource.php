@@ -25,6 +25,8 @@ class RaffleResource extends JsonResource
             'max_number' => $this->max_number,
             'total_numbers' => $this->totalNumbers(),
             'status' => $this->status->value,
+            'reservation_minutes' => (int) config('rifacloud.reservation_minutes'),
+            'max_numbers_per_order' => (int) config('rifacloud.order_max_numbers'),
             'starts_at' => $this->starts_at?->toIso8601String(),
             'ends_at' => $this->ends_at?->toIso8601String(),
             'numbers_count' => $this->whenCounted('numbers'),

@@ -20,11 +20,15 @@ class RaffleService
     public function create(array $data, User $admin): Raffle
     {
         return DB::transaction(function () use ($data, $admin): Raffle {
-            $raffle = Raffle::query()->create([
+            $raffle = new Raffle([
                 ...$data,
                 'status' => RaffleStatus::DRAFT,
                 'created_by' => $admin->id,
             ]);
+
+            $this->assertScheduleIsValid($raffle);
+
+            $raffle->save();
 
             $this->numberGenerator->generate($raffle);
 
@@ -47,7 +51,13 @@ class RaffleService
             $rangeChanged = array_key_exists('min_number', $data) && (int) $data['min_number'] !== $raffle->min_number
                 || array_key_exists('max_number', $data) && (int) $data['max_number'] !== $raffle->max_number;
 
-            $raffle->fill($data)->save();
+            $raffle->fill($data);
+
+            // Validate the effective schedule so partial updates cannot leave
+            // a stored end date at or before the new start date.
+            $this->assertScheduleIsValid($raffle);
+
+            $raffle->save();
 
             if ($rangeChanged) {
                 $this->regenerateNumbers($raffle);
@@ -88,12 +98,23 @@ class RaffleService
 
     public function publish(Raffle $raffle): Raffle
     {
+        $this->assertScheduleIsValid($raffle);
+
         return $this->transition($raffle, RaffleStatus::PUBLISHED);
     }
 
     public function close(Raffle $raffle): Raffle
     {
         return $this->transition($raffle, RaffleStatus::CLOSED);
+    }
+
+    private function assertScheduleIsValid(Raffle $raffle): void
+    {
+        if (! $raffle->hasValidSchedule()) {
+            throw ValidationException::withMessages([
+                'ends_at' => 'The end date must be after the start date.',
+            ]);
+        }
     }
 
     private function transition(Raffle $raffle, RaffleStatus $target): Raffle

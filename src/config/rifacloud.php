@@ -16,15 +16,34 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Reservation settings
+    |--------------------------------------------------------------------------
+    |
+    | Reservation duration is 10 minutes by default and configurable per the
+    | approved SDD. order_max_numbers is a technical payload guard, not a
+    | business purchase limit.
+    |
+    */
+
+    'reservation_minutes' => max(1, (int) env('RESERVATION_MINUTES', 10)),
+
+    'order_max_numbers' => max(1, (int) env('ORDER_MAX_NUMBERS', 50)),
+
+    /*
+    |--------------------------------------------------------------------------
     | Payment gateway driver
     |--------------------------------------------------------------------------
     |
-    | Only the contract exists in Phase 1. The simulated driver is implemented
-    | in Phase 2; real Mercado Pago credentials are a P2 dependency (Q-05).
+    | The simulated driver is the only implementation in Block B; real Mercado
+    | Pago integration is a P2 dependency (Q-05). The application refuses to
+    | boot in production with PAYMENT_GATEWAY=fake. PAYMENT_FAKE_OUTCOME
+    | accepts APPROVED, REJECTED, TIMEOUT or UNKNOWN.
     |
     */
 
     'payment_gateway' => env('PAYMENT_GATEWAY', 'fake'),
+
+    'payment_fake_outcome' => strtoupper((string) env('PAYMENT_FAKE_OUTCOME', 'UNKNOWN')),
 
     /*
     |--------------------------------------------------------------------------

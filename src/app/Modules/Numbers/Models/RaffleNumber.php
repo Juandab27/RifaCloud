@@ -3,6 +3,7 @@
 namespace App\Modules\Numbers\Models;
 
 use App\Modules\Numbers\Enums\NumberStatus;
+use App\Modules\Orders\Models\Order;
 use App\Modules\Raffles\Models\Raffle;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -39,5 +40,10 @@ class RaffleNumber extends Model
     public function raffle(): BelongsTo
     {
         return $this->belongsTo(Raffle::class);
+    }
+
+    public function order(): BelongsTo
+    {
+        return $this->belongsTo(Order::class);
     }
 }

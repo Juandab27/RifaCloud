@@ -3,7 +3,7 @@
 Plataforma web para gestionar rifas: catálogo público, selección de números y
 panel de administración. Proyecto universitario de Cloud Computing.
 
-Estado actual: **Fase 1 (Week 1)** del plan aprobado en `docs/sdd/04-implementation-plan.md`.
+Estado actual: **Fase 2 — Bloques A y B (reservas, órdenes y pagos simulados)** del plan aprobado en `docs/sdd/04-implementation-plan.md`.
 
 ## Stack
 
@@ -111,6 +111,7 @@ desarrollo `rifacloud`; `RefreshDatabase` deja el esquema de test limpio.
 docker compose ps
 docker compose logs -f app
 docker compose exec app php artisan migrate:fresh --seed
+docker compose exec app php artisan orders:expire-reservations
 docker compose down          # conserva el volumen mysql_data
 docker compose down -v       # elimina también los datos locales
 ```
@@ -121,6 +122,17 @@ docker compose down -v       # elimina también los datos locales
   (NFR-011 / AC-029).
 - Los valores monetarios se almacenan en **centavos** (NFR-013).
 - El correo local usa el mailer `log` (P1); Mailtrap se configura en P2.
+- En local el gateway de pagos es simulado (`PAYMENT_GATEWAY=fake`). La interfaz
+  lo marca como **SIMULADO** y no se procesa dinero real. La aplicación se niega
+  a arrancar en `production` si `PAYMENT_GATEWAY=fake`.
+- Las reservas duran `RESERVATION_MINUTES` (10 por defecto) y se crean de forma
+  atómica con locks de fila; los números reservados no se pueden duplicar
+  (NFR-002, NFR-004).
+- El servicio `scheduler` ejecuta `orders:expire-reservations` cada minuto. Solo
+  libera órdenes `PENDING_PAYMENT` vencidas; nunca libera órdenes `PAID`,
+  `PAYMENT_REVIEW` ni `REQUIRES_REFUND`.
+- `ORDER_MAX_NUMBERS` (50 por defecto) es una **protección técnica** del payload
+  de una orden; no es una regla de negocio de compra.
 - `RAFFLE_MAX_NUMBERS` (por defecto 10000) es una **protección técnica** contra
   rangos desmesurados al generar números; no es una regla de negocio.
 - Solo se pueden eliminar rifas en `DRAFT` sin números reservados ni vendidos.

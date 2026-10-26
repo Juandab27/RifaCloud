@@ -19,6 +19,8 @@ export interface Raffle {
   max_number: number
   total_numbers: number
   status: RaffleStatus
+  reservation_minutes: number
+  max_numbers_per_order: number
   starts_at: string | null
   ends_at: string | null
   numbers_count?: number
@@ -65,4 +67,50 @@ export interface RafflePayload {
   max_number: number
   starts_at: string | null
   ends_at: string | null
+}
+
+export type OrderStatus =
+  | 'PENDING_PAYMENT'
+  | 'PAID'
+  | 'REJECTED'
+  | 'EXPIRED'
+  | 'PAYMENT_REVIEW'
+  | 'REQUIRES_REFUND'
+
+export interface OrderNumber {
+  id: number
+  number: number
+  status: NumberStatus
+  price_at_purchase: number
+}
+
+export type PaymentState = 'PENDING' | 'APPROVED' | 'REJECTED' | 'UNKNOWN' | 'REFUND_REQUIRED'
+
+export interface Payment {
+  id: number
+  provider: 'MERCADOPAGO' | 'PAYPAL'
+  status: PaymentState
+  amount: number
+  currency: string
+  checkout_url: string | null
+  simulated?: boolean
+  verified_at: string | null
+  created_at: string | null
+}
+
+export interface Order {
+  id: number
+  order_number: string
+  status: OrderStatus
+  total_amount: number
+  expires_at: string | null
+  paid_at: string | null
+  created_at: string | null
+  simulated_payments?: boolean
+  raffle?: {
+    id: number
+    title: string
+  }
+  numbers?: OrderNumber[]
+  payments?: Payment[]
 }

@@ -211,6 +211,74 @@ class AdminRaffleTest extends TestCase
         $this->assertDatabaseHas('raffles', ['id' => $raffle->id]);
     }
 
+    public function test_raffle_cannot_be_created_with_an_invalid_schedule(): void
+    {
+        $admin = User::factory()->admin()->create();
+
+        $this->actingAs($admin)
+            ->postJson('/api/admin/raffles', $this->payload([
+                'starts_at' => '2026-11-01 10:00:00',
+                'ends_at' => '2026-11-01 10:00:00',
+            ]))
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors('ends_at');
+
+        $this->actingAs($admin)
+            ->postJson('/api/admin/raffles', $this->payload([
+                'starts_at' => '2026-11-02 10:00:00',
+                'ends_at' => '2026-11-01 10:00:00',
+            ]))
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors('ends_at');
+
+        $this->assertDatabaseCount('raffles', 0);
+        $this->assertDatabaseCount('raffle_numbers', 0);
+    }
+
+    public function test_partial_update_cannot_leave_an_invalid_schedule(): void
+    {
+        $admin = User::factory()->admin()->create();
+        $raffle = $this->createRaffle($admin);
+
+        $this->actingAs($admin)
+            ->putJson("/api/admin/raffles/{$raffle->id}", $this->payload([
+                'starts_at' => '2026-11-01 10:00:00',
+                'ends_at' => '2026-11-02 10:00:00',
+            ]))
+            ->assertOk();
+
+        $this->actingAs($admin)
+            ->putJson("/api/admin/raffles/{$raffle->id}", $this->payload([
+                'starts_at' => '2026-11-03 10:00:00',
+            ]))
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors('ends_at');
+
+        $this->assertSame(
+            '2026-11-01 10:00:00',
+            $raffle->refresh()->starts_at->format('Y-m-d H:i:s'),
+        );
+    }
+
+    public function test_publish_rejects_a_raffle_with_an_invalid_stored_schedule(): void
+    {
+        $admin = User::factory()->admin()->create();
+        $raffle = $this->createRaffle($admin);
+
+        // Simulate a pre-existing bad row that bypassed the service guard.
+        $raffle->forceFill([
+            'starts_at' => '2026-11-02 10:00:00',
+            'ends_at' => '2026-11-01 10:00:00',
+        ])->save();
+
+        $this->actingAs($admin)
+            ->postJson("/api/admin/raffles/{$raffle->id}/publish")
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors('ends_at');
+
+        $this->assertSame(RaffleStatus::DRAFT, $raffle->refresh()->status);
+    }
+
     /**
      * @param  array<string, mixed>  $overrides
      * @return array<string, mixed>
