@@ -3,7 +3,6 @@
 Plataforma web para gestionar rifas: catálogo público, selección de números y
 panel de administración. Proyecto universitario de Cloud Computing.
 
-Estado actual: **Fase 2 — Bloques A y B (reservas, órdenes y pagos simulados)** del plan aprobado en `docs/sdd/04-implementation-plan.md`.
 
 ## Stack
 
@@ -139,5 +138,3 @@ docker compose down -v       # elimina también los datos locales
   Las rifas publicadas/cerradas se conservan para auditoría y resolución de
   disputas (03-data-model.md §6). El borrado en cascada solo afecta a números
   `AVAILABLE`.
-- La SDD (`docs/sdd/`) y `AGENTS.md` son documentación local y están excluidos
-  de Git a propósito.
