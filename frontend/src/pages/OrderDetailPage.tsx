@@ -1,6 +1,12 @@
 import { useEffect, useState } from 'react'
-import { Link, useParams } from 'react-router-dom'
+import { Link, useParams, useSearchParams } from 'react-router-dom'
 import { api, apiErrorMessage } from '../api/client'
+import Alert from '../components/ui/Alert'
+import Badge from '../components/ui/Badge'
+import Button from '../components/ui/Button'
+import Card from '../components/ui/Card'
+import Skeleton from '../components/ui/Skeleton'
+import StatusPill from '../components/ui/StatusPill'
 import { formatCents, formatDate } from '../lib/format'
 import type { Order, OrderStatus, Payment, PaymentState } from '../types'
 
@@ -11,6 +17,18 @@ const STATUS_LABELS: Record<OrderStatus, string> = {
   EXPIRED: 'Expirada',
   PAYMENT_REVIEW: 'En revisión de pago',
   REQUIRES_REFUND: 'Requiere reembolso',
+}
+
+const ORDER_STATUS_HINT: Record<OrderStatus, string> = {
+  PENDING_PAYMENT:
+    'Los números siguen reservados hasta que venza el plazo o se confirme el pago.',
+  PAID: 'El pago fue aprobado y los números quedaron vendidos.',
+  REJECTED: 'El pago fue rechazado y los números fueron liberados.',
+  EXPIRED: 'La reserva venció sin pago confirmado; los números volvieron a estar disponibles.',
+  PAYMENT_REVIEW:
+    'El resultado del pago es incierto. Un administrador debe resolver la incidencia; los números siguen reservados.',
+  REQUIRES_REFUND:
+    'El pago se confirmó, pero los números no pudieron asignarse. La orden requiere gestión de reembolso por un administrador.',
 }
 
 const PAYMENT_STATUS_LABELS: Record<PaymentState, string> = {
@@ -53,6 +71,7 @@ function useRemainingTime(expiresAt: string | null): string | null {
 
 export default function OrderDetailPage() {
   const { orderId } = useParams()
+  const [searchParams] = useSearchParams()
   const [order, setOrder] = useState<Order | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -60,6 +79,9 @@ export default function OrderDetailPage() {
   const [paymentSubmitting, setPaymentSubmitting] = useState(false)
   const [reloadToken, setReloadToken] = useState(0)
   const remaining = useRemainingTime(order?.expires_at ?? null)
+  // The browser return is only a hint. It never confirms the payment and it
+  // never triggers a provider query automatically.
+  const returnedFromCheckout = searchParams.get('pago') === 'retorno'
 
   useEffect(() => {
     let active = true
@@ -91,15 +113,26 @@ export default function OrderDetailPage() {
   }, [orderId, reloadToken])
 
   if (loading && !order) {
-    return <p className="muted">Cargando orden…</p>
+    return (
+      <>
+        <p className="ui-sr-only" role="status">
+          Cargando orden…
+        </p>
+        <div className="order-loading" aria-hidden="true">
+          <Skeleton width="40%" height={30} />
+          <Skeleton height={112} radius={16} />
+          <Skeleton lines={4} />
+        </div>
+      </>
+    )
   }
 
   if (!order) {
     return (
-      <section className="card narrow">
-        <p className="alert">{error ?? 'No se encontró la orden.'}</p>
+      <Card narrow>
+        <Alert tone="danger">{error ?? 'No se encontró la orden.'}</Alert>
         <Link to="/">Volver al catálogo</Link>
-      </section>
+      </Card>
     )
   }
 
@@ -115,7 +148,14 @@ export default function OrderDetailPage() {
   const canStartPayment = order.status === 'PENDING_PAYMENT' && latestPayment === null
   const canVerifyPayment =
     latestPayment !== null &&
-    (latestPayment.status === 'PENDING' || latestPayment.status === 'UNKNOWN') &&
+    (order.status === 'PENDING_PAYMENT' || order.status === 'EXPIRED'
+      ? ['PENDING', 'UNKNOWN', 'REJECTED'].includes(latestPayment.status)
+      : (order.status === 'REJECTED' && latestPayment.status === 'REJECTED'))
+  const resumeCheckoutUrl = latestPayment?.checkout_url ?? null
+  const canResumeCheckout =
+    resumeCheckoutUrl !== null &&
+    latestPayment?.status === 'PENDING' &&
+    latestPayment.simulated !== true &&
     order.status === 'PENDING_PAYMENT'
 
   const startPayment = async () => {
@@ -124,7 +164,16 @@ export default function OrderDetailPage() {
 
     try {
       const response = await api.post<{ data: Order }>(`/orders/${order.id}/payments`)
-      setOrder(response.data.data)
+      const updatedOrder = response.data.data
+      const createdPayment = updatedOrder.payments?.[0]
+
+      setOrder(updatedOrder)
+
+      // Only the backend-created checkout URL is used. The fake gateway stays
+      // in the current page and exposes its verify button instead.
+      if (createdPayment?.checkout_url && createdPayment.simulated !== true) {
+        window.location.assign(createdPayment.checkout_url)
+      }
     } catch (caught) {
       setPaymentError(apiErrorMessage(caught))
     } finally {
@@ -156,7 +205,7 @@ export default function OrderDetailPage() {
 
   return (
     <section>
-      <p>
+      <p className="back-link">
         {order.raffle ? (
           <Link to={`/raffles/${order.raffle.id}`}>← Volver a {order.raffle.title}</Link>
         ) : (
@@ -164,92 +213,129 @@ export default function OrderDetailPage() {
         )}
       </p>
 
-      {error && <p className="alert">{error}</p>}
+      {error && <Alert tone="danger">{error}</Alert>}
 
-      <header className="page-header">
+      {returnedFromCheckout && (
+        <Alert tone="info">
+          Si completaste el pago en Mercado Pago, actualiza o verifica el estado. La confirmación
+          se obtiene en el servidor; la URL de retorno no marca la orden como pagada.
+        </Alert>
+      )}
+
+      <header className="order-hero">
         <div>
+          <p className="page-header-eyebrow">Orden</p>
           <h1>Orden {order.order_number}</h1>
-          <p className="muted">
-            <span className={`status ${order.status.toLowerCase()}`}>
-              {STATUS_LABELS[order.status]}
-            </span>
-          </p>
+          <div className="order-hero-status">
+            <StatusPill status={order.status} label={STATUS_LABELS[order.status]} />
+            <span className="muted order-status-note">{ORDER_STATUS_HINT[order.status]}</span>
+          </div>
         </div>
-        <button type="button" className="link-button" onClick={() => setReloadToken((value) => value + 1)}>
+
+        <Button
+          variant="secondary"
+          size="sm"
+          onClick={() => setReloadToken((value) => value + 1)}
+        >
           Actualizar estado
-        </button>
+        </Button>
       </header>
 
-      <dl className="facts">
-        <div>
-          <dt>Total</dt>
-          <dd>{formatCents(order.total_amount)}</dd>
-        </div>
-        <div>
-          <dt>Números</dt>
-          <dd>{order.numbers?.length ?? 0}</dd>
-        </div>
-        <div>
-          <dt>Creada</dt>
-          <dd>{formatDate(order.created_at)}</dd>
-        </div>
-      </dl>
+      <Card className="order-summary">
+        <dl className="facts">
+          <div>
+            <dt>Total</dt>
+            <dd className="raffle-price">{formatCents(order.total_amount)}</dd>
+          </div>
+          <div>
+            <dt>Números</dt>
+            <dd>{order.numbers?.length ?? 0}</dd>
+          </div>
+          <div>
+            <dt>Creada</dt>
+            <dd>{formatDate(order.created_at)}</dd>
+          </div>
+        </dl>
+
+        {order.expires_at && (
+          <p className="muted order-expires">Vence: {formatDate(order.expires_at)}</p>
+        )}
+      </Card>
 
       {order.status === 'PENDING_PAYMENT' && (
-        <section className="card reservation-countdown">
+        <Card className="reservation-countdown">
           <p className="muted">Tiempo restante de la reserva</p>
-          <p className="countdown">{remaining ?? '—'}</p>
+          <p className="countdown" role="timer">
+            {remaining ?? '—'}
+          </p>
           <p className="muted">
             Si la reserva vence sin completar el pago, los números vuelven a estar disponibles.
           </p>
-        </section>
+        </Card>
       )}
 
-      <section className="card payment-panel">
-        <h2>Pago</h2>
+      <Card className="payment-panel">
+        <header className="payment-panel-head">
+          <h2>Pago</h2>
+          {latestPayment ? (
+            <StatusPill
+              status={latestPayment.status}
+              label={PAYMENT_STATUS_LABELS[latestPayment.status]}
+            />
+          ) : (
+            <span className="muted">Sin pago iniciado</span>
+          )}
+        </header>
 
         {showSimulatedNotice && (
           <p className="simulated-notice">
-            <span className="status simulated">SIMULADO</span>
+            <Badge tone="accent">SIMULADO</Badge>
             Este entorno usa el gateway de pruebas. No se procesa dinero real.
           </p>
         )}
 
         {latestPayment ? (
           <>
-            <p>
-              <span className={`status ${latestPayment.status.toLowerCase()}`}>
-                {PAYMENT_STATUS_LABELS[latestPayment.status]}
-              </span>
-            </p>
-            <p className="muted">
-              {paymentIsSimulated
-                ? 'Simulación local (sin cobro real)'
-                : latestPayment.provider === 'MERCADOPAGO'
-                  ? 'Mercado Pago'
-                  : latestPayment.provider}
-              {' · '}
-              {formatCents(latestPayment.amount)} {latestPayment.currency}
-            </p>
-            {latestPayment.verified_at && (
-              <p className="muted">Última verificación: {formatDate(latestPayment.verified_at)}</p>
-            )}
+            <dl className="payment-meta">
+              <div>
+                <dt>Medio</dt>
+                <dd>
+                  {paymentIsSimulated
+                    ? 'Simulación local (sin cobro real)'
+                    : latestPayment.provider === 'MERCADOPAGO'
+                      ? 'Mercado Pago'
+                      : latestPayment.provider}
+                </dd>
+              </div>
+              <div>
+                <dt>Importe</dt>
+                <dd>
+                  {formatCents(latestPayment.amount)} {latestPayment.currency}
+                </dd>
+              </div>
+              {latestPayment.verified_at && (
+                <div>
+                  <dt>Última verificación</dt>
+                  <dd>{formatDate(latestPayment.verified_at)}</dd>
+                </div>
+              )}
+            </dl>
 
             {latestPayment.status === 'PENDING' && (
               <p className="muted">
-                El pago fue iniciado pero todavía no está confirmado. Verifica el resultado
-                con el proveedor.
+                El pago fue iniciado pero todavía no está confirmado. Verifica el resultado con
+                el proveedor.
               </p>
             )}
 
             {latestPayment.status === 'UNKNOWN' && (
-              <p className="alert">
+              <Alert tone="warning">
                 El resultado del pago es incierto. Los números siguen reservados y no se
                 iniciará otro cobro.{' '}
                 {order.status === 'PAYMENT_REVIEW'
                   ? 'Un administrador debe resolver esta incidencia.'
                   : 'La orden requiere revisión.'}
-              </p>
+              </Alert>
             )}
 
             {latestPayment.status === 'APPROVED' && (
@@ -265,58 +351,74 @@ export default function OrderDetailPage() {
             )}
 
             {latestPayment.status === 'REFUND_REQUIRED' && (
-              <p className="alert">
-                El pago fue confirmado pero los números no pueden asignarse. La orden
-                requiere un reembolso manual.
-              </p>
+              <Alert tone="danger">
+                El pago fue confirmado pero los números no pueden asignarse. La orden requiere
+                que un administrador gestione el reembolso; todavía no se ha completado.
+              </Alert>
             )}
           </>
         ) : (
           <p className="muted">
-            Todavía no se inició el pago. La orden mantiene los números reservados hasta
-            que venza el plazo.
+            Todavía no se inició un pago para esta orden.
+            {order.status === 'PENDING_PAYMENT' &&
+              ' Los números siguen reservados hasta que venza el plazo.'}
           </p>
         )}
 
-        {paymentError && <p className="alert">{paymentError}</p>}
+        {paymentError && <Alert tone="danger">{paymentError}</Alert>}
 
-        {(canStartPayment || canVerifyPayment) && (
+        {(canStartPayment || canVerifyPayment || canResumeCheckout) && (
           <div className="payment-actions">
             {canStartPayment && (
-              <button type="button" onClick={startPayment} disabled={paymentSubmitting}>
+              <Button onClick={startPayment} loading={paymentSubmitting}>
                 {paymentSubmitting ? 'Iniciando…' : 'Iniciar pago'}
-              </button>
+              </Button>
+            )}
+            {canResumeCheckout && resumeCheckoutUrl && (
+              <Button
+                variant="secondary"
+                onClick={() => window.location.assign(resumeCheckoutUrl)}
+              >
+                Continuar en Mercado Pago
+              </Button>
             )}
             {canVerifyPayment && (
-              <button type="button" onClick={verifyPayment} disabled={paymentSubmitting}>
+              <Button onClick={verifyPayment} loading={paymentSubmitting}>
                 {paymentSubmitting
                   ? 'Consultando…'
-                  : latestPayment?.status === 'UNKNOWN'
-                    ? 'Consultar estado'
-                    : 'Verificar pago'}
-              </button>
+                  : latestPayment?.status === 'PENDING'
+                    ? 'Verificar pago'
+                    : 'Consultar estado'}
+              </Button>
             )}
           </div>
         )}
 
         <p className="muted payment-note">
-          La confirmación se obtiene y valida en el servidor. Una redirección del navegador
-          no marca la orden como pagada.
+          La confirmación se obtiene y valida en el servidor. Una redirección del navegador no
+          marca la orden como pagada.
         </p>
-      </section>
+      </Card>
 
-      <h2>{order.status === 'PENDING_PAYMENT' ? 'Números reservados' : 'Números de la orden'}</h2>
-      <div className="number-grid">
-        {order.numbers?.map((item) => (
-          <span key={item.id} className={`number ${item.status.toLowerCase()}`}>
-            {item.number}
+      <Card className="order-numbers">
+        <header className="order-numbers-head">
+          <h2>
+            {order.status === 'PENDING_PAYMENT' ? 'Números reservados' : 'Números de la orden'}
+          </h2>
+          <span className="muted">
+            {order.numbers?.length ?? 0}{' '}
+            {(order.numbers?.length ?? 0) === 1 ? 'número' : 'números'}
           </span>
-        ))}
-      </div>
+        </header>
 
-      {order.expires_at && (
-        <p className="muted">Vence: {formatDate(order.expires_at)}</p>
-      )}
+        <div className="number-grid">
+          {order.numbers?.map((item) => (
+            <span key={item.id} className={`number ${item.status.toLowerCase()}`}>
+              {item.number}
+            </span>
+          ))}
+        </div>
+      </Card>
     </section>
   )
 }

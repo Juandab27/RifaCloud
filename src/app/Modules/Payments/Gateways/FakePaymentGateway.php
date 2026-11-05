@@ -71,7 +71,7 @@ class FakePaymentGateway implements PaymentGateway
         );
     }
 
-    public function parseWebhook(array $payload): WebhookEvent
+    public function parseWebhook(array $payload, array $headers = []): WebhookEvent
     {
         throw new LogicException('Simulated webhooks are not part of Phase 2 Block B.');
     }

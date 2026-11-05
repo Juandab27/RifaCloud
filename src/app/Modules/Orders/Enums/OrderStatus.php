@@ -14,11 +14,13 @@ enum OrderStatus: string
     /**
      * Explicit order state machine for payment results (03-data-model.md §5).
      *
-     * PAID and REQUIRES_REFUND are terminal in Block B. EXPIRED and REJECTED
-     * are terminal for sales, but a late confirmed payment may move either of
-     * them to REQUIRES_REFUND so the approval is reconciled manually without
-     * faking a sale. Uncertain payments can only move to a verified final
-     * state.
+     * PAID was terminal in Block B. A later provider refund, chargeback or
+     * mediation must still be recorded without faking a sale reversal, so PAID
+     * may move to REQUIRES_REFUND; the numbers remain SOLD and an administrator
+     * resolves the incident. EXPIRED and REJECTED are terminal for sales, but a
+     * late confirmed payment may move either of them to REQUIRES_REFUND so the
+     * approval is reconciled manually without faking a sale. Uncertain payments
+     * can only move to a verified final state.
      *
      * @return list<self>
      */
@@ -38,7 +40,8 @@ enum OrderStatus: string
                 self::REQUIRES_REFUND,
             ],
             self::EXPIRED, self::REJECTED => [self::REQUIRES_REFUND],
-            self::PAID, self::REQUIRES_REFUND => [],
+            self::PAID => [self::REQUIRES_REFUND],
+            self::REQUIRES_REFUND => [],
         };
     }
 

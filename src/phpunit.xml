@@ -28,5 +28,10 @@
         <env name="MAIL_MAILER" value="array"/>
         <env name="QUEUE_CONNECTION" value="sync"/>
         <env name="SESSION_DRIVER" value="array"/>
+        <!-- Tests must never contact a real payment provider. -->
+        <env name="PAYMENT_GATEWAY" value="fake"/>
+        <env name="MERCADOPAGO_ACCESS_TOKEN" value=""/>
+        <env name="MERCADOPAGO_WEBHOOK_SECRET" value="test-webhook-secret"/>
+        <env name="MERCADOPAGO_SANDBOX" value="true"/>
     </php>
 </phpunit>

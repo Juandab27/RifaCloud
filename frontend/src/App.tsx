@@ -1,23 +1,15 @@
-import { Link, Route, Routes } from 'react-router-dom'
+import { Route, Routes } from 'react-router-dom'
 import AdminRoute from './components/AdminRoute'
 import Layout from './components/Layout'
 import RequireAuth from './components/RequireAuth'
 import CatalogPage from './pages/CatalogPage'
 import LoginPage from './pages/LoginPage'
+import NotFoundPage from './pages/NotFoundPage'
 import OrderDetailPage from './pages/OrderDetailPage'
 import RaffleDetailPage from './pages/RaffleDetailPage'
 import RegisterPage from './pages/RegisterPage'
 import AdminRaffleFormPage from './pages/admin/AdminRaffleFormPage'
 import AdminRafflesPage from './pages/admin/AdminRafflesPage'
-
-function NotFoundPage() {
-  return (
-    <section className="card narrow">
-      <h1>Página no encontrada</h1>
-      <Link to="/">Volver al catálogo</Link>
-    </section>
-  )
-}
 
 export default function App() {
   return (

@@ -1,0 +1,139 @@
+/* ==========================================================================
+   RifaCloud — Administración (B7)
+   Tabla responsive, formulario por secciones y estados de carga.
+   ========================================================================== */
+
+.admin-skeleton {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-3);
+}
+
+/* --- Tabla --------------------------------------------------------------- */
+.admin-table .actions {
+  justify-content: flex-start;
+}
+
+.admin-table td.admin-cell-title {
+  color: var(--text);
+  font-weight: 600;
+}
+
+/* --- Formulario ---------------------------------------------------------- */
+.admin-form-section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-4);
+  min-width: 0;
+  margin: 0;
+  padding: var(--sp-4);
+  background: rgba(255, 255, 255, 0.015);
+  border: 1px solid var(--line);
+  border-radius: var(--r-lg);
+}
+
+.admin-form-section legend {
+  padding: 0 var(--sp-2);
+  color: var(--text-2);
+  font-size: var(--fs-md);
+  font-weight: 600;
+}
+
+.admin-form-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: var(--sp-3);
+}
+
+/* --- Tabla como tarjetas en móvil ---------------------------------------- */
+@media (max-width: 760px) {
+  .admin-table {
+    overflow: visible;
+    background: transparent;
+    border: 0;
+    border-radius: 0;
+    box-shadow: none;
+  }
+
+  .admin-table table,
+  .admin-table tbody {
+    display: block;
+    width: 100%;
+  }
+
+  .admin-table thead {
+    display: none;
+  }
+
+  .admin-table tr {
+    display: block;
+    margin-bottom: var(--sp-3);
+    padding: var(--sp-4);
+    background: var(--bg-1);
+    border: 1px solid var(--line);
+    border-radius: var(--r-lg);
+    box-shadow: var(--shadow-1);
+  }
+
+  .admin-table tr:last-child {
+    margin-bottom: 0;
+  }
+
+  .admin-table td {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--sp-3);
+    padding: var(--sp-2) 0;
+    border-bottom: 1px solid var(--line);
+    text-align: left;
+  }
+
+  .admin-table td:last-child {
+    border-bottom: 0;
+  }
+
+  .admin-table td::before {
+    content: attr(data-label);
+    color: var(--text-3);
+    font-size: var(--fs-2xs);
+    font-weight: 600;
+    letter-spacing: var(--tracking-label);
+    text-transform: uppercase;
+  }
+
+  .admin-table td.admin-cell-title {
+    display: block;
+    padding-top: 0;
+    font-family: var(--font-display);
+    font-size: var(--fs-lg);
+    overflow-wrap: anywhere;
+  }
+
+  .admin-table td.admin-cell-title::before {
+    display: none;
+  }
+
+  .admin-table td.actions {
+    justify-content: flex-start;
+    padding-top: var(--sp-3);
+  }
+
+  .admin-table td.actions::before {
+    display: none;
+  }
+
+  .admin-table td.actions .button,
+  .admin-table td.actions button {
+    flex: 1 1 auto;
+  }
+
+  .admin-form-actions {
+    justify-content: stretch;
+  }
+
+  .admin-form-actions .btn {
+    width: 100%;
+  }
+}

@@ -1,0 +1,136 @@
+/* ==========================================================================
+   RifaCloud — Design tokens
+   "Galería nocturna": tinta casi negra, superficies elevadas, texto claro y
+   un único acento champagne.
+
+   Esta capa es la única fuente de verdad para color, tipografía, espaciado,
+   radios, bordes, sombras, foco y movimiento. El resto de las hojas consume
+   estos tokens; no debe introducir valores crudos nuevos.
+   ========================================================================== */
+
+:root {
+  color-scheme: dark;
+
+  /* --- Superficies ------------------------------------------------------ */
+  --bg-base: #07080c;
+  --bg-1: #0e1017;
+  --bg-2: #151822;
+  --bg-3: #1c2030;
+  --bg-overlay: rgba(7, 8, 12, 0.72);
+
+  /* --- Bordes ----------------------------------------------------------- */
+  --line: rgba(255, 255, 255, 0.07);
+  --line-strong: rgba(255, 255, 255, 0.14);
+
+  /* --- Texto ------------------------------------------------------------ */
+  --text: #f2f4f8;
+  --text-2: #a7afc0;
+  /* AA sobre --bg-1 (≈5.1:1); sigue leyéndose como metadato. */
+  --text-3: #7c8496;
+
+  /* --- Acento champagne ------------------------------------------------- */
+  --accent: #d9b45b;
+  --accent-hi: #f0cc7a;
+  --accent-ink: #17130a;
+  --accent-soft: rgba(217, 180, 91, 0.12);
+  --accent-line: rgba(217, 180, 91, 0.4);
+
+  /* --- Semántica de estado --------------------------------------------- */
+  --success: #34d399;
+  --success-text: #6ee7b7;
+  --success-soft: rgba(52, 211, 153, 0.12);
+  --success-line: rgba(52, 211, 153, 0.32);
+
+  --warning: #fbbf24;
+  --warning-text: #fcd34d;
+  --warning-soft: rgba(251, 191, 36, 0.12);
+  --warning-line: rgba(251, 191, 36, 0.32);
+
+  --danger: #f87171;
+  --danger-text: #fca5a5;
+  --danger-soft: rgba(248, 113, 113, 0.12);
+  --danger-line: rgba(248, 113, 113, 0.32);
+  --danger-strong: #b91c1c;
+  --danger-strong-hi: #991b1b;
+
+  --info: #818cf8;
+  --info-text: #a5b4fc;
+  --info-soft: rgba(129, 140, 248, 0.12);
+  --info-line: rgba(129, 140, 248, 0.32);
+
+  --review: #c084fc;
+  --review-text: #d8b4fe;
+  --review-soft: rgba(192, 132, 252, 0.12);
+  --review-line: rgba(192, 132, 252, 0.32);
+
+  /* --- Tipografía ------------------------------------------------------- */
+  --font-sans: 'Inter', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  --font-display: 'Sora', 'Inter', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
+
+  --fs-2xs: 0.6875rem; /* 11px */
+  --fs-xs: 0.75rem; /* 12px */
+  --fs-sm: 0.8125rem; /* 13px */
+  --fs-md: 0.875rem; /* 14px */
+  --fs-base: 1rem; /* 16px */
+  --fs-lg: 1.25rem; /* 20px */
+  --fs-xl: 1.625rem; /* 26px */
+  --fs-2xl: 2.125rem; /* 34px */
+  --fs-3xl: 2.875rem; /* 46px */
+
+  --lh-tight: 1.15;
+  --lh-snug: 1.35;
+  --lh-body: 1.6;
+
+  --tracking-tight: -0.02em;
+  --tracking-label: 0.14em;
+
+  /* --- Espaciado (escala de 4px) --------------------------------------- */
+  --sp-1: 0.25rem;
+  --sp-2: 0.5rem;
+  --sp-3: 0.75rem;
+  --sp-4: 1rem;
+  --sp-5: 1.5rem;
+  --sp-6: 2rem;
+  --sp-7: 3rem;
+  --sp-8: 4rem;
+
+  /* --- Radios ----------------------------------------------------------- */
+  --r-sm: 8px;
+  --r-md: 10px;
+  --r-lg: 16px;
+  --r-xl: 22px;
+  --r-pill: 999px;
+
+  /* --- Elevación -------------------------------------------------------- */
+  --shadow-1:
+    0 1px 0 rgba(255, 255, 255, 0.04) inset,
+    0 16px 32px -24px rgba(0, 0, 0, 0.9);
+  --shadow-2:
+    0 1px 0 rgba(255, 255, 255, 0.05) inset,
+    0 28px 56px -32px rgba(0, 0, 0, 0.95);
+  --shadow-accent: 0 16px 40px -20px rgba(217, 180, 91, 0.35);
+
+  /* --- Movimiento ------------------------------------------------------- */
+  --t-fast: 120ms ease-out;
+  --t-base: 160ms ease-out;
+
+  /* --- Foco accesible --------------------------------------------------- */
+  --focus-outline: 2px solid var(--accent);
+  --focus-offset: 2px;
+  --focus-ring: 0 0 0 3px rgba(217, 180, 91, 0.28);
+
+  /* --- Layout ----------------------------------------------------------- */
+  --container: 1120px;
+  --header-h: 68px;
+  --control-h: 42px;
+
+  /* --- Alias heredados -------------------------------------------------
+     Se mantienen porque las reglas existentes todavía los referencian.
+     Cualquier regla nueva debe usar los tokens de arriba.               */
+  --bg: var(--bg-base);
+  --surface: var(--bg-1);
+  --muted: var(--text-2);
+  --border: var(--line);
+  --primary: var(--accent);
+  --primary-dark: var(--accent-hi);
+}

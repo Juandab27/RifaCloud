@@ -23,9 +23,11 @@ class StateTransitionTest extends TestCase
 
         $this->assertFalse(PaymentState::APPROVED->canTransitionTo(PaymentState::REJECTED));
         $this->assertFalse(PaymentState::APPROVED->canTransitionTo(PaymentState::UNKNOWN));
+        $this->assertTrue(PaymentState::APPROVED->canTransitionTo(PaymentState::REFUND_REQUIRED));
         $this->assertFalse(PaymentState::REJECTED->canTransitionTo(PaymentState::APPROVED));
         $this->assertTrue(PaymentState::REJECTED->canTransitionTo(PaymentState::REFUND_REQUIRED));
         $this->assertFalse(PaymentState::REFUND_REQUIRED->canTransitionTo(PaymentState::APPROVED));
+        $this->assertFalse(PaymentState::REFUND_REQUIRED->canTransitionTo(PaymentState::UNKNOWN));
     }
 
     public function test_payment_states_block_reservation_release_when_uncertain_or_final(): void
@@ -51,6 +53,7 @@ class StateTransitionTest extends TestCase
         $this->assertFalse(OrderStatus::PAYMENT_REVIEW->canTransitionTo(OrderStatus::EXPIRED));
 
         $this->assertFalse(OrderStatus::PAID->canTransitionTo(OrderStatus::REJECTED));
+        $this->assertTrue(OrderStatus::PAID->canTransitionTo(OrderStatus::REQUIRES_REFUND));
         $this->assertFalse(OrderStatus::REJECTED->canTransitionTo(OrderStatus::PAID));
         $this->assertTrue(OrderStatus::REJECTED->canTransitionTo(OrderStatus::REQUIRES_REFUND));
         $this->assertFalse(OrderStatus::REJECTED->canTransitionTo(OrderStatus::PENDING_PAYMENT));

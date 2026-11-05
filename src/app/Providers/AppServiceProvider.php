@@ -4,6 +4,7 @@ namespace App\Providers;
 
 use App\Modules\Payments\Contracts\PaymentGateway;
 use App\Modules\Payments\Gateways\FakePaymentGateway;
+use App\Modules\Payments\Gateways\MercadoPagoGateway;
 use Illuminate\Support\ServiceProvider;
 use InvalidArgumentException;
 use RuntimeException;
@@ -20,6 +21,13 @@ class AppServiceProvider extends ServiceProvider
 
             return match ($driver) {
                 'fake' => new FakePaymentGateway,
+                'mercadopago' => new MercadoPagoGateway(
+                    accessToken: (string) config('mercadopago.access_token'),
+                    sandbox: (bool) config('mercadopago.sandbox'),
+                    baseUrl: (string) config('mercadopago.base_url'),
+                    timeout: (int) config('mercadopago.timeout'),
+                    webhookSecret: (string) config('mercadopago.webhook_secret'),
+                ),
                 default => throw new InvalidArgumentException(
                     "Unsupported payment gateway driver [{$driver}].",
                 ),

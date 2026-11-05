@@ -1,6 +1,12 @@
 import { useCallback, useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { api, apiErrorMessage } from '../../api/client'
+import Alert from '../../components/ui/Alert'
+import Button from '../../components/ui/Button'
+import EmptyState from '../../components/ui/EmptyState'
+import PageHeader from '../../components/ui/PageHeader'
+import Skeleton from '../../components/ui/Skeleton'
+import StatusPill from '../../components/ui/StatusPill'
 import { formatCents } from '../../lib/format'
 import type { PaginatedResponse, Raffle, RaffleStatus } from '../../types'
 
@@ -71,81 +77,107 @@ export default function AdminRafflesPage() {
 
   return (
     <section>
-      <header className="page-header">
-        <div>
-          <h1>Administración de rifas</h1>
-          <p className="muted">
-            Crea, edita, publica y cierra rifas. Solo los borradores se pueden editar o eliminar.
+      <PageHeader
+        eyebrow="Administración"
+        title="Administración de rifas"
+        description="Crea, edita, publica y cierra rifas. Solo los borradores se pueden editar o eliminar."
+        actions={
+          <Link className="button" to="/admin/raffles/new">
+            Nueva rifa
+          </Link>
+        }
+      />
+
+      {error && <Alert tone="danger">{error}</Alert>}
+
+      {loading && raffles.length === 0 && (
+        <>
+          <p className="ui-sr-only" role="status">
+            Cargando rifas…
           </p>
-        </div>
-        <Link className="button" to="/admin/raffles/new">
-          Nueva rifa
-        </Link>
-      </header>
+          <div className="admin-skeleton" aria-hidden="true">
+            {[0, 1, 2].map((row) => (
+              <Skeleton key={row} height={72} radius={16} />
+            ))}
+          </div>
+        </>
+      )}
 
-      {error && <p className="alert">{error}</p>}
-      {loading && <p className="muted">Cargando rifas…</p>}
-
-      {!loading && raffles.length === 0 && <p className="muted">No hay rifas creadas.</p>}
+      {!loading && raffles.length === 0 && (
+        <EmptyState
+          title="No hay rifas creadas."
+          description="Crea la primera rifa para publicar números y empezar a recibir reservas."
+          action={
+            <Link className="button" to="/admin/raffles/new">
+              Nueva rifa
+            </Link>
+          }
+        />
+      )}
 
       {raffles.length > 0 && (
-        <div className="table-wrapper">
+        <div className="table-wrapper admin-table">
           <table>
+            <caption className="ui-sr-only">Rifas creadas</caption>
             <thead>
               <tr>
-                <th>Título</th>
-                <th>Estado</th>
-                <th>Precio</th>
-                <th>Rango</th>
-                <th>Números</th>
-                <th>Acciones</th>
+                <th scope="col">Rifa</th>
+                <th scope="col">Estado</th>
+                <th scope="col">Precio</th>
+                <th scope="col">Rango</th>
+                <th scope="col">Números</th>
+                <th scope="col">Acciones</th>
               </tr>
             </thead>
             <tbody>
               {raffles.map((raffle) => (
                 <tr key={raffle.id}>
-                  <td>{raffle.title}</td>
-                  <td>
-                    <span className={`status ${raffle.status.toLowerCase()}`}>
-                      {statusLabels[raffle.status]}
-                    </span>
+                  <td className="admin-cell-title" data-label="Rifa">
+                    {raffle.title}
                   </td>
-                  <td>{formatCents(raffle.price_per_number)}</td>
-                  <td>
+                  <td data-label="Estado">
+                    <StatusPill
+                      status={raffle.status}
+                      label={statusLabels[raffle.status]}
+                    />
+                  </td>
+                  <td data-label="Precio">{formatCents(raffle.price_per_number)}</td>
+                  <td data-label="Rango">
                     {raffle.min_number} – {raffle.max_number}
                   </td>
-                  <td>{raffle.numbers_count ?? raffle.total_numbers}</td>
-                  <td className="actions">
+                  <td data-label="Números">{raffle.numbers_count ?? raffle.total_numbers}</td>
+                  <td className="actions" data-label="Acciones">
                     {raffle.status === 'DRAFT' && (
                       <>
-                        <Link className="button" to={`/admin/raffles/${raffle.id}/edit`}>
+                        <Link className="button btn-secondary" to={`/admin/raffles/${raffle.id}/edit`}>
                           Editar
                         </Link>
-                        <button
-                          type="button"
+                        <Button
+                          size="sm"
                           disabled={busyId === raffle.id}
                           onClick={() => void transition(raffle.id, 'publish')}
                         >
                           Publicar
-                        </button>
-                        <button
-                          type="button"
-                          className="danger"
+                        </Button>
+                        <Button
+                          variant="danger"
+                          size="sm"
                           disabled={busyId === raffle.id}
                           onClick={() => void remove(raffle.id)}
                         >
                           Eliminar
-                        </button>
+                        </Button>
                       </>
                     )}
                     {raffle.status === 'PUBLISHED' && (
-                      <button
-                        type="button"
+                      <Button
+                        variant="secondary"
+                        size="sm"
                         disabled={busyId === raffle.id}
                         onClick={() => void transition(raffle.id, 'close')}
                       >
                         Cerrar
-                      </button>
+                      </Button>
                     )}
                   </td>
                 </tr>
@@ -153,6 +185,12 @@ export default function AdminRafflesPage() {
             </tbody>
           </table>
         </div>
+      )}
+
+      {loading && raffles.length > 0 && (
+        <p className="ui-sr-only" role="status">
+          Actualizando rifas…
+        </p>
       )}
     </section>
   )

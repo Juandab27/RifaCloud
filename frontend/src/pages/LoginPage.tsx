@@ -2,6 +2,10 @@ import { useState, type FormEvent } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { apiErrorMessage } from '../api/client'
 import { useAuth } from '../auth/AuthContext'
+import AuthShell from '../components/AuthShell'
+import Alert from '../components/ui/Alert'
+import Button from '../components/ui/Button'
+import Field from '../components/ui/Field'
 
 export default function LoginPage() {
   const { login } = useAuth()
@@ -27,15 +31,20 @@ export default function LoginPage() {
   }
 
   return (
-    <section className="card narrow">
-      <h1>Ingresar</h1>
-      <p className="muted">Accede para comprar números y ver tus órdenes.</p>
+    <AuthShell
+      eyebrow="Acceso"
+      title="Ingresar"
+      description="Accede para comprar números y ver tus órdenes."
+      footer={
+        <p className="auth-switch">
+          ¿No tienes cuenta? <Link to="/register">Regístrate</Link>
+        </p>
+      }
+    >
+      {error && <Alert tone="danger">{error}</Alert>}
 
-      {error && <p className="alert">{error}</p>}
-
-      <form onSubmit={handleSubmit} className="form">
-        <label>
-          Correo electrónico
+      <form onSubmit={handleSubmit} className="form auth-form">
+        <Field label="Correo electrónico" required>
           <input
             type="email"
             value={email}
@@ -43,10 +52,9 @@ export default function LoginPage() {
             required
             autoComplete="email"
           />
-        </label>
+        </Field>
 
-        <label>
-          Contraseña
+        <Field label="Contraseña" required>
           <input
             type="password"
             value={password}
@@ -54,16 +62,12 @@ export default function LoginPage() {
             required
             autoComplete="current-password"
           />
-        </label>
+        </Field>
 
-        <button type="submit" disabled={submitting}>
+        <Button type="submit" block loading={submitting}>
           {submitting ? 'Ingresando…' : 'Ingresar'}
-        </button>
+        </Button>
       </form>
-
-      <p className="muted">
-        ¿No tienes cuenta? <Link to="/register">Regístrate</Link>
-      </p>
-    </section>
+    </AuthShell>
   )
 }

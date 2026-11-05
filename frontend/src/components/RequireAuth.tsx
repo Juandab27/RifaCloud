@@ -1,15 +1,12 @@
 import { Navigate, Outlet } from 'react-router-dom'
 import { useAuth } from '../auth/AuthContext'
+import RouteLoading from './RouteLoading'
 
-/**
- * Blocks private customer routes on the client. The backend still enforces
- * authentication and ownership for every order endpoint.
- */
 export default function RequireAuth() {
   const { user, loading } = useAuth()
 
   if (loading) {
-    return <p className="muted">Cargando…</p>
+    return <RouteLoading label="Comprobando sesión…" />
   }
 
   if (!user) {

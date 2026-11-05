@@ -20,7 +20,14 @@ interface PaymentGateway
     public function verifyPayment(string $externalId): PaymentStatus;
 
     /**
+     * Validate the provider signature and return an authoritative event.
+     *
+     * The payload and headers are never trusted by themselves: drivers must
+     * obtain the payment state from the provider API before returning a
+     * PaymentStatus.
+     *
      * @param  array<string, mixed>  $payload
+     * @param  array<string, string>  $headers  Lower-cased header names
      */
-    public function parseWebhook(array $payload): WebhookEvent;
+    public function parseWebhook(array $payload, array $headers = []): WebhookEvent;
 }

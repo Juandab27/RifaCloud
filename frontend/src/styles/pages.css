@@ -1,0 +1,628 @@
+/* ==========================================================================
+   RifaCloud — Estilos de página
+   Datos de rifa, grilla de números y barra de reserva, cuenta regresiva y
+   panel de pago. Todos los selectores existentes se conservan.
+   ========================================================================== */
+
+/* --- Datos clave --------------------------------------------------------- */
+.facts {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--sp-4);
+  margin: var(--sp-4) 0 var(--sp-5);
+}
+
+.facts dt {
+  color: var(--text-3);
+  font-size: var(--fs-2xs);
+  font-weight: 600;
+  letter-spacing: var(--tracking-label);
+  text-transform: uppercase;
+}
+
+.facts dd {
+  margin: var(--sp-1) 0 0;
+  color: var(--text);
+  font-family: var(--font-display);
+  font-size: var(--fs-lg);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+/* --- Selección de números ------------------------------------------------ */
+.number-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(58px, 1fr));
+  gap: var(--sp-2);
+  margin: var(--sp-4) 0 var(--sp-5);
+}
+
+.number {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  padding: 0.5rem 0.25rem;
+  background: var(--bg-2);
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  color: var(--text);
+  font-size: var(--fs-sm);
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+  transition:
+    background var(--t-fast),
+    border-color var(--t-fast),
+    color var(--t-fast),
+    transform var(--t-fast);
+}
+
+.number.available {
+  background: var(--success-soft);
+  border-color: var(--success-line);
+  color: var(--success-text);
+}
+
+.number.reserved {
+  background: var(--warning-soft);
+  border-color: var(--warning-line);
+  color: var(--warning-text);
+}
+
+.number.sold {
+  background: rgba(255, 255, 255, 0.03);
+  border-color: var(--line);
+  color: var(--text-3);
+}
+
+.legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-2);
+}
+
+button.number {
+  font-weight: 500;
+}
+
+button.number:disabled {
+  opacity: 1;
+  cursor: not-allowed;
+}
+
+button.number.available:hover:not(:disabled) {
+  background: var(--accent-soft);
+  border-color: var(--accent-line);
+  color: var(--accent-hi);
+  transform: translateY(-1px);
+}
+
+button.number.selected {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--accent-ink);
+  box-shadow: var(--shadow-accent);
+}
+
+button.number.selected:hover:not(:disabled) {
+  background: var(--accent-hi);
+  border-color: var(--accent-hi);
+  color: var(--accent-ink);
+}
+
+/* --- Barra de reserva ---------------------------------------------------- */
+.selection-bar {
+  position: sticky;
+  bottom: var(--sp-2);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: var(--sp-4);
+  margin-top: var(--sp-5);
+  padding: var(--sp-4) var(--sp-5);
+  background: rgba(21, 24, 34, 0.92);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--r-lg);
+  box-shadow: var(--shadow-2);
+  backdrop-filter: blur(12px);
+}
+
+.selection-detail {
+  margin: var(--sp-1) 0 0;
+  font-size: var(--fs-sm);
+}
+
+.selection-actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--sp-3);
+}
+
+/* --- Reserva y cuenta regresiva ------------------------------------------ */
+.reservation-countdown {
+  text-align: center;
+}
+
+.countdown {
+  margin: var(--sp-1) 0;
+  color: var(--accent);
+  font-family: var(--font-display);
+  font-size: 2.5rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: var(--tracking-tight);
+}
+
+/* --- Panel de pago ------------------------------------------------------- */
+.payment-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-3);
+  margin-top: var(--sp-4);
+}
+
+.payment-note {
+  margin-bottom: 0;
+  font-size: var(--fs-sm);
+}
+
+/* --- Ajustes de página en pantallas pequeñas ----------------------------- */
+@media (max-width: 640px) {
+  .facts {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: var(--sp-3);
+  }
+
+  .number-grid {
+    grid-template-columns: repeat(auto-fill, minmax(48px, 1fr));
+    gap: var(--sp-1);
+  }
+
+  .selection-bar {
+    position: static;
+    flex-direction: column;
+    align-items: stretch;
+    padding: var(--sp-4);
+  }
+
+  .selection-actions {
+    justify-content: space-between;
+  }
+
+  .selection-actions button,
+  .selection-actions .button {
+    flex: 1 1 auto;
+  }
+
+  .countdown {
+    font-size: 2rem;
+  }
+}
+
+/* En pantallas táctiles los enlaces de vuelta recuperan el área mínima de
+   44 px también en tablet (641–820 px), donde no aplica el bloque anterior. */
+@media (max-width: 820px), (pointer: coarse) {
+  .back-link a {
+    display: inline-flex;
+    align-items: center;
+    min-height: 44px;
+  }
+}
+
+/* --- Autenticación (B3) -------------------------------------------------- */
+.auth-shell-panel h1 {
+  margin-bottom: var(--sp-1);
+  font-size: var(--fs-xl);
+}
+
+.auth-form {
+  gap: var(--sp-3);
+  margin-top: var(--sp-4);
+}
+
+.auth-form button[type='submit'] {
+  margin-top: var(--sp-2);
+}
+
+.auth-switch {
+  margin: 0;
+}
+
+.auth-shell-panel .alert {
+  margin-bottom: var(--sp-4);
+}
+
+/* --- Catálogo (B4) ------------------------------------------------------- */
+.raffle-card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-3);
+  min-width: 0;
+  margin-bottom: 0;
+  transition:
+    border-color var(--t-base),
+    box-shadow var(--t-base),
+    transform var(--t-base);
+}
+
+@media (hover: hover) {
+  .raffle-card:hover {
+    border-color: var(--line-strong);
+    box-shadow: var(--shadow-2);
+    transform: translateY(-2px);
+  }
+}
+
+.raffle-card-skeleton {
+  pointer-events: none;
+}
+
+.raffle-card-top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--sp-3);
+}
+
+.raffle-card-title {
+  margin: 0;
+  font-size: var(--fs-lg);
+  overflow-wrap: anywhere;
+}
+
+.raffle-card-description {
+  display: -webkit-box;
+  margin: 0;
+  overflow: hidden;
+  color: var(--text-2);
+  font-size: var(--fs-md);
+  overflow-wrap: anywhere;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+  line-clamp: 3;
+}
+
+.raffle-card-meta {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: var(--sp-3);
+  margin: 0;
+  padding-top: var(--sp-3);
+  border-top: 1px solid var(--line);
+}
+
+.raffle-card-meta > div:first-child {
+  grid-column: 1 / -1;
+}
+
+.raffle-card-meta dt {
+  color: var(--text-3);
+  font-size: var(--fs-2xs);
+  font-weight: 600;
+  letter-spacing: var(--tracking-label);
+  text-transform: uppercase;
+}
+
+.raffle-card-meta dd {
+  margin: var(--sp-1) 0 0;
+  color: var(--text);
+  font-size: var(--fs-md);
+  font-variant-numeric: tabular-nums;
+}
+
+.raffle-card-meta .raffle-price {
+  color: var(--accent);
+  font-family: var(--font-display);
+  font-size: var(--fs-xl);
+  font-weight: 700;
+  letter-spacing: var(--tracking-tight);
+}
+
+.raffle-card-cta {
+  width: 100%;
+  margin-top: auto;
+}
+
+/* --- Página no encontrada (B4) ------------------------------------------- */
+.not-found {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--sp-3);
+  padding: var(--sp-8) var(--sp-4);
+  text-align: center;
+}
+
+.not-found h1 {
+  margin: 0;
+}
+
+.not-found .muted {
+  max-width: 42ch;
+  margin: 0;
+}
+
+.not-found .button {
+  margin-top: var(--sp-2);
+}
+
+/* --- Detalle de rifa (B5) ------------------------------------------------ */
+.back-link {
+  margin-bottom: var(--sp-3);
+  font-size: var(--fs-md);
+}
+
+.raffle-hero {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-3);
+  margin-bottom: var(--sp-5);
+}
+
+.raffle-hero-head {
+  display: flex;
+  align-items: flex-start;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: var(--sp-3);
+}
+
+.raffle-hero-head h1 {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.raffle-hero-description {
+  max-width: 70ch;
+  margin: 0;
+  color: var(--text-2);
+  overflow-wrap: anywhere;
+}
+
+.raffle-facts {
+  margin: var(--sp-2) 0 0;
+}
+
+.raffle-facts .raffle-price {
+  color: var(--accent);
+  font-family: var(--font-display);
+  letter-spacing: var(--tracking-tight);
+}
+
+/* --- Panel de números ---------------------------------------------------- */
+.numbers-panel {
+  padding: var(--sp-5);
+  background: var(--bg-1);
+  border: 1px solid var(--line);
+  border-radius: var(--r-lg);
+  box-shadow: var(--shadow-1);
+}
+
+.numbers-panel-head {
+  display: flex;
+  align-items: flex-start;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: var(--sp-3);
+  margin-bottom: var(--sp-4);
+}
+
+.numbers-panel-head h2 {
+  margin: 0 0 var(--sp-1);
+  font-size: var(--fs-lg);
+}
+
+.numbers-panel-head .muted {
+  max-width: 60ch;
+  margin: 0;
+  font-size: var(--fs-md);
+}
+
+.number-skeleton {
+  min-height: 44px;
+  border-radius: var(--r-md);
+}
+
+button.number {
+  position: relative;
+}
+
+/* Los números disponibles se distinguen por forma y borde, no solo por color. */
+button.number.available {
+  background: var(--bg-2);
+  border-color: var(--line-strong);
+  color: var(--text);
+}
+
+button.number.reserved {
+  border-style: dashed;
+}
+
+/* Vendido: se indica con una marca en la esquina, no con un tachado que
+   vuelve ilegible el propio número (p. ej. el "1"). */
+button.number.sold {
+  color: var(--text-3);
+}
+
+button.number.sold::after {
+  content: '×';
+  position: absolute;
+  top: 2px;
+  right: 5px;
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 1;
+}
+
+button.number.selected {
+  font-weight: 700;
+}
+
+.number-check {
+  position: absolute;
+  top: 3px;
+  right: 5px;
+  font-size: 9px;
+  font-weight: 700;
+  line-height: 1;
+}
+
+/* --- Resumen de selección ------------------------------------------------ */
+.selection-info {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-1);
+  min-width: 0;
+}
+
+.selection-summary {
+  margin: 0;
+  font-size: var(--fs-base);
+}
+
+.selection-summary strong {
+  color: var(--text);
+}
+
+@media (max-width: 640px) {
+  .numbers-panel {
+    padding: var(--sp-4);
+  }
+
+  .numbers-panel-head {
+    flex-direction: column;
+  }
+
+  .raffle-facts .raffle-price {
+    font-size: var(--fs-lg);
+  }
+}
+
+/* --- Pedido y pago (B6) -------------------------------------------------- */
+.order-loading {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-4);
+}
+
+.order-hero {
+  display: flex;
+  align-items: flex-start;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: var(--sp-4);
+  margin-bottom: var(--sp-4);
+}
+
+.order-hero h1 {
+  margin: 0 0 var(--sp-2);
+  overflow-wrap: anywhere;
+}
+
+.order-hero-status {
+  display: flex;
+  align-items: flex-start;
+  flex-wrap: wrap;
+  gap: var(--sp-2) var(--sp-3);
+}
+
+.order-status-note {
+  max-width: 60ch;
+  margin: 0;
+  font-size: var(--fs-md);
+}
+
+.order-summary .facts {
+  margin: 0;
+}
+
+.order-summary .raffle-price {
+  color: var(--accent);
+  font-family: var(--font-display);
+  letter-spacing: var(--tracking-tight);
+}
+
+.order-expires {
+  margin: var(--sp-3) 0 0;
+  padding-top: var(--sp-3);
+  border-top: 1px solid var(--line);
+  font-size: var(--fs-sm);
+}
+
+.payment-panel-head {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: var(--sp-2);
+  margin-bottom: var(--sp-4);
+}
+
+.payment-panel-head h2 {
+  margin: 0;
+  font-size: var(--fs-lg);
+}
+
+.payment-meta {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: var(--sp-3);
+  margin: 0 0 var(--sp-3);
+  padding: var(--sp-3) 0;
+  border-top: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+}
+
+.payment-meta dt {
+  color: var(--text-3);
+  font-size: var(--fs-2xs);
+  font-weight: 600;
+  letter-spacing: var(--tracking-label);
+  text-transform: uppercase;
+}
+
+.payment-meta dd {
+  margin: var(--sp-1) 0 0;
+  color: var(--text);
+  font-size: var(--fs-md);
+  overflow-wrap: anywhere;
+}
+
+.order-numbers-head {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: var(--sp-2);
+  margin-bottom: var(--sp-2);
+}
+
+.order-numbers-head h2 {
+  margin: 0;
+  font-size: var(--fs-lg);
+}
+
+.order-numbers .number-grid {
+  margin-bottom: 0;
+}
+
+.order-numbers .number-grid:empty {
+  display: none;
+}
+
+.order-numbers .number {
+  min-width: 0;
+}
+
+/* En una orden el número es el dato principal: se muestra legible, sin el
+   tratamiento atenuado que usa la grilla para los números no disponibles. */
+.order-numbers .number.sold {
+  background: var(--bg-2);
+  border-color: var(--line-strong);
+  color: var(--text);
+  font-size: var(--fs-md);
+  font-weight: 600;
+}
+

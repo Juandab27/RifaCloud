@@ -17,7 +17,10 @@ enum PaymentState: string
      * may only move to a final result after a later server-side verification.
      * PENDING may refresh itself when the provider still reports PENDING. A
      * REJECTED payment may still move to REFUND_REQUIRED if a late provider
-     * approval is discovered; it can never move back to a sale.
+     * approval is discovered; it can never move back to a sale. An APPROVED
+     * payment may move to REFUND_REQUIRED when the provider later reports a
+     * refund, chargeback or mediation: the sale is preserved as evidence and
+     * the incident requires manual resolution.
      *
      * @return list<self>
      */
@@ -27,7 +30,8 @@ enum PaymentState: string
             self::PENDING => [self::PENDING, self::APPROVED, self::REJECTED, self::UNKNOWN, self::REFUND_REQUIRED],
             self::UNKNOWN => [self::APPROVED, self::REJECTED, self::REFUND_REQUIRED],
             self::REJECTED => [self::REFUND_REQUIRED],
-            self::APPROVED, self::REFUND_REQUIRED => [],
+            self::APPROVED => [self::REFUND_REQUIRED],
+            self::REFUND_REQUIRED => [],
         };
     }
 

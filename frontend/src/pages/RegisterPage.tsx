@@ -2,6 +2,10 @@ import { useState, type FormEvent } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { apiErrorMessage } from '../api/client'
 import { useAuth } from '../auth/AuthContext'
+import AuthShell from '../components/AuthShell'
+import Alert from '../components/ui/Alert'
+import Button from '../components/ui/Button'
+import Field from '../components/ui/Field'
 
 export default function RegisterPage() {
   const { register } = useAuth()
@@ -36,25 +40,29 @@ export default function RegisterPage() {
   }
 
   return (
-    <section className="card narrow">
-      <h1>Crear cuenta</h1>
-      <p className="muted">Solo necesitamos tu nombre, correo y teléfono.</p>
+    <AuthShell
+      eyebrow="Nueva cuenta"
+      title="Crear cuenta"
+      description="Solo necesitamos tu nombre, correo y teléfono."
+      footer={
+        <p className="auth-switch">
+          ¿Ya tienes cuenta? <Link to="/login">Ingresa</Link>
+        </p>
+      }
+    >
+      {error && <Alert tone="danger">{error}</Alert>}
 
-      {error && <p className="alert">{error}</p>}
-
-      <form onSubmit={handleSubmit} className="form">
-        <label>
-          Nombre completo
+      <form onSubmit={handleSubmit} className="form auth-form">
+        <Field label="Nombre completo" required>
           <input
             value={form.name}
             onChange={(event) => update('name', event.target.value)}
             required
             autoComplete="name"
           />
-        </label>
+        </Field>
 
-        <label>
-          Correo electrónico
+        <Field label="Correo electrónico" required>
           <input
             type="email"
             value={form.email}
@@ -62,10 +70,9 @@ export default function RegisterPage() {
             required
             autoComplete="email"
           />
-        </label>
+        </Field>
 
-        <label>
-          Teléfono
+        <Field label="Teléfono" required>
           <input
             value={form.phone}
             onChange={(event) => update('phone', event.target.value)}
@@ -73,10 +80,9 @@ export default function RegisterPage() {
             autoComplete="tel"
             maxLength={20}
           />
-        </label>
+        </Field>
 
-        <label>
-          Contraseña
+        <Field label="Contraseña" required hint="Mínimo 8 caracteres.">
           <input
             type="password"
             value={form.password}
@@ -85,10 +91,9 @@ export default function RegisterPage() {
             minLength={8}
             autoComplete="new-password"
           />
-        </label>
+        </Field>
 
-        <label>
-          Confirmar contraseña
+        <Field label="Confirmar contraseña" required hint="Debe coincidir con la contraseña.">
           <input
             type="password"
             value={form.password_confirmation}
@@ -97,16 +102,12 @@ export default function RegisterPage() {
             minLength={8}
             autoComplete="new-password"
           />
-        </label>
+        </Field>
 
-        <button type="submit" disabled={submitting}>
+        <Button type="submit" block loading={submitting}>
           {submitting ? 'Creando cuenta…' : 'Registrarme'}
-        </button>
+        </Button>
       </form>
-
-      <p className="muted">
-        ¿Ya tienes cuenta? <Link to="/login">Ingresa</Link>
-      </p>
-    </section>
+    </AuthShell>
   )
 }

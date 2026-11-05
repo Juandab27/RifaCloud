@@ -3,8 +3,19 @@ import { useEffect, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { api, apiErrorMessage } from '../api/client'
 import { useAuth } from '../auth/AuthContext'
+import Alert from '../components/ui/Alert'
+import Badge from '../components/ui/Badge'
+import Button from '../components/ui/Button'
+import Skeleton from '../components/ui/Skeleton'
+import StatusPill from '../components/ui/StatusPill'
 import { formatCents } from '../lib/format'
 import type { NumberAvailabilityResponse, Order, Raffle } from '../types'
+
+const NUMBER_STATE_LABEL = {
+  AVAILABLE: 'disponible',
+  RESERVED: 'reservado',
+  SOLD: 'vendido',
+} as const
 
 export default function RaffleDetailPage() {
   const { raffleId } = useParams()
@@ -136,7 +147,7 @@ export default function RaffleDetailPage() {
   if (error && !raffle) {
     return (
       <section className="card narrow">
-        <p className="alert">{error}</p>
+        <Alert tone="danger">{error}</Alert>
         <Link to="/">Volver al catálogo</Link>
       </section>
     )
@@ -146,123 +157,180 @@ export default function RaffleDetailPage() {
 
   return (
     <section>
-      <p>
+      <p className="back-link">
         <Link to="/">← Volver al catálogo</Link>
       </p>
 
       {raffle && (
-        <header className="page-header">
-          <div>
+        <header className="raffle-hero">
+          <div className="raffle-hero-head">
             <h1>{raffle.title}</h1>
-            {raffle.description && <p>{raffle.description}</p>}
-            <p className="muted">
-              {formatCents(raffle.price_per_number)} por número · Rango {raffle.min_number}–
-              {raffle.max_number}
-            </p>
+            <StatusPill status={raffle.status} />
           </div>
+
+          {raffle.description && (
+            <p className="raffle-hero-description">{raffle.description}</p>
+          )}
+
+          <dl className="facts raffle-facts">
+            <div>
+              <dt>Precio por número</dt>
+              <dd className="raffle-price">{formatCents(raffle.price_per_number)}</dd>
+            </div>
+            <div>
+              <dt>Rango de números</dt>
+              <dd>
+                {raffle.min_number} – {raffle.max_number}
+              </dd>
+            </div>
+            <div>
+              <dt>Total de números</dt>
+              <dd>{raffle.total_numbers}</dd>
+            </div>
+          </dl>
         </header>
       )}
 
-      {error && <p className="alert">{error}</p>}
+      {error && <Alert tone="danger">{error}</Alert>}
 
-      {numbers && (
-        <p className="legend">
-          <span className="badge available">Disponibles: {numbers.meta.counts.available}</span>
-          <span className="badge reserved">Reservados: {numbers.meta.counts.reserved}</span>
-          <span className="badge sold">Vendidos: {numbers.meta.counts.sold}</span>
-        </p>
-      )}
-
-      {loading && <p className="muted">Cargando números…</p>}
-
-      {numbers && (
-        <>
-          <div className="number-grid">
-            {numbers.data.map((item) => {
-              const selected = selectedNumbers.includes(item.number)
-
-              return (
-                <button
-                  key={item.id}
-                  type="button"
-                  className={`number ${item.status.toLowerCase()}${selected ? ' selected' : ''}`}
-                  disabled={item.status !== 'AVAILABLE'}
-                  aria-pressed={selected}
-                  aria-label={`Número ${item.number}`}
-                  onClick={() => toggleNumber(item.number)}
-                >
-                  {item.number}
-                </button>
-              )
-            })}
+      <section
+        className="numbers-panel"
+        aria-labelledby="numbers-heading"
+        aria-busy={loading}
+      >
+        <header className="numbers-panel-head">
+          <div>
+            <h2 id="numbers-heading">Elige tus números</h2>
+            <p className="muted">
+              Toca los números disponibles. Cada estado se indica con su etiqueta y su forma,
+              no solo con color.
+            </p>
           </div>
 
-          <div className="pagination">
-            <button
-              type="button"
-              disabled={page <= 1}
-              onClick={() => setPage((current) => Math.max(current - 1, 1))}
-            >
-              Anterior
-            </button>
-            <span className="muted">
-              Página {numbers.meta.current_page} de {numbers.meta.last_page}
-            </span>
-            <button
-              type="button"
-              disabled={page >= numbers.meta.last_page}
-              onClick={() => setPage((current) => current + 1)}
-            >
-              Siguiente
-            </button>
-          </div>
+          {numbers && (
+            <div className="legend">
+              <Badge tone="success">Disponibles: {numbers.meta.counts.available}</Badge>
+              <Badge tone="warning">Reservados: {numbers.meta.counts.reserved}</Badge>
+              <Badge tone="neutral">Vendidos: {numbers.meta.counts.sold}</Badge>
+            </div>
+          )}
+        </header>
 
-          <div className="selection-bar">
-            <div>
-              <strong>
-                {selectedNumbers.length} {selectedNumbers.length === 1 ? 'número' : 'números'}
-              </strong>{' '}
-              <span className="muted">· Total {formatCents(totalAmount)}</span>
-              <p className="muted selection-detail">
-                {selectedNumbers.length === 0
-                  ? 'Selecciona uno o más números disponibles.'
-                  : `Seleccionados: ${selectedNumbers.join(', ')}`}
-              </p>
-              <p className="muted selection-detail">
-                La reserva es temporal ({raffle?.reservation_minutes ?? 10} minutos); los números
-                se liberan si no se completa el pago. Máximo {raffle?.max_numbers_per_order ?? 50}{' '}
-                números por orden.
-              </p>
+        {loading && !numbers && (
+          <>
+            <p className="ui-sr-only" role="status">
+              Cargando números…
+            </p>
+            <div className="number-grid" aria-hidden="true">
+              {Array.from({ length: 24 }, (_, index) => (
+                <Skeleton key={index} className="number-skeleton" height={44} />
+              ))}
+            </div>
+          </>
+        )}
+
+        {numbers && (
+          <>
+            <div className="number-grid" role="group" aria-label="Números de la rifa">
+              {numbers.data.map((item) => {
+                const selected = selectedNumbers.includes(item.number)
+                const stateLabel = selected
+                  ? 'seleccionado'
+                  : NUMBER_STATE_LABEL[item.status]
+
+                return (
+                  <button
+                    key={item.id}
+                    type="button"
+                    className={`number ${item.status.toLowerCase()}${selected ? ' selected' : ''}`}
+                    disabled={item.status !== 'AVAILABLE'}
+                    aria-pressed={item.status === 'AVAILABLE' ? selected : undefined}
+                    aria-label={`Número ${item.number}, ${stateLabel}`}
+                    onClick={() => toggleNumber(item.number)}
+                  >
+                    {item.number}
+                    {selected && (
+                      <span className="number-check" aria-hidden="true">
+                        ✓
+                      </span>
+                    )}
+                  </button>
+                )
+              })}
             </div>
 
-            <div className="selection-actions">
-              {selectedNumbers.length > 0 && (
-                <button
-                  type="button"
-                  className="link-button"
-                  onClick={() => setSelectedNumbers([])}
-                >
-                  Limpiar
-                </button>
-              )}
-
-              {user ? (
-                <button
-                  type="button"
-                  disabled={selectedNumbers.length === 0 || submitting}
-                  onClick={handleReserve}
-                >
-                  {submitting ? 'Reservando…' : 'Reservar números'}
-                </button>
-              ) : (
-                <Link className="button" to="/login">
-                  Inicia sesión para reservar
-                </Link>
-              )}
+            <div className="pagination">
+              <Button
+                variant="secondary"
+                size="sm"
+                disabled={page <= 1}
+                onClick={() => setPage((current) => Math.max(current - 1, 1))}
+              >
+                Anterior
+              </Button>
+              <span className="muted">
+                Página {numbers.meta.current_page} de {numbers.meta.last_page}
+              </span>
+              <Button
+                variant="secondary"
+                size="sm"
+                disabled={page >= numbers.meta.last_page}
+                onClick={() => setPage((current) => current + 1)}
+              >
+                Siguiente
+              </Button>
             </div>
-          </div>
-        </>
-      )}
+
+            <div className="selection-bar" role="region" aria-label="Resumen de selección">
+              <div className="selection-info">
+                <p className="selection-summary" aria-live="polite">
+                  <strong>
+                    {selectedNumbers.length}{' '}
+                    {selectedNumbers.length === 1 ? 'número' : 'números'}
+                  </strong>{' '}
+                  <span className="muted">· Total {formatCents(totalAmount)}</span>
+                </p>
+                <p className="muted selection-detail">
+                  {selectedNumbers.length === 0
+                    ? 'Selecciona uno o más números disponibles.'
+                    : `Seleccionados: ${selectedNumbers.join(', ')}`}
+                </p>
+                <p className="muted selection-detail">
+                  La reserva es temporal ({raffle?.reservation_minutes ?? 10} minutos); los
+                  números se liberan si no se completa el pago. Máximo{' '}
+                  {raffle?.max_numbers_per_order ?? 50} números por orden.
+                </p>
+              </div>
+
+              <div className="selection-actions">
+                {selectedNumbers.length > 0 && (
+                  <button
+                    type="button"
+                    className="link-button"
+                    onClick={() => setSelectedNumbers([])}
+                  >
+                    Limpiar
+                  </button>
+                )}
+
+                {user ? (
+                  <Button
+                    onClick={handleReserve}
+                    disabled={selectedNumbers.length === 0 || submitting}
+                    loading={submitting}
+                  >
+                    {submitting ? 'Reservando…' : 'Reservar números'}
+                  </Button>
+                ) : (
+                  <Link className="button" to="/login">
+                    Inicia sesión para reservar
+                  </Link>
+                )}
+              </div>
+            </div>
+          </>
+        )}
+      </section>
     </section>
   )
 }
