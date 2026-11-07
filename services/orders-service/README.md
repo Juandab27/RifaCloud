@@ -21,12 +21,20 @@ de reservas.
 | Método | Ruta | Contrato |
 |---|---|---|
 | POST | `/api/orders` | Crea la orden y reserva los números en una sola transacción |
+| GET | `/api/orders` | Historial de compras del usuario autenticado (`page`, `per_page`) |
 | GET | `/api/orders/{id}` | Detalle de la orden del usuario autenticado |
 | POST | `/internal/orders/expire-reservations` | Comando interno firmado (nunca expuesto por Nginx) |
 | GET | `/health` | Salud del proceso y conectividad a MySQL (interno) |
 
 Todo lo demás (`/api/orders/{id}/payments*`, checkout, verificación, webhooks)
 pertenece al monolito hasta S4.
+
+`GET /api/orders` devuelve `{data, meta}` con las órdenes del usuario
+autenticado, más recientes primero (`per_page` por defecto 10, máximo 50). Cada
+entrada reutiliza el contrato de `OrderResource` (rifa, números con su estado
+real, número/ID de orden, total, `created_at`/`paid_at` y pagos). Solo los
+números `SOLD` representan una compra; `RESERVED` y `AVAILABLE` se muestran como
+reservados/disponibles.
 
 ## Autenticación y autorización
 

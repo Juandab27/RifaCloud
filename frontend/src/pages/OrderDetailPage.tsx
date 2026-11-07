@@ -9,38 +9,18 @@ import Card from '../components/ui/Card'
 import Skeleton from '../components/ui/Skeleton'
 import StatusPill from '../components/ui/StatusPill'
 import { formatCents, formatDate } from '../lib/format'
-import type { Order, OrderStatus, Payment, PaymentState } from '../types'
+import {
+  NUMBER_STATUS_LABELS,
+  ORDER_STATUS_HINT,
+  ORDER_STATUS_LABELS,
+  PAYMENT_STATUS_LABELS,
+  numbersHeading,
+  numbersSummary,
+} from '../lib/orders'
+import type { Order, Payment } from '../types'
 
-const STATUS_LABELS: Record<OrderStatus, string> = {
-  PENDING_PAYMENT: 'Pago pendiente',
-  PAID: 'Pagada',
-  REJECTED: 'Rechazada',
-  EXPIRED: 'Expirada',
-  PAYMENT_REVIEW: 'En revisión de pago',
-  REQUIRES_REFUND: 'Requiere reembolso',
-}
-
-const ORDER_STATUS_HINT: Record<OrderStatus, string> = {
-  PENDING_PAYMENT:
-    'Los números siguen reservados hasta que venza el plazo o se confirme el pago.',
-  PAID: 'El pago fue aprobado y los números quedaron vendidos.',
-  REJECTED: 'El pago fue rechazado y los números fueron liberados.',
-  EXPIRED: 'La reserva venció sin pago confirmado; los números volvieron a estar disponibles.',
-  PAYMENT_REVIEW:
-    'El resultado del pago es incierto. Un administrador debe resolver la incidencia; los números siguen reservados.',
-  REQUIRES_REFUND:
-    'El pago se confirmó, pero los números no pudieron asignarse. La orden requiere gestión de reembolso por un administrador.',
-}
-
-const PAYMENT_STATUS_LABELS: Record<PaymentState, string> = {
-  PENDING: 'Pago pendiente',
-  APPROVED: 'Pago aprobado',
-  REJECTED: 'Pago rechazado',
-  UNKNOWN: 'Resultado desconocido',
-  REFUND_REQUIRED: 'Reembolso requerido',
-}
-
-function useRemainingTime(expiresAt: string | null): string | null {  const [now, setNow] = useState(() => Date.now())
+function useRemainingTime(expiresAt: string | null): string | null {
+  const [now, setNow] = useState(() => Date.now())
 
   useEffect(() => {
     if (!expiresAt) {
@@ -380,10 +360,9 @@ export default function OrderDetailPage() {
   return (
     <section>
       <p className="back-link">
-        {order.raffle ? (
-          <Link to={`/raffles/${order.raffle.id}`}>← Volver a {order.raffle.title}</Link>
-        ) : (
-          <Link to="/">← Volver al catálogo</Link>
+        <Link to="/orders">← Mis compras</Link>
+        {order.raffle && (
+          <Link to={`/raffles/${order.raffle.id}`}> · Volver a {order.raffle.title}</Link>
         )}
       </p>
 
@@ -402,7 +381,7 @@ export default function OrderDetailPage() {
           <p className="page-header-eyebrow">Orden</p>
           <h1>Orden {order.order_number}</h1>
           <div className="order-hero-status">
-            <StatusPill status={order.status} label={STATUS_LABELS[order.status]} />
+            <StatusPill status={order.status} label={ORDER_STATUS_LABELS[order.status]} />
             <span className="muted order-status-note">{ORDER_STATUS_HINT[order.status]}</span>
           </div>
         </div>
@@ -430,6 +409,12 @@ export default function OrderDetailPage() {
             <dt>Creada</dt>
             <dd>{formatDate(order.created_at)}</dd>
           </div>
+          {order.paid_at && (
+            <div>
+              <dt>Pagada</dt>
+              <dd>{formatDate(order.paid_at)}</dd>
+            </div>
+          )}
         </dl>
 
         {order.expires_at && (
@@ -577,9 +562,7 @@ export default function OrderDetailPage() {
 
       <Card className="order-numbers">
         <header className="order-numbers-head">
-          <h2>
-            {order.status === 'PENDING_PAYMENT' ? 'Números reservados' : 'Números de la orden'}
-          </h2>
+          <h2>{numbersHeading(order.status)}</h2>
           <span className="muted">
             {order.numbers?.length ?? 0}{' '}
             {(order.numbers?.length ?? 0) === 1 ? 'número' : 'números'}
@@ -588,11 +571,18 @@ export default function OrderDetailPage() {
 
         <div className="number-grid">
           {order.numbers?.map((item) => (
-            <span key={item.id} className={`number ${item.status.toLowerCase()}`}>
+            <span
+              key={item.id}
+              className={`number ${item.status.toLowerCase()}`}
+              title={`Número ${item.number}: ${NUMBER_STATUS_LABELS[item.status]}`}
+              aria-label={`Número ${item.number}: ${NUMBER_STATUS_LABELS[item.status]}`}
+            >
               {item.number}
             </span>
           ))}
         </div>
+
+        <p className="muted">{numbersSummary(order.numbers)}</p>
       </Card>
     </section>
   )

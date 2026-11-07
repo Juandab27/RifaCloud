@@ -139,9 +139,10 @@ function call(
     array $body = [],
     array $cookies = [],
     array $headers = [],
+    array $query = [],
 ): array {
     $raw = $body === [] ? '' : json_encode($body, JSON_THROW_ON_ERROR);
-    $response = $app->handle($method, $path, [], $headers, $cookies, $raw, 'http://localhost');
+    $response = $app->handle($method, $path, $query, $headers, $cookies, $raw, 'http://localhost');
 
     return ['status' => $response->status, 'payload' => $response->payload];
 }
@@ -518,6 +519,59 @@ try {
         'Anonymous GET returns 401',
     );
 
+    // ---- My purchases (list endpoint) ---------------------------------
+    $otherOrder = createOrder($app, $otherCookies, $publishedId, [4]);
+    $otherOrderId = (int) ($otherOrder['payload']['data']['id'] ?? 0);
+    check($otherOrder['status'] === 201, 'The other user can create an order');
+
+    $listOwn = call($app, 'GET', '/api/orders', [], $ownerCookies);
+    $listedIds = array_map(
+        static fn (array $order): int => (int) $order['id'],
+        $listOwn['payload']['data'] ?? [],
+    );
+    $firstEntry = $listOwn['payload']['data'][0] ?? [];
+
+    check($listOwn['status'] === 200, 'The owner can list their orders');
+    check(($listOwn['payload']['meta']['current_page'] ?? 0) === 1, 'The list meta starts at page 1');
+    check(($listOwn['payload']['meta']['per_page'] ?? 0) === 10, 'The list defaults to 10 per page');
+    check(($listOwn['payload']['meta']['total'] ?? 0) >= 2, 'The list reports the owner total');
+    check(count($listOwn['payload']['data'] ?? []) >= 2, 'The list returns several owner orders');
+    check(in_array($orderId, $listedIds, true), 'The list includes the existing order');
+    check(! in_array($otherOrderId, $listedIds, true), "The list does not include another user's order");
+    check(($firstEntry['order_number'] ?? '') !== '', 'The list entry includes the order number');
+    check(($firstEntry['status'] ?? '') !== '', 'The list entry includes the status');
+    check(($firstEntry['raffle']['title'] ?? '') !== '', 'The list entry includes the raffle title');
+    check(is_array($firstEntry['numbers'] ?? null), 'The list entry includes the numbers');
+    check(array_key_exists('paid_at', $firstEntry), 'The list entry includes paid_at');
+    check(array_key_exists('created_at', $firstEntry), 'The list entry includes created_at');
+    check($listedIds === array_values(array_unique($listedIds)), 'The list has no duplicate orders');
+
+    $pageOne = call($app, 'GET', '/api/orders', [], $ownerCookies, [], ['page' => 1, 'per_page' => 1]);
+    $pageTwo = call($app, 'GET', '/api/orders', [], $ownerCookies, [], ['page' => 2, 'per_page' => 1]);
+    $pageOneId = (int) ($pageOne['payload']['data'][0]['id'] ?? 0);
+    $pageTwoId = (int) ($pageTwo['payload']['data'][0]['id'] ?? 0);
+
+    check(count($pageOne['payload']['data'] ?? []) === 1, 'per_page=1 returns one order');
+    check(($pageOne['payload']['meta']['per_page'] ?? 0) === 1, 'The meta reflects per_page=1');
+    check(($pageOne['payload']['meta']['last_page'] ?? 0) >= 2, 'The meta reports multiple pages');
+    check($pageOneId > $pageTwoId, 'The list is newest first');
+    check($pageOneId !== $pageTwoId, 'Pagination does not repeat orders');
+
+    $clamped = call($app, 'GET', '/api/orders', [], $ownerCookies, [], ['per_page' => 100]);
+    check(($clamped['payload']['meta']['per_page'] ?? 0) === 50, 'per_page is clamped to 50');
+
+    $listOther = call($app, 'GET', '/api/orders', [], $otherCookies);
+    $otherIds = array_map(
+        static fn (array $order): int => (int) $order['id'],
+        $listOther['payload']['data'] ?? [],
+    );
+
+    check($listOther['status'] === 200, 'Another user can list their own orders');
+    check($otherIds === [$otherOrderId], "Another user's list contains only their order");
+    check(! in_array($orderId, $otherIds, true), "Another user's list does not include the owner's order");
+
+    check(call($app, 'GET', '/api/orders')['status'] === 401, 'Anonymous list returns 401');
+
     // ---- Real concurrency: two processes, same numbers ----------------
     $concurrencyRaffleId = $newRaffle('concurrency', max: 5);
     $lockPdo = Database::connect($database);
@@ -786,7 +840,8 @@ try {
     check(($paymentPayload['simulated'] ?? false) === true, 'response_data.simulated is preserved');
 
     // ---- Routing surface ----------------------------------------------
-    check(call($app, 'GET', '/api/orders')['status'] === 405, 'GET /api/orders returns 405');
+    check(call($app, 'GET', '/api/orders')['status'] === 401, 'Anonymous GET /api/orders returns 401');
+    check(call($app, 'PUT', '/api/orders')['status'] === 405, 'PUT /api/orders returns 405');
     check(call($app, 'POST', '/api/orders/'.$orderId, [], $ownerCookies, $ownerHeaders)['status'] === 405, 'POST /api/orders/{id} returns 405');
     check(call($app, 'GET', '/api/orders/not-a-number')['status'] === 404, 'An unknown order path returns 404');
     check(call($app, 'GET', '/api/orders/'.$orderId.'/payments')['status'] === 404, 'Payment paths are not owned by this service');

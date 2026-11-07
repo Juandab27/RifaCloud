@@ -89,4 +89,97 @@ final class OrderRepository
             'payments' => $paymentsStatement->fetchAll(),
         ];
     }
+
+    public function countForUser(int $userId): int
+    {
+        $statement = $this->pdo->prepare('SELECT COUNT(*) FROM orders WHERE user_id = :user_id');
+        $statement->execute([':user_id' => $userId]);
+
+        return (int) $statement->fetchColumn();
+    }
+
+    /**
+     * Newest first, always scoped to the authenticated owner.
+     *
+     * @return list<array<string, mixed>>
+     */
+    public function listForUser(int $userId, int $limit, int $offset): array
+    {
+        $statement = $this->pdo->prepare(
+            <<<'SQL'
+                SELECT o.id, o.user_id, o.raffle_id, o.order_number, o.total_amount,
+                       o.status, o.expires_at, o.paid_at, o.created_at,
+                       r.title AS raffle_title
+                FROM orders o
+                INNER JOIN raffles r ON r.id = o.raffle_id
+                WHERE o.user_id = :user_id
+                ORDER BY o.id DESC
+                LIMIT :limit OFFSET :offset
+            SQL,
+        );
+        $statement->bindValue(':user_id', $userId, PDO::PARAM_INT);
+        $statement->bindValue(':limit', max(1, $limit), PDO::PARAM_INT);
+        $statement->bindValue(':offset', max(0, $offset), PDO::PARAM_INT);
+        $statement->execute();
+
+        return $statement->fetchAll();
+    }
+
+    /**
+     * @param  list<int>  $orderIds
+     * @return array<int, list<array<string, mixed>>>
+     */
+    public function numbersForOrders(array $orderIds): array
+    {
+        if ($orderIds === []) {
+            return [];
+        }
+
+        $placeholders = implode(', ', array_fill(0, count($orderIds), '?'));
+        $statement = $this->pdo->prepare(
+            'SELECT oi.order_id, n.id, n.number, n.status, oi.price_at_purchase
+             FROM order_items oi
+             INNER JOIN raffle_numbers n ON n.id = oi.raffle_number_id
+             WHERE oi.order_id IN ('.$placeholders.')
+             ORDER BY n.number',
+        );
+        $statement->execute($orderIds);
+
+        $grouped = [];
+
+        foreach ($statement->fetchAll() as $number) {
+            $grouped[(int) $number['order_id']][] = $number;
+        }
+
+        return $grouped;
+    }
+
+    /**
+     * @param  list<int>  $orderIds
+     * @return array<int, list<array<string, mixed>>>
+     */
+    public function paymentsForOrders(array $orderIds): array
+    {
+        if ($orderIds === []) {
+            return [];
+        }
+
+        $placeholders = implode(', ', array_fill(0, count($orderIds), '?'));
+        $statement = $this->pdo->prepare(
+            'SELECT order_id, id, provider, status, amount, currency, checkout_url,
+                    response_data, verified_at, created_at
+             FROM payments
+             WHERE order_id IN ('.$placeholders.')
+             ORDER BY id',
+        );
+        $statement->execute($orderIds);
+
+        $grouped = [];
+
+        foreach ($statement->fetchAll() as $payment) {
+            $grouped[(int) $payment['order_id']][] = $payment;
+        }
+
+        return $grouped;
+    }
 }

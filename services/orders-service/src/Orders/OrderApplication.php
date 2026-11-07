@@ -50,7 +50,7 @@ final class OrderApplication
         string $baseUrl,
     ): JsonResponse {
         try {
-            return $this->dispatch($method, $path, $headers, $cookies, $rawBody, $baseUrl);
+            return $this->dispatch($method, $path, $query, $headers, $cookies, $rawBody, $baseUrl);
         } catch (AuthException $exception) {
             return new JsonResponse(['message' => $exception->getMessage()], $exception->status);
         } catch (CsrfTokenMismatchException) {
@@ -99,12 +99,14 @@ final class OrderApplication
     }
 
     /**
+     * @param  array<string, mixed>  $query
      * @param  array<string, string>  $headers
      * @param  array<string, mixed>  $cookies
      */
     private function dispatch(
         string $method,
         string $path,
+        array $query,
         array $headers,
         array $cookies,
         string $rawBody,
@@ -123,11 +125,15 @@ final class OrderApplication
         }
 
         if ($path === '/api/orders') {
-            if ($method !== 'POST') {
-                return new JsonResponse(['message' => 'Method Not Allowed'], 405, ['Allow' => 'POST']);
+            if ($method === 'POST') {
+                return $this->create($headers, $cookies, $rawBody, $baseUrl);
             }
 
-            return $this->create($headers, $cookies, $rawBody, $baseUrl);
+            if ($method === 'GET') {
+                return $this->list($query, $cookies);
+            }
+
+            return new JsonResponse(['message' => 'Method Not Allowed'], 405, ['Allow' => 'GET, POST']);
         }
 
         if (preg_match('#^/api/orders/([1-9][0-9]*)$#', $path, $matches) === 1) {
@@ -193,6 +199,42 @@ final class OrderApplication
         );
 
         return $this->orderResponse($orderId, $user->userId, 201);
+    }
+
+    /**
+     * Authenticated "My purchases" list, newest first.
+     *
+     * The owner filter is part of the SQL query, so another user's orders can
+     * never appear even if a caller tampers with page/per_page.
+     *
+     * @param  array<string, mixed>  $query
+     * @param  array<string, mixed>  $cookies
+     */
+    private function list(array $query, array $cookies): JsonResponse
+    {
+        $context = $this->authenticator->load($cookies);
+        $user = $this->authenticator->requireUser($context);
+
+        $page = max(1, (int) ($query['page'] ?? 1));
+        $perPage = min(50, max(1, (int) ($query['per_page'] ?? 10)));
+
+        $total = $this->orders->countForUser($user->userId);
+        $orders = $this->orders->listForUser($user->userId, $perPage, ($page - 1) * $perPage);
+        $orderIds = array_map(
+            static fn (array $order): int => (int) $order['id'],
+            $orders,
+        );
+
+        return new JsonResponse(
+            $this->presenter->presentCollection(
+                $orders,
+                $this->orders->numbersForOrders($orderIds),
+                $this->orders->paymentsForOrders($orderIds),
+                $page,
+                $perPage,
+                $total,
+            ),
+        );
     }
 
     /**

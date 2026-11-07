@@ -100,6 +100,11 @@ export default function Layout() {
               <NavLink to="/" end onClick={() => setMenuOpen(false)}>
                 Catálogo
               </NavLink>
+              {user && (
+                <NavLink to="/orders" onClick={() => setMenuOpen(false)}>
+                  Mis compras
+                </NavLink>
+              )}
               {user?.role === 'ADMIN' && (
                 <NavLink to="/admin/raffles" onClick={() => setMenuOpen(false)}>
                   Administración
