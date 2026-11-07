@@ -26,7 +26,10 @@ export default function AuthShell({
     <div className="auth-shell">
       <aside className="auth-shell-aside">
         <Link to="/" className="auth-shell-brand">
-          RifaCloud
+          <span className="brand-mark" aria-hidden="true">
+            R
+          </span>
+          <span>RifaCloud</span>
         </Link>
         <p className="auth-shell-tagline">
           Elige tus números y sigue el estado de tu compra en un solo lugar.

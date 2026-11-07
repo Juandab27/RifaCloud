@@ -348,3 +348,230 @@
     opacity: 0.6;
   }
 }
+
+/* ==========================================================================
+   S8 — Carga, errores y avisos reutilizables
+   ========================================================================== */
+
+/* --- Indicadores --------------------------------------------------------- */
+.ui-spinner-sm {
+  width: 11px;
+  height: 11px;
+  border-width: 2px;
+}
+
+.ui-spinner-lg {
+  width: 22px;
+  height: 22px;
+  border-width: 2.5px;
+}
+
+.btn[aria-busy='true'],
+.button[aria-busy='true'] {
+  cursor: progress;
+}
+
+/* --- Estado de error reutilizable --------------------------------------- */
+.error-state {
+  text-align: center;
+}
+
+.error-state-icon {
+  display: grid;
+  place-items: center;
+  width: 52px;
+  height: 52px;
+  margin: 0 auto var(--sp-3);
+  background: var(--danger-soft);
+  border: 1px solid var(--danger-line);
+  border-radius: 50%;
+  color: var(--danger-text);
+}
+
+.error-state .alert {
+  margin-bottom: var(--sp-4);
+  text-align: left;
+}
+
+.error-state .payment-actions {
+  justify-content: center;
+  margin-top: 0;
+}
+
+/* --- Esqueletos de página ------------------------------------------------ */
+.page-skeleton {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-4);
+}
+
+.page-skeleton--catalog {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+}
+
+.page-skeleton--detail {
+  max-width: 760px;
+}
+
+.page-skeleton-card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-3);
+  padding: var(--sp-5);
+  background: var(--bg-1);
+  border: 1px solid var(--line);
+  border-radius: var(--r-lg);
+  box-shadow: var(--shadow-1);
+}
+
+.page-skeleton-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--sp-2);
+}
+
+/* --- Avisos (toasts) ----------------------------------------------------- */
+.toast-viewport {
+  position: fixed;
+  right: var(--sp-4);
+  bottom: var(--sp-4);
+  z-index: 80;
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-2);
+  width: min(380px, calc(100vw - var(--sp-6)));
+  pointer-events: none;
+}
+
+.toast {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--sp-3);
+  padding: var(--sp-3) var(--sp-3) var(--sp-3) var(--sp-4);
+  background: var(--bg-2);
+  border: 1px solid var(--line-strong);
+  border-left: 3px solid var(--accent);
+  border-radius: var(--r-md);
+  box-shadow: var(--shadow-2);
+  color: var(--text);
+  font-size: var(--fs-md);
+  line-height: var(--lh-snug);
+  pointer-events: auto;
+  animation: toast-in var(--t-base) ease-out both;
+}
+
+.toast-success {
+  border-left-color: var(--success);
+}
+
+.toast-error {
+  border-left-color: var(--danger);
+}
+
+.toast-warning {
+  border-left-color: var(--warning);
+}
+
+.toast-info {
+  border-left-color: var(--info);
+}
+
+.toast-icon {
+  flex: none;
+  margin-top: 1px;
+}
+
+.toast-success .toast-icon {
+  color: var(--success-text);
+}
+
+.toast-error .toast-icon {
+  color: var(--danger-text);
+}
+
+.toast-warning .toast-icon {
+  color: var(--warning-text);
+}
+
+.toast-info .toast-icon {
+  color: var(--info-text);
+}
+
+.toast-message {
+  flex: 1;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.toast-close {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 30px;
+  height: 30px;
+  min-height: 30px;
+  padding: 0;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: var(--r-sm);
+  color: var(--text-2);
+  font-size: var(--fs-lg);
+  line-height: 1;
+}
+
+.toast-close:hover {
+  background: var(--bg-3);
+  color: var(--text);
+}
+
+@keyframes toast-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@media (max-width: 640px) {
+  .toast-viewport {
+    right: var(--sp-3);
+    bottom: var(--sp-3);
+    left: var(--sp-3);
+    width: auto;
+  }
+}
+
+/* En pantallas táctiles el cierre conserva un área cómoda. */
+@media (max-width: 820px), (pointer: coarse) {
+  .toast-close {
+    width: 44px;
+    height: 44px;
+    min-height: 44px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .toast {
+    animation: none;
+  }
+}
+
+/* --- Utilidades compartidas --------------------------------------------- */
+.empty-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: var(--sp-2);
+}
+
+.return-check {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp-2);
+}
+

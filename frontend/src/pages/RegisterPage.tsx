@@ -2,6 +2,7 @@ import { useState, type FormEvent } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { apiErrorMessage } from '../api/client'
 import { useAuth } from '../auth/AuthContext'
+import { useToast } from '../components/ToastProvider'
 import AuthShell from '../components/AuthShell'
 import Alert from '../components/ui/Alert'
 import Button from '../components/ui/Button'
@@ -10,6 +11,7 @@ import { postLoginPath } from '../lib/navigation'
 
 export default function RegisterPage() {
   const { register } = useAuth()
+  const toast = useToast()
   const navigate = useNavigate()
   const location = useLocation()
   const [form, setForm] = useState({
@@ -33,6 +35,7 @@ export default function RegisterPage() {
 
     try {
       await register(form)
+      toast.success('Cuenta creada. Ya puedes reservar tus números.')
       navigate(postLoginPath(location.state), { replace: true })
     } catch (caught) {
       setError(apiErrorMessage(caught))

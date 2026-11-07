@@ -626,3 +626,473 @@ button.number.selected {
   font-weight: 600;
 }
 
+/* ==========================================================================
+   S8 — Temporizador, progreso y estados visuales
+   ========================================================================== */
+
+/* --- Temporizador de reserva -------------------------------------------- */
+.reservation-card {
+  margin-bottom: var(--sp-5);
+}
+
+.reservation-timer {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-2);
+}
+
+.reservation-timer-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: var(--sp-2);
+}
+
+.reservation-timer-label {
+  margin: 0;
+  color: var(--text-2);
+  font-size: var(--fs-sm);
+  font-weight: 600;
+}
+
+.reservation-timer-state {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.15rem 0.55rem;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--r-pill);
+  color: var(--text-2);
+  font-size: var(--fs-2xs);
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.reservation-timer-state::before {
+  content: '';
+  width: 6px;
+  height: 6px;
+  background: currentColor;
+  border-radius: 50%;
+}
+
+.reservation-timer-value {
+  margin: 0;
+  color: var(--accent);
+  font-family: var(--font-display);
+  font-size: clamp(2rem, 6vw, 2.75rem);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: var(--tracking-tight);
+  line-height: 1.05;
+}
+
+.reservation-meter {
+  height: 6px;
+  overflow: hidden;
+  background: var(--bg-3);
+  border-radius: var(--r-pill);
+}
+
+.reservation-meter span {
+  display: block;
+  height: 100%;
+  background: var(--accent);
+  border-radius: inherit;
+  transition:
+    width 1s linear,
+    background var(--t-base);
+}
+
+.reservation-timer-note {
+  margin: 0;
+  color: var(--text-2);
+  font-size: var(--fs-sm);
+}
+
+.reservation-timer.is-warning .reservation-timer-state {
+  background: var(--warning-soft);
+  border-color: var(--warning-line);
+  color: var(--warning-text);
+}
+
+.reservation-timer.is-warning .reservation-timer-value {
+  color: var(--warning-text);
+}
+
+.reservation-timer.is-warning .reservation-meter span {
+  background: var(--warning);
+}
+
+.reservation-timer.is-urgent .reservation-timer-state {
+  background: var(--danger-soft);
+  border-color: var(--danger-line);
+  color: var(--danger-text);
+}
+
+.reservation-timer.is-urgent .reservation-timer-value {
+  color: var(--danger-text);
+}
+
+.reservation-timer.is-urgent .reservation-meter span {
+  background: var(--danger);
+}
+
+.reservation-timer.is-expired .reservation-timer-value {
+  color: var(--text-3);
+}
+
+.reservation-timer.is-expired .reservation-meter span {
+  background: var(--text-3);
+}
+
+/* Variante compacta para «Mis compras». */
+.reservation-inline {
+  display: inline-flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin: var(--sp-2) 0 0;
+  padding: 0.2rem 0.6rem;
+  background: var(--bg-2);
+  border: 1px solid var(--line);
+  border-radius: var(--r-pill);
+  color: var(--text-2);
+  font-size: var(--fs-xs);
+  font-variant-numeric: tabular-nums;
+}
+
+.reservation-inline.is-warning {
+  background: var(--warning-soft);
+  border-color: var(--warning-line);
+  color: var(--warning-text);
+}
+
+.reservation-inline.is-urgent {
+  background: var(--danger-soft);
+  border-color: var(--danger-line);
+  color: var(--danger-text);
+}
+
+.reservation-inline.is-expired {
+  color: var(--text-3);
+}
+
+.reservation-dot {
+  flex: none;
+  width: 7px;
+  height: 7px;
+  background: currentColor;
+  border-radius: 50%;
+}
+
+.reservation-inline-note {
+  color: var(--text-3);
+}
+
+/* --- Progreso de la compra ---------------------------------------------- */
+.order-progress {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--sp-2);
+  margin: 0 0 var(--sp-4);
+  padding: 0 0 var(--sp-4);
+  border-bottom: 1px solid var(--line);
+  list-style: none;
+}
+
+.order-progress-step {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--sp-1);
+  min-width: 0;
+}
+
+.order-progress-step::after {
+  content: '';
+  position: absolute;
+  top: 13px;
+  left: 34px;
+  right: var(--sp-2);
+  height: 1px;
+  background: var(--line-strong);
+}
+
+.order-progress-step:last-child::after {
+  display: none;
+}
+
+.order-progress-dot {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 26px;
+  height: 26px;
+  background: var(--bg-2);
+  border: 1px solid var(--line-strong);
+  border-radius: 50%;
+  color: var(--text-3);
+  font-size: var(--fs-xs);
+  font-weight: 700;
+}
+
+.order-progress-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.order-progress-label {
+  color: var(--text-2);
+  font-size: var(--fs-2xs);
+  font-weight: 700;
+  letter-spacing: var(--tracking-label);
+  text-transform: uppercase;
+}
+
+.order-progress-detail {
+  color: var(--text-3);
+  font-size: var(--fs-xs);
+  overflow-wrap: anywhere;
+}
+
+.order-progress-step.is-done .order-progress-dot {
+  background: var(--success-soft);
+  border-color: var(--success-line);
+  color: var(--success-text);
+}
+
+.order-progress-step.is-current .order-progress-dot {
+  background: var(--accent-soft);
+  border-color: var(--accent-line);
+  box-shadow: 0 0 0 3px rgba(217, 180, 91, 0.14);
+  color: var(--accent-hi);
+}
+
+.order-progress-step.is-current .order-progress-label {
+  color: var(--accent);
+}
+
+.order-progress-step.is-warning .order-progress-dot {
+  background: var(--warning-soft);
+  border-color: var(--warning-line);
+  color: var(--warning-text);
+}
+
+.order-progress-step.is-error .order-progress-dot {
+  background: var(--danger-soft);
+  border-color: var(--danger-line);
+  color: var(--danger-text);
+}
+
+.order-progress-step.is-pending {
+  opacity: 0.72;
+}
+
+/* --- Mis compras -------------------------------------------------------- */
+.orders-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-4);
+}
+
+.order-history-card {
+  position: relative;
+  overflow: hidden;
+  margin-bottom: 0;
+  transition:
+    border-color var(--t-base),
+    box-shadow var(--t-base),
+    transform var(--t-base);
+}
+
+.order-history-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  width: 3px;
+  background: var(--line-strong);
+}
+
+.order-history-card--paid::before {
+  background: var(--success);
+}
+
+.order-history-card--pending_payment::before {
+  background: var(--warning);
+}
+
+.order-history-card--payment_review::before {
+  background: var(--review);
+}
+
+.order-history-card--requires_refund::before,
+.order-history-card--rejected::before {
+  background: var(--danger);
+}
+
+.order-history-card--expired::before {
+  background: var(--text-3);
+}
+
+@media (hover: hover) {
+  .order-history-card:hover {
+    border-color: var(--line-strong);
+    box-shadow: var(--shadow-2);
+    transform: translateY(-1px);
+  }
+}
+
+.order-summary .order-payment-state {
+  font-family: var(--font-sans);
+  font-size: var(--fs-md);
+}
+
+/* Cuatro cifras (total, números, creada, pagada) caben en una fila cuando hay
+   espacio; en móvil se conserva la rejilla de dos columnas. */
+@media (min-width: 641px) {
+  .order-summary .facts {
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  }
+}
+
+.order-hint {
+  margin-bottom: 0;
+  font-size: var(--fs-sm);
+}
+
+.orders-more {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--sp-2);
+  margin-top: var(--sp-5);
+}
+
+.orders-more p {
+  margin: 0;
+  font-size: var(--fs-sm);
+}
+
+/* --- Catálogo ----------------------------------------------------------- */
+.raffle-card {
+  position: relative;
+}
+
+.raffle-card-closes {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  margin: 0;
+  color: var(--text-3);
+  font-size: var(--fs-xs);
+}
+
+/* --- Detalle de orden --------------------------------------------------- */
+.order-numbers-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-1);
+  margin-bottom: var(--sp-3);
+}
+
+.order-summary--paid {
+  border-color: var(--success-line);
+}
+
+.order-summary--payment_review {
+  border-color: var(--review-line);
+}
+
+.order-summary--rejected,
+.order-summary--requires_refund {
+  border-color: var(--danger-line);
+}
+
+.payment-panel--paid {
+  border-color: var(--success-line);
+}
+
+.payment-panel--payment_review {
+  border-color: var(--review-line);
+}
+
+.payment-panel--rejected,
+.payment-panel--requires_refund {
+  border-color: var(--danger-line);
+}
+
+/* --- Página no encontrada ----------------------------------------------- */
+.not-found-icon {
+  display: grid;
+  place-items: center;
+  width: 64px;
+  height: 64px;
+  margin-bottom: var(--sp-2);
+  background: var(--accent-soft);
+  border: 1px solid var(--accent-line);
+  border-radius: 50%;
+  color: var(--accent-hi);
+}
+
+/* --- Ajustes móviles ---------------------------------------------------- */
+@media (max-width: 640px) {
+  .order-progress {
+    gap: var(--sp-1);
+  }
+
+  .order-progress-step {
+    gap: var(--sp-1);
+  }
+
+  .order-progress-step::after {
+    left: 32px;
+    right: var(--sp-1);
+  }
+
+  .order-progress-dot {
+    width: 24px;
+    height: 24px;
+  }
+
+  .order-progress-detail {
+    font-size: 10px;
+  }
+
+  .order-history-cta {
+    width: 100%;
+  }
+
+  .payment-actions {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .payment-actions .btn,
+  .payment-actions .button {
+    width: 100%;
+  }
+
+  .orders-more {
+    align-items: stretch;
+  }
+
+  .orders-more .btn {
+    width: 100%;
+  }
+}
+
+@media (max-width: 400px) {
+  .order-progress-detail {
+    display: none;
+  }
+}
+

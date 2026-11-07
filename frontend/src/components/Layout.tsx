@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { Link, NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '../auth/AuthContext'
+import { useToast } from './ToastProvider'
 
 /**
  * Shell de la aplicación: cabecera, navegación principal y contenedor.
@@ -8,6 +9,7 @@ import { useAuth } from '../auth/AuthContext'
  */
 export default function Layout() {
   const { user, logout } = useAuth()
+  const toast = useToast()
   const navigate = useNavigate()
   const location = useLocation()
   const [menuOpen, setMenuOpen] = useState(false)
@@ -16,6 +18,12 @@ export default function Layout() {
   // El menú móvil se cierra al cambiar de ruta.
   useEffect(() => {
     setMenuOpen(false)
+  }, [location.pathname])
+
+  // Cada pantalla empieza arriba; la transición visual vive en el CSS y
+  // respeta `prefers-reduced-motion`.
+  useEffect(() => {
+    window.scrollTo({ top: 0, left: 0, behavior: 'auto' })
   }, [location.pathname])
 
   // Escape cierra el menú y devuelve el foco al control que lo abrió.
@@ -40,8 +48,11 @@ export default function Layout() {
 
   async function handleLogout() {
     await logout()
+    toast.info('Sesión cerrada.')
     navigate('/')
   }
+
+  const initial = user?.name.trim().charAt(0).toUpperCase() || 'R'
 
   return (
     <div className="app">
@@ -115,8 +126,16 @@ export default function Layout() {
             <div className="session">
               {user ? (
                 <>
-                  <span className="session-user" title={user.name}>
-                    {user.name}
+                  <span className="session-identity">
+                    <span className="session-avatar" aria-hidden="true">
+                      {initial}
+                    </span>
+                    <span className="session-user" title={user.name}>
+                      {user.name}
+                    </span>
+                    {user.role === 'ADMIN' && (
+                      <span className="session-role">Admin</span>
+                    )}
                   </span>
                   <button type="button" className="link-button" onClick={() => void handleLogout()}>
                     Salir
@@ -138,7 +157,9 @@ export default function Layout() {
       </header>
 
       <main className="content" id="main-content" tabIndex={-1}>
-        <Outlet />
+        <div className="page-transition" key={location.pathname}>
+          <Outlet />
+        </div>
       </main>
     </div>
   )

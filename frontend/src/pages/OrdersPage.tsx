@@ -1,23 +1,37 @@
 import { useCallback, useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { api, apiErrorMessage } from '../api/client'
+import { OrderReservationTimer } from '../components/ReservationTimer'
 import Alert from '../components/ui/Alert'
 import Button from '../components/ui/Button'
 import Card from '../components/ui/Card'
 import EmptyState from '../components/ui/EmptyState'
+import ErrorState from '../components/ui/ErrorState'
+import Icon from '../components/ui/Icon'
 import PageHeader from '../components/ui/PageHeader'
-import Skeleton from '../components/ui/Skeleton'
+import PageSkeleton from '../components/ui/PageSkeleton'
 import StatusPill from '../components/ui/StatusPill'
 import { formatCents, formatDate } from '../lib/format'
 import {
   NUMBER_STATUS_LABELS,
   ORDER_STATUS_HINT,
   ORDER_STATUS_LABELS,
+  PAYMENT_STATUS_LABELS,
   numbersSummary,
 } from '../lib/orders'
 import type { Order, PaginatedResponse } from '../types'
 
 const PER_PAGE = 10
+
+function paymentLabel(order: Order): string {
+  const payments = order.payments ?? []
+
+  if (payments.length === 0) {
+    return 'Sin iniciar'
+  }
+
+  return PAYMENT_STATUS_LABELS[payments[payments.length - 1].status]
+}
 
 /**
  * "Mis compras": the authenticated user's order history.
@@ -71,6 +85,16 @@ export default function OrdersPage() {
           ? `${meta.total} ${meta.total === 1 ? 'orden registrada' : 'órdenes registradas'}`
           : 'Consulta tus órdenes, números y estados de pago.'
       }
+      actions={
+        <Button
+          variant="secondary"
+          size="sm"
+          onClick={() => void load(1, false)}
+          loading={loading && orders.length > 0}
+        >
+          Actualizar
+        </Button>
+      }
     />
   )
 
@@ -78,14 +102,7 @@ export default function OrdersPage() {
     return (
       <>
         {header}
-        <p className="ui-sr-only" role="status">
-          Cargando compras…
-        </p>
-        <div className="order-loading" aria-hidden="true">
-          <Skeleton height={120} radius={16} />
-          <Skeleton height={120} radius={16} />
-          <Skeleton lines={3} />
-        </div>
+        <PageSkeleton variant="list" label="Cargando compras…" count={2} />
       </>
     )
   }
@@ -94,15 +111,17 @@ export default function OrdersPage() {
     return (
       <>
         {header}
-        <Card narrow>
-          <Alert tone="danger">{error}</Alert>
-          <div className="payment-actions">
-            <Button onClick={() => void load(1, false)}>Reintentar</Button>
+        <ErrorState
+          title="No pudimos cargar tus compras"
+          message={error}
+          onRetry={() => void load(1, false)}
+          retrying={loading}
+          secondaryAction={
             <Link className="button button-ghost" to="/">
               Volver al catálogo
             </Link>
-          </div>
-        </Card>
+          }
+        />
       </>
     )
   }
@@ -112,12 +131,18 @@ export default function OrdersPage() {
       <>
         {header}
         <EmptyState
+          icon={<Icon name="bag" size={30} />}
           title="Aún no tienes compras"
           description="Cuando reserves y pagues una rifa, la orden aparecerá aquí con sus números y estado."
           action={
-            <Link className="button" to="/">
-              Explorar rifas
-            </Link>
+            <div className="empty-actions">
+              <Link className="button" to="/">
+                Explorar rifas
+              </Link>
+              <Button variant="secondary" onClick={() => void load(1, false)}>
+                Actualizar
+              </Button>
+            </div>
           }
         />
       </>
@@ -125,14 +150,18 @@ export default function OrdersPage() {
   }
 
   return (
-    <section>
+    <section aria-busy={loading}>
       {header}
 
       {error && <Alert tone="danger">{error}</Alert>}
 
       <div className="orders-list">
         {orders.map((order) => (
-          <Card as="article" key={order.id} className="order-summary">
+          <Card
+            as="article"
+            key={order.id}
+            className={`order-summary order-history-card order-history-card--${order.status.toLowerCase()}`}
+          >
             <header className="order-hero">
               <div>
                 <p className="page-header-eyebrow">
@@ -150,9 +179,16 @@ export default function OrdersPage() {
                       : `Creada ${formatDate(order.created_at)}`}
                   </span>
                 </div>
+
+                {order.status === 'PENDING_PAYMENT' && (
+                  <OrderReservationTimer
+                    expiresAt={order.expires_at}
+                    createdAt={order.created_at}
+                  />
+                )}
               </div>
 
-              <Link className="button button-ghost" to={`/orders/${order.id}`}>
+              <Link className="button button-ghost order-history-cta" to={`/orders/${order.id}`}>
                 Ver detalle
               </Link>
             </header>
@@ -167,8 +203,8 @@ export default function OrdersPage() {
                 <dd>{order.numbers?.length ?? 0}</dd>
               </div>
               <div>
-                <dt>Estado</dt>
-                <dd>{ORDER_STATUS_LABELS[order.status]}</dd>
+                <dt>Pago</dt>
+                <dd className="order-payment-state">{paymentLabel(order)}</dd>
               </div>
             </dl>
 
@@ -186,13 +222,16 @@ export default function OrdersPage() {
             </div>
 
             <p className="muted">{numbersSummary(order.numbers)}</p>
-            <p className="muted">{ORDER_STATUS_HINT[order.status]}</p>
+            <p className="muted order-hint">{ORDER_STATUS_HINT[order.status]}</p>
           </Card>
         ))}
       </div>
 
       {meta && meta.current_page < meta.last_page && (
-        <div className="payment-actions">
+        <div className="orders-more">
+          <p className="muted">
+            Mostrando {orders.length} de {meta.total} órdenes
+          </p>
           <Button
             variant="secondary"
             loading={loadingMore}

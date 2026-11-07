@@ -3,9 +3,11 @@ import { useEffect, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { api, apiErrorMessage } from '../api/client'
 import { useAuth } from '../auth/AuthContext'
+import { useToast } from '../components/ToastProvider'
 import Alert from '../components/ui/Alert'
 import Badge from '../components/ui/Badge'
 import Button from '../components/ui/Button'
+import ErrorState from '../components/ui/ErrorState'
 import Skeleton from '../components/ui/Skeleton'
 import StatusPill from '../components/ui/StatusPill'
 import { formatCents } from '../lib/format'
@@ -20,6 +22,7 @@ const NUMBER_STATE_LABEL = {
 export default function RaffleDetailPage() {
   const { raffleId } = useParams()
   const { user } = useAuth()
+  const toast = useToast()
   const navigate = useNavigate()
   const [raffle, setRaffle] = useState<Raffle | null>(null)
   const [numbers, setNumbers] = useState<NumberAvailabilityResponse | null>(null)
@@ -49,7 +52,7 @@ export default function RaffleDetailPage() {
     return () => {
       active = false
     }
-  }, [raffleId])
+  }, [raffleId, reloadToken])
 
   useEffect(() => {
     let active = true
@@ -80,6 +83,11 @@ export default function RaffleDetailPage() {
       active = false
     }
   }, [raffleId, page, reloadToken])
+
+  function retryLoad() {
+    setError(null)
+    setReloadToken((current) => current + 1)
+  }
 
   function toggleNumber(number: number) {
     if (!user) {
@@ -123,6 +131,9 @@ export default function RaffleDetailPage() {
         numbers: selectedNumbers,
       })
 
+      toast.success(
+        `Reserva creada. Tienes ${raffle.reservation_minutes} minutos para completar el pago.`,
+      )
       navigate(`/orders/${response.data.data.id}`)
     } catch (caught) {
       if (axios.isAxiosError(caught) && caught.response?.status === 409) {
@@ -146,9 +157,21 @@ export default function RaffleDetailPage() {
 
   if (error && !raffle) {
     return (
-      <section className="card narrow">
-        <Alert tone="danger">{error}</Alert>
-        <Link to="/">Volver al catálogo</Link>
+      <section>
+        <p className="back-link">
+          <Link to="/">← Volver al catálogo</Link>
+        </p>
+        <ErrorState
+          title="No pudimos cargar la rifa"
+          message={error}
+          onRetry={retryLoad}
+          retrying={loading}
+          secondaryAction={
+            <Link className="button button-ghost" to="/">
+              Volver al catálogo
+            </Link>
+          }
+        />
       </section>
     )
   }
@@ -160,6 +183,23 @@ export default function RaffleDetailPage() {
       <p className="back-link">
         <Link to="/">← Volver al catálogo</Link>
       </p>
+
+      {!raffle && loading && (
+        <>
+          <p className="ui-sr-only" role="status">
+            Cargando rifa…
+          </p>
+          <div className="raffle-hero" aria-hidden="true">
+            <Skeleton width="52%" height={36} />
+            <Skeleton lines={2} />
+            <div className="page-skeleton-grid">
+              <Skeleton height={44} radius={10} />
+              <Skeleton height={44} radius={10} />
+              <Skeleton height={44} radius={10} />
+            </div>
+          </div>
+        </>
+      )}
 
       {raffle && (
         <header className="raffle-hero">
@@ -208,7 +248,7 @@ export default function RaffleDetailPage() {
           </div>
 
           {numbers && (
-            <div className="legend">
+            <div className="legend" aria-label="Resumen de disponibilidad">
               <Badge tone="success">Disponibles: {numbers.meta.counts.available}</Badge>
               <Badge tone="warning">Reservados: {numbers.meta.counts.reserved}</Badge>
               <Badge tone="neutral">Vendidos: {numbers.meta.counts.sold}</Badge>
@@ -259,11 +299,11 @@ export default function RaffleDetailPage() {
               })}
             </div>
 
-            <div className="pagination">
+            <div className="pagination" aria-label="Paginación de números">
               <Button
                 variant="secondary"
                 size="sm"
-                disabled={page <= 1}
+                disabled={page <= 1 || loading}
                 onClick={() => setPage((current) => Math.max(current - 1, 1))}
               >
                 Anterior
@@ -274,7 +314,7 @@ export default function RaffleDetailPage() {
               <Button
                 variant="secondary"
                 size="sm"
-                disabled={page >= numbers.meta.last_page}
+                disabled={page >= numbers.meta.last_page || loading}
                 onClick={() => setPage((current) => current + 1)}
               >
                 Siguiente

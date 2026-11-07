@@ -2,11 +2,16 @@ import { useEffect, useRef, useState } from 'react'
 import { Link, useParams, useSearchParams } from 'react-router-dom'
 import axios from 'axios'
 import { api, apiErrorMessage } from '../api/client'
+import OrderProgress from '../components/OrderProgress'
+import { ReservationTimer } from '../components/ReservationTimer'
+import { useToast } from '../components/ToastProvider'
 import Alert from '../components/ui/Alert'
 import Badge from '../components/ui/Badge'
 import Button from '../components/ui/Button'
 import Card from '../components/ui/Card'
-import Skeleton from '../components/ui/Skeleton'
+import ErrorState from '../components/ui/ErrorState'
+import PageSkeleton from '../components/ui/PageSkeleton'
+import Spinner from '../components/ui/Spinner'
 import StatusPill from '../components/ui/StatusPill'
 import { formatCents, formatDate } from '../lib/format'
 import {
@@ -14,40 +19,12 @@ import {
   ORDER_STATUS_HINT,
   ORDER_STATUS_LABELS,
   PAYMENT_STATUS_LABELS,
+  countNumbers,
   numbersHeading,
   numbersSummary,
 } from '../lib/orders'
+import { useCountdown } from '../lib/useCountdown'
 import type { Order, Payment } from '../types'
-
-function useRemainingTime(expiresAt: string | null): string | null {
-  const [now, setNow] = useState(() => Date.now())
-
-  useEffect(() => {
-    if (!expiresAt) {
-      return
-    }
-
-    const timer = window.setInterval(() => setNow(Date.now()), 1000)
-
-    return () => window.clearInterval(timer)
-  }, [expiresAt])
-
-  if (!expiresAt) {
-    return null
-  }
-
-  const difference = new Date(expiresAt).getTime() - now
-
-  if (difference <= 0) {
-    return 'Reserva vencida'
-  }
-
-  const totalSeconds = Math.floor(difference / 1000)
-  const minutes = Math.floor(totalSeconds / 60)
-  const seconds = totalSeconds % 60
-
-  return `${minutes}:${seconds.toString().padStart(2, '0')}`
-}
 
 function checkoutReturnAlert(
   order: Order,
@@ -104,19 +81,21 @@ function checkoutReturnAlert(
 export default function OrderDetailPage() {
   const { orderId } = useParams()
   const [searchParams] = useSearchParams()
+  const toast = useToast()
   const [order, setOrder] = useState<Order | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [paymentError, setPaymentError] = useState<string | null>(null)
   const [paymentSubmitting, setPaymentSubmitting] = useState(false)
   const [reloadToken, setReloadToken] = useState(0)
-  const remaining = useRemainingTime(order?.expires_at ?? null)
+  const countdown = useCountdown(order?.expires_at ?? null, order?.created_at ?? null)
   // The return URL is only a hint. It never marks the order as paid: the
   // backend verifies the payment with the provider and applies the state.
   const returnedFromCheckout = searchParams.get('pago') === 'retorno'
-  const reservationExpired = remaining === 'Reserva vencida'
+  const reservationExpired = countdown?.expired ?? false
   const autoVerifiedPayment = useRef<string | null>(null)
   const [returnCheck, setReturnCheck] = useState<'checking' | 'done' | 'idle'>('idle')
+  const refreshing = loading && order !== null
 
   // On a Mercado Pago return, ask the backend to verify the payment once. The
   // response is the authoritative state; a 409/503 keeps the current order on
@@ -151,8 +130,13 @@ export default function OrderDetailPage() {
       .post<{ data: Order }>(`/orders/${order.id}/payments/${latest.id}/verify`)
       .then((response) => {
         if (active) {
-          setOrder(response.data.data)
+          const nextOrder = response.data.data
+          setOrder(nextOrder)
           setPaymentError(null)
+
+          if (nextOrder.status === 'PAID') {
+            toast.success('Pago confirmado: los números quedaron vendidos.')
+          }
         }
       })
       .catch(async (caught) => {
@@ -195,7 +179,7 @@ export default function OrderDetailPage() {
     return () => {
       active = false
     }
-  }, [returnedFromCheckout, order])
+  }, [returnedFromCheckout, order, toast])
 
   // The countdown is cosmetic; the backend owns expiry. Once it reaches zero,
   // poll the order until the scheduler has released (or kept) the numbers.
@@ -266,26 +250,22 @@ export default function OrderDetailPage() {
   }, [orderId, reloadToken])
 
   if (loading && !order) {
-    return (
-      <>
-        <p className="ui-sr-only" role="status">
-          Cargando orden…
-        </p>
-        <div className="order-loading" aria-hidden="true">
-          <Skeleton width="40%" height={30} />
-          <Skeleton height={112} radius={16} />
-          <Skeleton lines={4} />
-        </div>
-      </>
-    )
+    return <PageSkeleton variant="detail" label="Cargando orden…" />
   }
 
   if (!order) {
     return (
-      <Card narrow>
-        <Alert tone="danger">{error ?? 'No se encontró la orden.'}</Alert>
-        <Link to="/">Volver al catálogo</Link>
-      </Card>
+      <ErrorState
+        title="No pudimos cargar la orden"
+        message={error ?? 'No se encontró la orden.'}
+        onRetry={() => setReloadToken((value) => value + 1)}
+        retrying={loading}
+        secondaryAction={
+          <Link className="button button-ghost" to="/orders">
+            Volver a Mis compras
+          </Link>
+        }
+      />
     )
   }
 
@@ -311,6 +291,7 @@ export default function OrderDetailPage() {
     latestPayment.simulated !== true &&
     order.status === 'PENDING_PAYMENT'
   const returnAlert = checkoutReturnAlert(order, latestPayment)
+  const numberCounts = countNumbers(order.numbers)
 
   const startPayment = async () => {
     setPaymentSubmitting(true)
@@ -349,7 +330,25 @@ export default function OrderDetailPage() {
       const response = await api.post<{ data: Order }>(
         `/orders/${order.id}/payments/${latestPayment.id}/verify`,
       )
-      setOrder(response.data.data)
+      const nextOrder = response.data.data
+      setOrder(nextOrder)
+
+      switch (nextOrder.status) {
+        case 'PAID':
+          toast.success('Pago confirmado: los números quedaron vendidos.')
+          break
+        case 'PAYMENT_REVIEW':
+          toast.warning('El pago quedó en revisión. Los números siguen reservados.')
+          break
+        case 'REJECTED':
+          toast.warning('El pago fue rechazado y los números fueron liberados.')
+          break
+        case 'REQUIRES_REFUND':
+          toast.error('El pago requiere reembolso. Un administrador debe gestionarlo.')
+          break
+        default:
+          toast.info('Todavía no hay confirmación del pago. Puedes volver a consultar.')
+      }
     } catch (caught) {
       setPaymentError(apiErrorMessage(caught))
     } finally {
@@ -370,9 +369,14 @@ export default function OrderDetailPage() {
 
       {returnedFromCheckout && (
         <Alert tone={returnAlert.tone}>
-          {returnCheck === 'checking'
-            ? 'Consultando el estado real del pago con el proveedor…'
-            : returnAlert.text}
+          {returnCheck === 'checking' ? (
+            <span className="return-check">
+              <Spinner size="sm" />
+              Consultando el estado real del pago con el proveedor…
+            </span>
+          ) : (
+            returnAlert.text
+          )}
         </Alert>
       )}
 
@@ -390,12 +394,15 @@ export default function OrderDetailPage() {
           variant="secondary"
           size="sm"
           onClick={() => setReloadToken((value) => value + 1)}
+          loading={refreshing}
         >
           Actualizar estado
         </Button>
       </header>
 
-      <Card className="order-summary">
+      <Card className={`order-summary order-summary--${order.status.toLowerCase()}`}>
+        <OrderProgress order={order} />
+
         <dl className="facts">
           <div>
             <dt>Total</dt>
@@ -417,24 +424,18 @@ export default function OrderDetailPage() {
           )}
         </dl>
 
-        {order.expires_at && (
+        {order.status === 'PENDING_PAYMENT' && order.expires_at && (
           <p className="muted order-expires">Vence: {formatDate(order.expires_at)}</p>
         )}
       </Card>
 
-      {order.status === 'PENDING_PAYMENT' && (
-        <Card className="reservation-countdown">
-          <p className="muted">Tiempo restante de la reserva</p>
-          <p className="countdown" role="timer">
-            {remaining ?? '—'}
-          </p>
-          <p className="muted">
-            Si la reserva vence sin completar el pago, los números vuelven a estar disponibles.
-          </p>
+      {order.status === 'PENDING_PAYMENT' && countdown && (
+        <Card className="reservation-card">
+          <ReservationTimer countdown={countdown} />
         </Card>
       )}
 
-      <Card className="payment-panel">
+      <Card className={`payment-panel payment-panel--${order.status.toLowerCase()}`}>
         <header className="payment-panel-head">
           <h2>Pago</h2>
           {latestPayment ? (
@@ -568,6 +569,20 @@ export default function OrderDetailPage() {
             {(order.numbers?.length ?? 0) === 1 ? 'número' : 'números'}
           </span>
         </header>
+
+        {(order.numbers?.length ?? 0) > 0 && (
+          <div className="order-numbers-legend">
+            {numberCounts.sold > 0 && (
+              <Badge tone="neutral">Vendidos: {numberCounts.sold}</Badge>
+            )}
+            {numberCounts.reserved > 0 && (
+              <Badge tone="warning">Reservados: {numberCounts.reserved}</Badge>
+            )}
+            {numberCounts.available > 0 && (
+              <Badge tone="success">Disponibles: {numberCounts.available}</Badge>
+            )}
+          </div>
+        )}
 
         <div className="number-grid">
           {order.numbers?.map((item) => (
