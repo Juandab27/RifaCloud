@@ -239,6 +239,7 @@ function makeApp(
         new WebhookService($repository, $gateway, $orders),
         $projection,
         new InternalRequestVerifier(Config::internalSecret(), 60),
+        $repository,
         50,
     );
 }
@@ -724,6 +725,47 @@ try {
         (string) $pdo->query('SELECT status FROM orders WHERE id = '.(int) $downOrderId)->fetchColumn() === 'PENDING_PAYMENT',
         'A failed confirmation does not mark the order PAID',
     );
+
+    // ---- Dashboard metrics (S10.3) -------------------------------------
+    $incidentsBefore = (int) $pdo->query(
+        "SELECT COUNT(*) FROM payments WHERE status IN ('UNKNOWN', 'REFUND_REQUIRED')",
+    )->fetchColumn();
+
+    $metricsRaffleId = $newRaffle('dashboard', 10);
+    $insertMetricsPayment = $pdo->prepare(
+        <<<'SQL'
+            INSERT INTO payments
+                (order_id, provider, external_id, status, amount, currency, checkout_url, response_data, created_at, updated_at)
+            VALUES
+                (:order_id, 'MERCADOPAGO', :external_id, :status, 1500, 'COP', NULL, :response_data, NOW(), NOW())
+        SQL,
+    );
+
+    foreach (['UNKNOWN', 'REFUND_REQUIRED', 'APPROVED', 'REJECTED'] as $index => $paymentStatus) {
+        $metricsOrderId = $newOrder($ownerId, $metricsRaffleId, [$index + 1]);
+        $insertMetricsPayment->execute([
+            ':order_id' => $metricsOrderId,
+            ':external_id' => $prefix.'-metrics-'.strtolower($paymentStatus),
+            ':status' => $paymentStatus,
+            ':response_data' => json_encode(['simulated' => true], JSON_THROW_ON_ERROR),
+        ]);
+    }
+
+    $metricsAnonymous = call($app, 'GET', '/api/admin/payments/incidents/metrics');
+    check($metricsAnonymous['status'] === 401, 'Dashboard incident metrics require a session (401)');
+
+    $metricsUser = call($app, 'GET', '/api/admin/payments/incidents/metrics', [], $ownerCookies);
+    check($metricsUser['status'] === 403, 'Dashboard incident metrics reject a USER role (403)');
+
+    $metricsAdmin = call($app, 'GET', '/api/admin/payments/incidents/metrics', [], $adminCookies);
+    check($metricsAdmin['status'] === 200, 'Dashboard incident metrics return 200 for an ADMIN');
+    check(
+        (int) ($metricsAdmin['payload']['data']['pending_incidents'] ?? -1) === $incidentsBefore + 2,
+        'pending_incidents counts only UNKNOWN and REFUND_REQUIRED payments',
+    );
+
+    $metricsWrongMethod = call($app, 'POST', '/api/admin/payments/incidents/metrics', [], $adminCookies, $adminHeaders);
+    check($metricsWrongMethod['status'] === 405, 'POST on incident metrics returns 405');
 
     // ---- Routing surface ----------------------------------------------
     check(call($app, 'GET', '/api/orders/'.$authOrderId.'/payments')['status'] === 405, 'GET on the checkout path returns 405');

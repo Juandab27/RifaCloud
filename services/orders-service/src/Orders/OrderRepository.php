@@ -115,6 +115,17 @@ final class OrderRepository
     }
 
     /**
+     * Numbers sold by a confirmed payment. The SOLD state is written only by
+     * this service (payment-result command); raffles-service never owns sales.
+     */
+    public function countSoldNumbers(): int
+    {
+        return (int) $this->pdo
+            ->query("SELECT COUNT(*) FROM raffle_numbers WHERE status = 'SOLD'")
+            ->fetchColumn();
+    }
+
+    /**
      * Admin projection: every order, newest first, with its buyer and latest
      * payment state. It is a read model only; financial rules stay in the
      * payment-result command.

@@ -240,8 +240,10 @@ try {
 
     $ownerCsrf = bin2hex(random_bytes(20));
     $otherCsrf = bin2hex(random_bytes(20));
+    $adminCsrf = bin2hex(random_bytes(20));
     $ownerSessionId = bin2hex(random_bytes(20));
     $otherSessionId = bin2hex(random_bytes(20));
+    $adminSessionId = bin2hex(random_bytes(20));
     $expiredSessionId = bin2hex(random_bytes(20));
 
     $insertSession = $pdo->prepare(
@@ -274,6 +276,14 @@ try {
     $createdSessionIds[] = $otherSessionId;
 
     $insertSession->execute([
+        ':id' => $adminSessionId,
+        ':user_id' => $adminId,
+        ':payload' => $sessionPayload($adminCsrf, $adminId),
+        ':last_activity' => time(),
+    ]);
+    $createdSessionIds[] = $adminSessionId;
+
+    $insertSession->execute([
         ':id' => $expiredSessionId,
         ':user_id' => $ownerId,
         ':payload' => $sessionPayload($ownerCsrf, $ownerId),
@@ -287,12 +297,20 @@ try {
     $otherCookies = [
         $cookieName => sessionCookie($otherSessionId, $cookieName, $key),
     ];
+    $adminCookies = [
+        $cookieName => sessionCookie($adminSessionId, $cookieName, $key),
+    ];
     $expiredCookies = [
         $cookieName => sessionCookie($expiredSessionId, $cookieName, $key),
     ];
     $ownerHeaders = [
         'content-type' => 'application/json',
         'x-xsrf-token' => xsrfCookie($ownerCsrf, $key),
+        'origin' => 'http://localhost',
+    ];
+    $adminHeaders = [
+        'content-type' => 'application/json',
+        'x-xsrf-token' => xsrfCookie($adminCsrf, $key),
         'origin' => 'http://localhost',
     ];
 
@@ -838,6 +856,44 @@ try {
     check(($paymentPayload['amount'] ?? 0) === 1500, 'The payment amount is preserved in cents');
     check(($paymentPayload['currency'] ?? '') === 'COP', 'The payment currency is preserved');
     check(($paymentPayload['simulated'] ?? false) === true, 'response_data.simulated is preserved');
+
+    // ---- Dashboard metrics (S10.3) -------------------------------------
+    $paidBefore = (int) $pdo->query("SELECT COUNT(*) FROM orders WHERE status = 'PAID'")->fetchColumn();
+    $soldBefore = (int) $pdo->query("SELECT COUNT(*) FROM raffle_numbers WHERE status = 'SOLD'")->fetchColumn();
+
+    $metricsRaffleId = $newRaffle('dashboard', min: 201, max: 210);
+
+    foreach ([201, 202] as $soldNumber) {
+        $metricsOrder = createOrder($app, $ownerCookies, $metricsRaffleId, [$soldNumber]);
+        $metricsOrderId = (int) ($metricsOrder['payload']['data']['id'] ?? 0);
+        $pdo->exec("UPDATE orders SET status = 'PAID', paid_at = UTC_TIMESTAMP() WHERE id = ".$metricsOrderId);
+        $pdo->exec("UPDATE raffle_numbers SET status = 'SOLD', sold_at = UTC_TIMESTAMP() WHERE raffle_id = ".$metricsRaffleId.' AND number = '.$soldNumber);
+    }
+
+    $rejectedMetricsOrder = createOrder($app, $ownerCookies, $metricsRaffleId, [203]);
+    $rejectedMetricsOrderId = (int) ($rejectedMetricsOrder['payload']['data']['id'] ?? 0);
+    $pdo->exec("UPDATE orders SET status = 'REJECTED' WHERE id = ".$rejectedMetricsOrderId);
+    $pdo->exec("UPDATE raffle_numbers SET status = 'AVAILABLE', order_id = NULL, reserved_at = NULL, reserved_until = NULL WHERE raffle_id = ".$metricsRaffleId.' AND number = 203');
+
+    $metricsAnonymous = call($app, 'GET', '/api/admin/orders/metrics');
+    check($metricsAnonymous['status'] === 401, 'Dashboard order metrics require a session (401)');
+
+    $metricsUser = call($app, 'GET', '/api/admin/orders/metrics', [], $ownerCookies);
+    check($metricsUser['status'] === 403, 'Dashboard order metrics reject a USER role (403)');
+
+    $metricsAdmin = call($app, 'GET', '/api/admin/orders/metrics', [], $adminCookies);
+    check($metricsAdmin['status'] === 200, 'Dashboard order metrics return 200 for an ADMIN');
+    check(
+        (int) ($metricsAdmin['payload']['data']['paid_orders'] ?? -1) === $paidBefore + 2,
+        'paid_orders counts only the two new PAID orders',
+    );
+    check(
+        (int) ($metricsAdmin['payload']['data']['sold_numbers'] ?? -1) === $soldBefore + 2,
+        'sold_numbers counts only the two new SOLD numbers',
+    );
+
+    $metricsWrongMethod = call($app, 'POST', '/api/admin/orders/metrics', [], $adminCookies, $adminHeaders);
+    check($metricsWrongMethod['status'] === 405, 'POST on order metrics returns 405');
 
     // ---- Routing surface ----------------------------------------------
     check(call($app, 'GET', '/api/orders')['status'] === 401, 'Anonymous GET /api/orders returns 401');

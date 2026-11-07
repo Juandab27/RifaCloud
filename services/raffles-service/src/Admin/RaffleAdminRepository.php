@@ -70,6 +70,17 @@ final class RaffleAdminRepository
     }
 
     /**
+     * Read-only dashboard aggregate. Only PUBLISHED raffles count as
+     * "published"; CLOSED/FINISHED/DRAFT are excluded by definition.
+     */
+    public function countPublished(): int
+    {
+        return (int) $this->pdo
+            ->query("SELECT COUNT(*) FROM raffles WHERE status = 'PUBLISHED'")
+            ->fetchColumn();
+    }
+
+    /**
      * @return array<string, mixed>|null
      */
     public function find(int $raffleId): ?array

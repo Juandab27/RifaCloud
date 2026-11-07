@@ -3,7 +3,7 @@
 **Project:** RifaCloud  
 **Purpose:** Specification-Driven Development documentation for university Cloud Computing project  
 **Status:** Approved (architecture evolution)  
-**Version:** 1.6
+**Version:** 1.8
 **Last Updated:** 2026-11-07
 
 ## Purpose
@@ -39,7 +39,7 @@ This documentation follows Specification-Driven Development (SDD) principles. Al
 ## Key Decisions (Confirmed)
 
 - **Architecture target:** four business microservices (`auth`, `raffles`, `orders`, `payments`) behind Nginx; incremental extraction from the Laravel modular monolith; React + TypeScript; Docker Compose (ADR-001)
-- **Current state:** monolith + `auth-service` (S1) + `raffles-service` catalog and administration (S0/S2) + `orders-service` orders/reservations/expiry (S3) + `payments-service` payments/Mercado Pago/webhooks (S4); S6 browser continuity, S7 purchase confirmation/history, S9.1 audit corrections and S10.1 AWS deployment preparation are done. S5 minimal is closed (migrations and per-service MySQL users applied). The full data separation (per-domain DBs, outbox, rollback removal) is deferred to S8, while the AWS resources, domain/certificates and real Mercado Pago webhook remain pending user input
+- **Current state:** monolith + `auth-service` (S1) + `raffles-service` catalog and administration (S0/S2) + `orders-service` orders/reservations/expiry (S3) + `payments-service` payments/Mercado Pago/webhooks (S4); S6 browser continuity, S7 purchase confirmation/history, S9.1 audit corrections, S10.1 AWS deployment preparation, S10.2 functional/UX polish and S10.3 admin dashboard are done. S5 minimal is closed (migrations and per-service MySQL users applied). The full data separation (per-domain DBs, outbox, rollback removal) is deferred to S8, while the AWS resources, domain/certificates and real Mercado Pago webhook remain pending user input
 - **Data:** single MySQL 8 instance and shared schema during the transition, with per-domain ownership; per-service grants/databases in stage S5
 - **Deployment:** Single AWS EC2 instance (no HA); instance type pending memory/load/budget review
 - **Database:** MySQL, not publicly exposed

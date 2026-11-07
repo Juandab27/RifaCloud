@@ -124,6 +124,14 @@ final class OrderApplication
             return new JsonResponse(['status' => 'ok']);
         }
 
+        if ($path === '/api/admin/orders/metrics') {
+            if ($method !== 'GET') {
+                return new JsonResponse(['message' => 'Method Not Allowed'], 405, ['Allow' => 'GET']);
+            }
+
+            return $this->adminMetrics($headers, $cookies);
+        }
+
         if ($path === '/api/admin/orders') {
             if ($method !== 'GET') {
                 return new JsonResponse(['message' => 'Method Not Allowed'], 405, ['Allow' => 'GET']);
@@ -260,6 +268,27 @@ final class OrderApplication
                 $total,
             ),
         );
+    }
+
+    /**
+     * Read-only dashboard aggregates. PAID is the only confirmed-sale order
+     * state; pending, rejected, expired and refund states are never counted.
+     *
+     * @param  array<string, string>  $headers
+     * @param  array<string, mixed>  $cookies
+     */
+    private function adminMetrics(array $headers, array $cookies): JsonResponse
+    {
+        $context = $this->authenticator->load($cookies);
+        $this->authenticator->assertCsrf('GET', $headers, [], $context);
+        $this->authenticator->requireAdmin($context);
+
+        return new JsonResponse([
+            'data' => [
+                'paid_orders' => $this->orders->countAll('PAID'),
+                'sold_numbers' => $this->orders->countSoldNumbers(),
+            ],
+        ]);
     }
 
     /**

@@ -9,6 +9,7 @@ import OrderDetailPage from './pages/OrderDetailPage'
 import OrdersPage from './pages/OrdersPage'
 import RaffleDetailPage from './pages/RaffleDetailPage'
 import RegisterPage from './pages/RegisterPage'
+import AdminDashboardPage from './pages/admin/AdminDashboardPage'
 import AdminRaffleFormPage from './pages/admin/AdminRaffleFormPage'
 import AdminRafflesPage from './pages/admin/AdminRafflesPage'
 import AdminOrdersPage from './pages/admin/AdminOrdersPage'
@@ -28,6 +29,7 @@ export default function App() {
         </Route>
 
         <Route element={<AdminRoute />}>
+          <Route path="admin/dashboard" element={<AdminDashboardPage />} />
           <Route path="admin/raffles" element={<AdminRafflesPage />} />
           <Route path="admin/orders" element={<AdminOrdersPage />} />
           <Route path="admin/raffles/new" element={<AdminRaffleFormPage />} />

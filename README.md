@@ -45,6 +45,23 @@ docker compose exec app php artisan migrate --seed
 
 La aplicación queda en <http://localhost>.
 
+## Dashboard administrativo
+
+`/admin/dashboard` está disponible solo para usuarios ADMIN y muestra cuatro
+indicadores calculados por consultas agregadas en sus servicios propietarios:
+
+| Indicador | Definición | Servicio |
+|---|---|---|
+| Rifas publicadas | `raffles.status = 'PUBLISHED'` | `raffles-service` |
+| Órdenes pagadas | `orders.status = 'PAID'` | `orders-service` |
+| Números vendidos | `raffle_numbers.status = 'SOLD'` | `orders-service` |
+| Incidencias pendientes | `payments.status IN ('UNKNOWN','REFUND_REQUIRED')` | `payments-service` |
+
+Cada endpoint (`/api/admin/{raffles,orders,payments...}/metrics`) valida la
+sesión ADMIN en el servicio; Nginx devuelve un 503 JSON controlado si el
+servicio está caído. La interfaz muestra «No disponible» en ese caso y nunca
+inventa un cero. No se cargan órdenes ni números completos en React.
+
 ## Despliegue en AWS EC2
 
 La preparación reproducible (Compose de producción, HTTPS con ALB/ACM o Nginx
@@ -119,6 +136,35 @@ docker compose exec app php artisan test
 Los tests usan exclusivamente el esquema `rifacloud_test` configurado en
 `src/.env.testing` (no versionado). La suite no modifica la base de datos de
 desarrollo `rifacloud`; `RefreshDatabase` deja el esquema de test limpio.
+
+### Estados de rifa y pruebas de navegador
+
+El frontend deriva el estado visible de la rifa a partir del estado del backend
+y de `starts_at`/`ends_at` (próximamente, disponible, cerrada o finalizada).
+Fuera de la ventana de venta no se ofrecen reservas; el servidor conserva todas
+sus validaciones.
+
+```sh
+cd frontend
+npm run test:unit    # 16 comprobaciones puras del estado temporal
+npx playwright test  # 12 pruebas de navegador con Chrome instalado
+```
+
+Las pruebas de navegador interceptan `/api/**` en el propio navegador: usan
+datos aislados, un gateway simulado y no escriben en MySQL ni procesan pagos.
+La primera ejecución requiere `npm install` en `frontend/`; no descarga
+navegadores porque usa el Chrome/Edge instalado (`channel: 'chrome'`).
+
+### Dashboard administrativo (E2E)
+
+```sh
+powershell -ExecutionPolicy Bypass -File scripts/verify-admin-dashboard.ps1
+```
+
+Recrea el stack sobre `rifacloud_test` con fixtures aislados y verifica por
+Nginx: 401 anónimo, 403 USER, 200 ADMIN con los cuatro valores exactos y 503
+controlado al detener cada servicio propietario. Restaura el stack normal en
+`finally`; no toca la base `rifacloud` ni ejecuta migraciones.
 
 ## Comandos útiles
 

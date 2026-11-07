@@ -117,9 +117,14 @@ export default function Layout() {
                 </NavLink>
               )}
               {user?.role === 'ADMIN' && (
-                <NavLink to="/admin/raffles" onClick={() => setMenuOpen(false)}>
-                  Administración
-                </NavLink>
+                <>
+                  <NavLink to="/admin/dashboard" onClick={() => setMenuOpen(false)}>
+                    Dashboard
+                  </NavLink>
+                  <NavLink to="/admin/raffles" onClick={() => setMenuOpen(false)}>
+                    Administración
+                  </NavLink>
+                </>
               )}
             </nav>
 

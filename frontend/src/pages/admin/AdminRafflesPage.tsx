@@ -125,6 +125,9 @@ export default function AdminRafflesPage() {
         description="Crea, edita, publica y cierra rifas. Solo los borradores se pueden editar o eliminar."
         actions={
           <div className="page-header-actions">
+            <Link className="button button-ghost" to="/admin/dashboard">
+              Dashboard
+            </Link>
             <Link className="button button-ghost" to="/admin/orders">
               Órdenes e incidencias
             </Link>

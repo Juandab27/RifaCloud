@@ -54,14 +54,14 @@ function checkoutReturnAlert(
   if (order.status === 'EXPIRED') {
     return {
       tone: 'warning',
-      text: 'La reserva venció sin un pago confirmado; los números volvieron a estar disponibles.',
+      text: 'La reserva venció sin un pago confirmado; los números volvieron a estar disponibles. Puedes iniciar una nueva reserva.',
     }
   }
 
   if (order.status === 'REJECTED' || payment?.status === 'REJECTED') {
     return {
       tone: 'warning',
-      text: 'El pago fue rechazado y los números fueron liberados.',
+      text: 'El proveedor rechazó el pago y los números fueron liberados. Puedes elegir otros números disponibles o intentar con otro medio de pago.',
     }
   }
 
@@ -292,6 +292,7 @@ export default function OrderDetailPage() {
     order.status === 'PENDING_PAYMENT'
   const returnAlert = checkoutReturnAlert(order, latestPayment)
   const numberCounts = countNumbers(order.numbers)
+  const canRetryPurchase = order.status === 'REJECTED' || order.status === 'EXPIRED'
 
   const startPayment = async () => {
     setPaymentSubmitting(true)
@@ -508,7 +509,10 @@ export default function OrderDetailPage() {
             )}
 
             {latestPayment.status === 'REJECTED' && (
-              <p className="muted">El pago fue rechazado y los números fueron liberados.</p>
+              <p className="muted">
+                El pago fue rechazado y los números fueron liberados. Puedes elegir números de
+                nuevo desde la rifa o probar otro medio de pago.
+              </p>
             )}
 
             {latestPayment.status === 'REFUND_REQUIRED' && (
@@ -560,6 +564,30 @@ export default function OrderDetailPage() {
           marca la orden como pagada.
         </p>
       </Card>
+
+      {canRetryPurchase && (
+        <Card as="section" className="payment-recovery" aria-labelledby="payment-recovery-heading">
+          <p className="page-header-eyebrow">Nueva oportunidad</p>
+          <h2 id="payment-recovery-heading">
+            {order.status === 'REJECTED' ? 'El pago no se completó' : 'La reserva venció'}
+          </h2>
+          <p className="muted">
+            {order.status === 'REJECTED'
+              ? 'El proveedor rechazó el pago y los números volvieron a estar disponibles. Puedes elegir otros números de esta rifa o probar con otra rifa.'
+              : 'La reserva venció sin un pago confirmado y los números volvieron a estar disponibles. Puedes iniciar una nueva reserva cuando quieras.'}
+          </p>
+          <div className="payment-actions">
+            {order.raffle && (
+              <Link className="button" to={`/raffles/${order.raffle.id}`}>
+                Elegir números de nuevo
+              </Link>
+            )}
+            <Link className="button button-ghost" to="/">
+              Ver otras rifas
+            </Link>
+          </div>
+        </Card>
+      )}
 
       <Card className="order-numbers">
         <header className="order-numbers-head">

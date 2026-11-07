@@ -52,3 +52,9 @@ Thumbs.db
 /backups/
 /.idea/
 /.vscode/
+
+# --- Frontend test artifacts ---
+/frontend/test-results/
+/frontend/playwright-report/
+/frontend/blob-report/
+/frontend/.playwright/

@@ -30,6 +30,18 @@ final class RaffleAdminService
     }
 
     /**
+     * Read-only metrics for the admin dashboard.
+     *
+     * @return array{published_raffles: int}
+     */
+    public function metrics(): array
+    {
+        return [
+            'published_raffles' => $this->repository->countPublished(),
+        ];
+    }
+
+    /**
      * @return array<string, mixed>
      *
      * @throws NotFoundException

@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { api, apiErrorMessage } from '../api/client'
+import RaffleStatePill from '../components/RaffleStatePill'
 import Alert from '../components/ui/Alert'
 import Button from '../components/ui/Button'
 import Card from '../components/ui/Card'
@@ -9,14 +10,16 @@ import ErrorState from '../components/ui/ErrorState'
 import Icon from '../components/ui/Icon'
 import PageHeader from '../components/ui/PageHeader'
 import PageSkeleton from '../components/ui/PageSkeleton'
-import StatusPill from '../components/ui/StatusPill'
-import { formatCents, formatDate } from '../lib/format'
+import { formatCents, formatDate, formatRaffleNumber } from '../lib/format'
+import { getRafflePublicState } from '../lib/raffle'
+import { useNow } from '../lib/useNow'
 import type { PaginatedResponse, Raffle } from '../types'
 
 export default function CatalogPage() {
   const [raffles, setRaffles] = useState<Raffle[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const now = useNow()
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -84,57 +87,80 @@ export default function CatalogPage() {
 
       {raffles.length > 0 && (
         <div className="grid" aria-busy={loading}>
-          {raffles.map((raffle) => (
-            <Card as="article" key={raffle.id} className="raffle-card">
-              <div className="raffle-card-top">
-                <h2 className="raffle-card-title">{raffle.title}</h2>
-                <StatusPill status={raffle.status} />
-              </div>
+          {raffles.map((raffle) => {
+            const state = getRafflePublicState(raffle, now)
+            const ctaLabel =
+              state === 'OPEN' ? 'Ver números' : raffle.result ? 'Ver resultado' : 'Ver detalles'
 
-              {raffle.description && (
-                <p className="raffle-card-description">{raffle.description}</p>
-              )}
-
-              <dl className="raffle-card-meta">
-                <div>
-                  <dt>Precio por número</dt>
-                  <dd className="raffle-price">{formatCents(raffle.price_per_number)}</dd>
+            return (
+              <Card as="article" key={raffle.id} className="raffle-card">
+                <div className="raffle-card-top">
+                  <h2 className="raffle-card-title">{raffle.title}</h2>
+                  <RaffleStatePill raffle={raffle} now={now} />
                 </div>
-                <div>
-                  <dt>Números</dt>
-                  <dd>
-                    {raffle.min_number} – {raffle.max_number}
-                  </dd>
-                </div>
-                <div>
-                  <dt>Total</dt>
-                  <dd>{raffle.total_numbers}</dd>
-                </div>
-              </dl>
 
-              {raffle.ends_at && (
-                <p className="raffle-card-closes">
-                  <Icon name="info" size={14} />
-                  Cierra el {formatDate(raffle.ends_at)}
-                </p>
-              )}
+                {raffle.description && (
+                  <p className="raffle-card-description">{raffle.description}</p>
+                )}
 
-              {raffle.result && (
-                <p className="raffle-card-result">
-                  <Icon name="ticket" size={14} />
-                  Ganador: <strong>N.º {raffle.result.winning_number}</strong>
-                </p>
-              )}
+                <dl className="raffle-card-meta">
+                  <div>
+                    <dt>Precio por número</dt>
+                    <dd className="raffle-price">{formatCents(raffle.price_per_number)}</dd>
+                  </div>
+                  <div>
+                    <dt>Números</dt>
+                    <dd>
+                      {raffle.min_number} – {raffle.max_number}
+                    </dd>
+                  </div>
+                  <div>
+                    <dt>Total</dt>
+                    <dd>{raffle.total_numbers}</dd>
+                  </div>
+                </dl>
 
-              <Link
-                className="button raffle-card-cta"
-                to={`/raffles/${raffle.id}`}
-                aria-label={`Ver números de ${raffle.title}`}
-              >
-                Ver números
-              </Link>
-            </Card>
-          ))}
+                {state === 'UPCOMING' && raffle.starts_at && (
+                  <p className="raffle-card-closes">
+                    <Icon name="info" size={14} />
+                    Comienza el {formatDate(raffle.starts_at)}
+                  </p>
+                )}
+
+                {state === 'OPEN' && raffle.ends_at && (
+                  <p className="raffle-card-closes">
+                    <Icon name="info" size={14} />
+                    Cierra el {formatDate(raffle.ends_at)}
+                  </p>
+                )}
+
+                {state === 'CLOSED' && raffle.ends_at && (
+                  <p className="raffle-card-closes">
+                    <Icon name="info" size={14} />
+                    Venta cerrada el {formatDate(raffle.ends_at)}
+                  </p>
+                )}
+
+                {raffle.result && (
+                  <p className="raffle-card-result">
+                    <Icon name="ticket" size={14} />
+                    Ganador: <strong>N.º {formatRaffleNumber(raffle.result.winning_number)}</strong>
+                    {raffle.result.published_at && (
+                      <span className="muted"> · {formatDate(raffle.result.published_at)}</span>
+                    )}
+                  </p>
+                )}
+
+                <Link
+                  className="button raffle-card-cta"
+                  to={`/raffles/${raffle.id}`}
+                  aria-label={`${ctaLabel} de ${raffle.title}`}
+                >
+                  {ctaLabel}
+                </Link>
+              </Card>
+            )
+          })}
         </div>
       )}
     </section>

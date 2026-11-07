@@ -140,9 +140,14 @@ export default function AdminOrdersPage() {
         title="Órdenes e incidencias"
         description="Consulta todas las órdenes y resuelve incidencias de pago con las acciones existentes."
         actions={
-          <Link className="button button-ghost" to="/admin/raffles">
-            Administrar rifas
-          </Link>
+          <div className="page-header-actions">
+            <Link className="button button-ghost" to="/admin/dashboard">
+              Dashboard
+            </Link>
+            <Link className="button button-ghost" to="/admin/raffles">
+              Administrar rifas
+            </Link>
+          </div>
         }
       />
 

@@ -3,15 +3,22 @@ import { useEffect, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { api, apiErrorMessage } from '../api/client'
 import { useAuth } from '../auth/AuthContext'
+import RaffleStatePill from '../components/RaffleStatePill'
 import { useToast } from '../components/ToastProvider'
 import Alert from '../components/ui/Alert'
 import Badge from '../components/ui/Badge'
 import Button from '../components/ui/Button'
 import Card from '../components/ui/Card'
 import ErrorState from '../components/ui/ErrorState'
+import Icon from '../components/ui/Icon'
 import Skeleton from '../components/ui/Skeleton'
-import StatusPill from '../components/ui/StatusPill'
-import { formatCents, formatDate } from '../lib/format'
+import { formatCents, formatDate, formatRaffleNumber } from '../lib/format'
+import {
+  canReserveRaffle,
+  getRafflePublicState,
+  raffleStateMessage,
+} from '../lib/raffle'
+import { useNow } from '../lib/useNow'
 import type { NumberAvailabilityResponse, Order, Raffle } from '../types'
 
 const NUMBER_STATE_LABEL = {
@@ -33,6 +40,9 @@ export default function RaffleDetailPage() {
   const [loading, setLoading] = useState(true)
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const now = useNow()
+  const publicState = raffle ? getRafflePublicState(raffle, now) : null
+  const canReserve = publicState !== null && canReserveRaffle(publicState)
 
   useEffect(() => {
     let active = true
@@ -91,8 +101,12 @@ export default function RaffleDetailPage() {
   }
 
   function toggleNumber(number: number) {
-    if (raffle && raffle.status !== 'PUBLISHED') {
-      setError('La rifa ya no admite nuevas reservas.')
+    if (raffle && !canReserve) {
+      setError(
+        publicState
+          ? `No puedes reservar números: ${raffleStateMessage(publicState, raffle)}`
+          : 'La rifa ya no admite nuevas reservas.',
+      )
       return
     }
 
@@ -120,6 +134,17 @@ export default function RaffleDetailPage() {
 
   async function handleReserve() {
     if (!raffle || selectedNumbers.length === 0 || submitting) {
+      return
+    }
+
+    // Se mantiene la comprobación en el cliente como cortesía; el servidor
+    // vuelve a validar la ventana de venta y la disponibilidad.
+    if (!canReserve) {
+      setError(
+        publicState
+          ? `No puedes reservar números: ${raffleStateMessage(publicState, raffle)}`
+          : 'La rifa ya no admite nuevas reservas.',
+      )
       return
     }
 
@@ -211,11 +236,26 @@ export default function RaffleDetailPage() {
         <header className="raffle-hero">
           <div className="raffle-hero-head">
             <h1>{raffle.title}</h1>
-            <StatusPill status={raffle.status} />
+            <RaffleStatePill raffle={raffle} now={now} />
           </div>
 
           {raffle.description && (
             <p className="raffle-hero-description">{raffle.description}</p>
+          )}
+
+          {(raffle.starts_at || raffle.ends_at) && (
+            <p className="raffle-window">
+              <Icon name="info" size={14} />
+              {publicState === 'UPCOMING' && raffle.starts_at
+                ? `Venta desde el ${formatDate(raffle.starts_at)}`
+                : publicState === 'OPEN' && raffle.ends_at
+                  ? `Venta hasta el ${formatDate(raffle.ends_at)}`
+                  : publicState === 'CLOSED' && raffle.ends_at
+                    ? `Venta cerrada el ${formatDate(raffle.ends_at)}`
+                    : raffle.starts_at
+                      ? `Inicio: ${formatDate(raffle.starts_at)}`
+                      : `Cierre: ${formatDate(raffle.ends_at)}`}
+            </p>
           )}
 
           <dl className="facts raffle-facts">
@@ -239,48 +279,71 @@ export default function RaffleDetailPage() {
 
       {error && <Alert tone="danger">{error}</Alert>}
 
+      {raffle && publicState === 'UPCOMING' && (
+        <Alert tone="info" heading="Venta próximamente">
+          {raffle.starts_at
+            ? `La venta comienza el ${formatDate(raffle.starts_at)}.`
+            : raffleStateMessage(publicState, raffle)}{' '}
+          Mientras tanto puedes consultar los números, pero no reservarlos.
+        </Alert>
+      )}
+
+      {raffle && publicState === 'CLOSED' && (
+        <Alert tone="warning" heading="Venta cerrada">
+          {raffleStateMessage(publicState, raffle)}
+          {raffle.status !== 'CLOSED' && raffle.ends_at
+            ? ` La ventana de venta terminó el ${formatDate(raffle.ends_at)}.`
+            : ''}{' '}
+          Los números se muestran solo como consulta.
+          {raffle.result
+            ? ' El resultado oficial está disponible abajo.'
+            : ' El resultado oficial se publicará cuando la administración lo confirme.'}
+        </Alert>
+      )}
+
+      {raffle && publicState === 'FINISHED' && !raffle.result && (
+        <Alert tone="info" heading="Rifa finalizada">
+          La rifa finalizó, pero el resultado oficial todavía no está publicado.
+        </Alert>
+      )}
+
       {raffle?.result && (
-        <Card className="raffle-result">
+        <Card as="section" className="raffle-result" aria-labelledby="raffle-result-heading">
           <p className="page-header-eyebrow">Resultado oficial</p>
           <div className="raffle-result-main">
-            <div>
-              <h2>Número ganador</h2>
-              <p className="raffle-result-number">{raffle.result.winning_number}</p>
+            <div className="raffle-result-winner">
+              <h2 id="raffle-result-heading">Número ganador</h2>
+              <p className="raffle-result-number">
+                {formatRaffleNumber(raffle.result.winning_number)}
+              </p>
             </div>
             <dl className="raffle-result-meta">
               <div>
-                <dt>Publicado</dt>
+                <dt>Fecha de publicación</dt>
                 <dd>{formatDate(raffle.result.published_at)}</dd>
               </div>
               <div>
                 <dt>Evidencia</dt>
                 <dd>
-                  {raffle.result.evidence_description ?? 'Sin descripción'}
-                  {raffle.result.evidence_url && (
-                    <>
-                      {' · '}
-                      <a
-                        href={raffle.result.evidence_url}
-                        target="_blank"
-                        rel="noreferrer"
-                      >
-                        Ver evidencia
-                      </a>
-                    </>
-                  )}
+                  {raffle.result.evidence_description ?? 'Sin descripción registrada.'}
                 </dd>
               </div>
             </dl>
           </div>
-        </Card>
-      )}
 
-      {raffle && raffle.status !== 'PUBLISHED' && (
-        <Alert tone="info">
-          {raffle.status === 'CLOSED'
-            ? 'La rifa está cerrada. El resultado oficial se publicará cuando el administrador lo confirme.'
-            : 'La rifa está finalizada y no admite nuevas reservas.'}
-        </Alert>
+          {raffle.result.evidence_url && (
+            <div className="payment-actions">
+              <a
+                className="button btn-secondary"
+                href={raffle.result.evidence_url}
+                target="_blank"
+                rel="noreferrer"
+              >
+                Ver evidencia
+              </a>
+            </div>
+          )}
+        </Card>
       )}
 
       <section
@@ -290,10 +353,13 @@ export default function RaffleDetailPage() {
       >
         <header className="numbers-panel-head">
           <div>
-            <h2 id="numbers-heading">Elige tus números</h2>
+            <h2 id="numbers-heading">
+              {canReserve ? 'Elige tus números' : 'Números de la rifa'}
+            </h2>
             <p className="muted">
-              Toca los números disponibles. Cada estado se indica con su etiqueta y su forma,
-              no solo con color.
+              {canReserve
+                ? 'Toca los números disponibles. Cada estado se indica con su etiqueta y su forma, no solo con color.'
+                : 'Consulta los números y su estado. La reserva no está disponible fuera de la ventana de venta.'}
             </p>
           </div>
 
@@ -333,7 +399,7 @@ export default function RaffleDetailPage() {
                     key={item.id}
                     type="button"
                     className={`number ${item.status.toLowerCase()}${selected ? ' selected' : ''}`}
-                    disabled={item.status !== 'AVAILABLE' || raffle?.status !== 'PUBLISHED'}
+                    disabled={item.status !== 'AVAILABLE' || !canReserve}
                     aria-pressed={item.status === 'AVAILABLE' ? selected : undefined}
                     aria-label={`Número ${item.number}, ${stateLabel}`}
                     onClick={() => toggleNumber(item.number)}
@@ -371,7 +437,7 @@ export default function RaffleDetailPage() {
               </Button>
             </div>
 
-            {raffle?.status === 'PUBLISHED' ? (
+            {raffle && canReserve ? (
               <div className="selection-bar" role="region" aria-label="Resumen de selección">
                 <div className="selection-info">
                   <p className="selection-summary" aria-live="polite">
@@ -422,9 +488,14 @@ export default function RaffleDetailPage() {
             ) : (
               <div className="selection-bar selection-bar--closed">
                 <p className="muted selection-detail">
-                  La rifa está {raffle?.status === 'FINISHED' ? 'finalizada' : 'cerrada'}; los
-                  números se muestran solo como consulta.
+                  {raffle && publicState
+                    ? raffleStateMessage(publicState, raffle)
+                    : 'La rifa no admite nuevas reservas.'}{' '}
+                  Los números se muestran solo como consulta.
                 </p>
+                <Link className="button button-ghost" to="/">
+                  Ver otras rifas
+                </Link>
               </div>
             )}
           </>

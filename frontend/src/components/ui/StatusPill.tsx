@@ -54,6 +54,11 @@ export interface StatusPillProps {
   status: StatusValue
   /** Permite reutilizar los textos propios de cada página. */
   label?: ReactNode
+  /**
+   * Permite que un estado derivado (p. ej. «Próximamente» desde PUBLISHED)
+   * elija el color sin inventar un StatusValue nuevo.
+   */
+  tone?: StatusTone
   className?: string
   title?: string
 }
@@ -62,9 +67,9 @@ export interface StatusPillProps {
  * Píldora de estado. Conserva el modificador en minúsculas que ya consumen
  * las hojas de B0 (`.status.pending_payment`, `.status.refund_required`, …).
  */
-export default function StatusPill({ status, label, className, title }: StatusPillProps) {
+export default function StatusPill({ status, label, tone, className, title }: StatusPillProps) {
   const modifier = status.toLowerCase()
-  const classes = ['status', modifier, `status--${TONE_BY_STATUS[status]}`, className]
+  const classes = ['status', modifier, `status--${tone ?? TONE_BY_STATUS[status]}`, className]
     .filter(Boolean)
     .join(' ')
 

@@ -63,6 +63,16 @@ final class AdminApplication
                 return $this->methodNotAllowed(['GET', 'POST']);
             }
 
+            if ($path === '/api/admin/raffles/metrics') {
+                if ($method !== 'GET') {
+                    return $this->methodNotAllowed(['GET']);
+                }
+
+                $this->authorize($method, $headers, $cookies, []);
+
+                return new JsonResponse(['data' => $this->raffles->metrics()]);
+            }
+
             if (preg_match('#^/api/admin/raffles/([0-9]+)$#', $path, $matches) === 1) {
                 $raffleId = (int) $matches[1];
 

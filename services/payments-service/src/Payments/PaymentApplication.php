@@ -171,6 +171,14 @@ final class PaymentApplication
             return $this->resolve((int) $matches[1], (int) $matches[2], $headers, $cookies, $rawBody, $baseUrl);
         }
 
+        if ($path === '/api/admin/payments/incidents/metrics') {
+            if ($method !== 'GET') {
+                return new JsonResponse(['message' => 'Method Not Allowed'], 405, ['Allow' => 'GET']);
+            }
+
+            return $this->incidentMetrics($headers, $cookies);
+        }
+
         if ($path === '/api/admin/payments/incidents') {
             if ($method !== 'GET') {
                 return new JsonResponse(['message' => 'Method Not Allowed'], 405, ['Allow' => 'GET']);
@@ -249,6 +257,26 @@ final class PaymentApplication
         $this->verification->resolve($orderId, $paymentId);
 
         return new JsonResponse($this->projection->present($orderId));
+    }
+
+    /**
+     * Read-only dashboard aggregate. Only UNKNOWN and REFUND_REQUIRED payments
+     * need administrative intervention; APPROVED/REJECTED/PENDING are excluded.
+     *
+     * @param  array<string, string>  $headers
+     * @param  array<string, mixed>  $cookies
+     */
+    private function incidentMetrics(array $headers, array $cookies): JsonResponse
+    {
+        $context = $this->authenticator->load($cookies);
+        $this->authenticator->assertCsrf('GET', $headers, [], $context);
+        $this->authenticator->requireAdmin($context);
+
+        return new JsonResponse([
+            'data' => [
+                'pending_incidents' => $this->payments->countIncidents(null),
+            ],
+        ]);
     }
 
     /**

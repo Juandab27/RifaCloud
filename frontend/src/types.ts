@@ -151,3 +151,17 @@ export interface PaymentIncident {
     title: string
   }
 }
+
+/** Agregados de solo lectura del dashboard administrativo (S10.3). */
+export interface RaffleMetrics {
+  published_raffles: number
+}
+
+export interface OrderMetrics {
+  paid_orders: number
+  sold_numbers: number
+}
+
+export interface PaymentIncidentMetrics {
+  pending_incidents: number
+}

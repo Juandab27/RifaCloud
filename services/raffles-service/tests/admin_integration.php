@@ -443,6 +443,25 @@ try {
     $published = call($app, 'POST', '/api/admin/raffles/'.$guardId.'/publish', [], $adminCookies, $adminHeaders);
     check($published['status'] === 200 && ($published['payload']['data']['status'] ?? '') === 'PUBLISHED', 'Publishing a DRAFT raffle works');
 
+    // ---- Dashboard metrics (S10.3) ------------------------------------
+    $metricsAnonymous = call($app, 'GET', '/api/admin/raffles/metrics');
+    check($metricsAnonymous['status'] === 401, 'Dashboard raffle metrics require a session (401)');
+
+    $metricsUser = call($app, 'GET', '/api/admin/raffles/metrics', [], $userCookies);
+    check($metricsUser['status'] === 403, 'Dashboard raffle metrics reject a USER role (403)');
+
+    $metricsAdmin = call($app, 'GET', '/api/admin/raffles/metrics', [], $adminCookies);
+    check($metricsAdmin['status'] === 200, 'Dashboard raffle metrics return 200 for an ADMIN');
+    $expectedPublished = (int) $pdo->query("SELECT COUNT(*) FROM raffles WHERE status = 'PUBLISHED'")->fetchColumn();
+    check(
+        (int) ($metricsAdmin['payload']['data']['published_raffles'] ?? -1) === $expectedPublished,
+        'published_raffles counts only PUBLISHED raffles',
+    );
+    check($expectedPublished >= 1, 'The published fixture is included in the metric');
+
+    $metricsWrongMethod = call($app, 'POST', '/api/admin/raffles/metrics', [], $adminCookies, $adminHeaders);
+    check($metricsWrongMethod['status'] === 405, 'POST on raffle metrics returns 405');
+
     $reconfigurePublished = call($app, 'PUT', '/api/admin/raffles/'.$guardId, payload(['title' => 'nope']), $adminCookies, $adminHeaders);
     check($reconfigurePublished['status'] === 422 && isset($reconfigurePublished['payload']['errors']['status']), 'A PUBLISHED raffle cannot be reconfigured');
 

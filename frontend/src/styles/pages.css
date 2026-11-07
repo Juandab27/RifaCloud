@@ -381,6 +381,15 @@ button.number.selected:hover:not(:disabled) {
   overflow-wrap: anywhere;
 }
 
+.raffle-window {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  margin: 0;
+  color: var(--text-2);
+  font-size: var(--fs-sm);
+}
+
 .raffle-facts {
   margin: var(--sp-2) 0 0;
 }
@@ -999,6 +1008,7 @@ button.number.selected {
 .raffle-card-result {
   display: inline-flex;
   align-items: center;
+  flex-wrap: wrap;
   gap: 0.35rem;
   margin: 0;
   padding: 0.3rem 0.6rem;
@@ -1012,6 +1022,24 @@ button.number.selected {
 
 .raffle-result {
   border-color: var(--accent-line);
+}
+
+.raffle-result-winner {
+  min-width: 180px;
+}
+
+.raffle-result-winner h2 {
+  margin: 0;
+  font-size: var(--fs-lg);
+}
+
+/* Recuperación tras un pago rechazado o una reserva vencida. */
+.payment-recovery {
+  border-color: var(--accent-line);
+}
+
+.payment-recovery h2 {
+  margin: var(--sp-1) 0 0;
 }
 
 .raffle-result-main {
@@ -1149,6 +1177,18 @@ button.number.selected {
   }
 
   .orders-more .btn {
+    width: 100%;
+  }
+
+  .raffle-result-main {
+    gap: var(--sp-4);
+  }
+
+  .raffle-result-meta {
+    min-width: 0;
+  }
+
+  .selection-bar--closed .button {
     width: 100%;
   }
 }
