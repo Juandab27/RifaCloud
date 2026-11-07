@@ -7,7 +7,8 @@ import {
   useState,
   type ReactNode,
 } from 'react'
-import { api, ensureCsrfCookie } from '../api/client'
+import axios from 'axios'
+import { api, ensureCsrfCookie, UNAUTHORIZED_EVENT } from '../api/client'
 import type { User } from '../types'
 
 interface RegisterPayload {
@@ -18,43 +19,60 @@ interface RegisterPayload {
   password_confirmation: string
 }
 
+type SessionState = 'checking' | 'authenticated' | 'anonymous' | 'unavailable'
+
 interface AuthContextValue {
   user: User | null
   loading: boolean
+  sessionUnavailable: boolean
   login: (email: string, password: string) => Promise<void>
   register: (payload: RegisterPayload) => Promise<void>
   logout: () => Promise<void>
+  retrySession: () => Promise<void>
 }
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined)
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null)
-  const [loading, setLoading] = useState(true)
+  const [sessionState, setSessionState] = useState<SessionState>('checking')
+
+  const checkSession = useCallback(async () => {
+    setSessionState('checking')
+
+    try {
+      const response = await api.get<{ data: User }>('/me')
+      setUser(response.data.data)
+      setSessionState('authenticated')
+    } catch (caught) {
+      // Only an explicit 401 means "anonymous". A 5xx, a timeout or a network
+      // failure is an availability problem: keep the current identity so a
+      // reload or a Mercado Pago return does not log the user out.
+      if (axios.isAxiosError(caught) && caught.response?.status === 401) {
+        setUser(null)
+        setSessionState('anonymous')
+
+        return
+      }
+
+      setSessionState('unavailable')
+    }
+  }, [])
 
   useEffect(() => {
-    let active = true
+    void checkSession()
+  }, [checkSession])
 
-    api
-      .get<{ data: User }>('/me')
-      .then((response) => {
-        if (active) {
-          setUser(response.data.data)
-        }
-      })
-      .catch(() => {
-        if (active) {
-          setUser(null)
-        }
-      })
-      .finally(() => {
-        if (active) {
-          setLoading(false)
-        }
-      })
+  useEffect(() => {
+    function handleUnauthorized() {
+      setUser(null)
+      setSessionState('anonymous')
+    }
+
+    window.addEventListener(UNAUTHORIZED_EVENT, handleUnauthorized)
 
     return () => {
-      active = false
+      window.removeEventListener(UNAUTHORIZED_EVENT, handleUnauthorized)
     }
   }, [])
 
@@ -62,23 +80,44 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     await ensureCsrfCookie()
     const response = await api.post<{ data: User }>('/login', { email, password })
     setUser(response.data.data)
+    setSessionState('authenticated')
   }, [])
 
   const register = useCallback(async (payload: RegisterPayload) => {
     await ensureCsrfCookie()
     const response = await api.post<{ data: User }>('/register', payload)
     setUser(response.data.data)
+    setSessionState('authenticated')
   }, [])
 
   const logout = useCallback(async () => {
-    await ensureCsrfCookie()
-    await api.post('/logout')
-    setUser(null)
+    try {
+      await ensureCsrfCookie()
+      await api.post('/logout')
+    } catch {
+      // A failed server logout must not leave the UI half-authenticated. The
+      // server session may survive, but the next /me check will restore it.
+    } finally {
+      setUser(null)
+      setSessionState('anonymous')
+    }
   }, [])
 
+  const retrySession = useCallback(async () => {
+    await checkSession()
+  }, [checkSession])
+
   const value = useMemo(
-    () => ({ user, loading, login, register, logout }),
-    [user, loading, login, register, logout],
+    () => ({
+      user,
+      loading: sessionState === 'checking',
+      sessionUnavailable: sessionState === 'unavailable',
+      login,
+      register,
+      logout,
+      retrySession,
+    }),
+    [user, sessionState, login, register, logout, retrySession],
   )
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>

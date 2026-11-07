@@ -33,12 +33,15 @@ final class Config
 
     public static function reservationMinutes(): int
     {
-        return self::int('RAFFLES_RESERVATION_MINUTES', 10);
+        // Single source of truth: RESERVATION_MINUTES from src/.env (shared with
+        // the monolith and orders-service). RAFFLES_* remains a service-specific
+        // override for isolated deployments.
+        return self::int('RAFFLES_RESERVATION_MINUTES', self::int('RESERVATION_MINUTES', 10));
     }
 
     public static function maxNumbersPerOrder(): int
     {
-        return self::int('RAFFLES_ORDER_MAX_NUMBERS', 50);
+        return self::int('RAFFLES_ORDER_MAX_NUMBERS', self::int('ORDER_MAX_NUMBERS', 50));
     }
 
     public static function raffleMaxNumbers(): int

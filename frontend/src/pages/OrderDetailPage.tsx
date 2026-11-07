@@ -1,5 +1,6 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Link, useParams, useSearchParams } from 'react-router-dom'
+import axios from 'axios'
 import { api, apiErrorMessage } from '../api/client'
 import Alert from '../components/ui/Alert'
 import Badge from '../components/ui/Badge'
@@ -39,8 +40,7 @@ const PAYMENT_STATUS_LABELS: Record<PaymentState, string> = {
   REFUND_REQUIRED: 'Reembolso requerido',
 }
 
-function useRemainingTime(expiresAt: string | null): string | null {
-  const [now, setNow] = useState(() => Date.now())
+function useRemainingTime(expiresAt: string | null): string | null {  const [now, setNow] = useState(() => Date.now())
 
   useEffect(() => {
     if (!expiresAt) {
@@ -69,6 +69,58 @@ function useRemainingTime(expiresAt: string | null): string | null {
   return `${minutes}:${seconds.toString().padStart(2, '0')}`
 }
 
+function checkoutReturnAlert(
+  order: Order,
+  payment: Payment | null,
+): { tone: 'info' | 'success' | 'warning' | 'danger'; text: string } {
+  if (order.status === 'PAID' || payment?.status === 'APPROVED') {
+    return {
+      tone: 'success',
+      text: 'Pago aprobado: los números quedaron vendidos.',
+    }
+  }
+
+  if (order.status === 'REQUIRES_REFUND' || payment?.status === 'REFUND_REQUIRED') {
+    return {
+      tone: 'danger',
+      text: 'El pago se confirmó, pero la orden requiere un reembolso manual. Un administrador debe gestionarlo.',
+    }
+  }
+
+  if (order.status === 'PAYMENT_REVIEW' || payment?.status === 'UNKNOWN') {
+    return {
+      tone: 'warning',
+      text: 'El resultado del pago es incierto y la orden está en revisión. Los números siguen reservados.',
+    }
+  }
+
+  if (order.status === 'EXPIRED') {
+    return {
+      tone: 'warning',
+      text: 'La reserva venció sin un pago confirmado; los números volvieron a estar disponibles.',
+    }
+  }
+
+  if (order.status === 'REJECTED' || payment?.status === 'REJECTED') {
+    return {
+      tone: 'warning',
+      text: 'El pago fue rechazado y los números fueron liberados.',
+    }
+  }
+
+  if (payment?.status === 'PENDING') {
+    return {
+      tone: 'info',
+      text: 'Todavía no hay confirmación del proveedor. Puedes consultar el estado nuevamente en unos segundos.',
+    }
+  }
+
+  return {
+    tone: 'info',
+    text: 'Volviste de Mercado Pago. La confirmación se obtiene en el servidor; la URL de retorno no marca la orden como pagada.',
+  }
+}
+
 export default function OrderDetailPage() {
   const { orderId } = useParams()
   const [searchParams] = useSearchParams()
@@ -79,9 +131,130 @@ export default function OrderDetailPage() {
   const [paymentSubmitting, setPaymentSubmitting] = useState(false)
   const [reloadToken, setReloadToken] = useState(0)
   const remaining = useRemainingTime(order?.expires_at ?? null)
-  // The browser return is only a hint. It never confirms the payment and it
-  // never triggers a provider query automatically.
+  // The return URL is only a hint. It never marks the order as paid: the
+  // backend verifies the payment with the provider and applies the state.
   const returnedFromCheckout = searchParams.get('pago') === 'retorno'
+  const reservationExpired = remaining === 'Reserva vencida'
+  const autoVerifiedPayment = useRef<string | null>(null)
+  const [returnCheck, setReturnCheck] = useState<'checking' | 'done' | 'idle'>('idle')
+
+  // On a Mercado Pago return, ask the backend to verify the payment once. The
+  // response is the authoritative state; a 409/503 keeps the current order on
+  // screen instead of clearing the session or faking an approval.
+  useEffect(() => {
+    if (!returnedFromCheckout || order === null) {
+      return
+    }
+
+    const payments = order.payments ?? []
+    const latest = payments.length > 0 ? payments[payments.length - 1] : null
+
+    if (latest === null || !['PENDING', 'UNKNOWN'].includes(latest.status)) {
+      return
+    }
+
+    if (!['PENDING_PAYMENT', 'EXPIRED', 'REJECTED'].includes(order.status)) {
+      return
+    }
+
+    const key = `${order.id}:${latest.id}`
+
+    if (autoVerifiedPayment.current === key) {
+      return
+    }
+
+    autoVerifiedPayment.current = key
+    let active = true
+    setReturnCheck('checking')
+
+    api
+      .post<{ data: Order }>(`/orders/${order.id}/payments/${latest.id}/verify`)
+      .then((response) => {
+        if (active) {
+          setOrder(response.data.data)
+          setPaymentError(null)
+        }
+      })
+      .catch(async (caught) => {
+        if (!active) {
+          return
+        }
+
+        if (axios.isAxiosError(caught) && caught.response?.status === 409) {
+          // The order moved to review (or is no longer verifiable). Read the
+          // current backend state instead of showing a conflict error.
+          try {
+            const response = await api.get<{ data: Order }>(`/orders/${order.id}`)
+
+            if (active) {
+              setOrder(response.data.data)
+            }
+          } catch {
+            // Keep the current state; the manual refresh button remains.
+          }
+
+          return
+        }
+
+        if (
+          !axios.isAxiosError(caught) ||
+          caught.response === undefined ||
+          caught.response.status >= 500
+        ) {
+          setPaymentError(
+            'No pudimos confirmar el pago en este momento. Tu sesión y tu reserva siguen intactas; puedes reintentar.',
+          )
+        }
+      })
+      .finally(() => {
+        if (active) {
+          setReturnCheck('done')
+        }
+      })
+
+    return () => {
+      active = false
+    }
+  }, [returnedFromCheckout, order])
+
+  // The countdown is cosmetic; the backend owns expiry. Once it reaches zero,
+  // poll the order until the scheduler has released (or kept) the numbers.
+  useEffect(() => {
+    if (order === null || order.status !== 'PENDING_PAYMENT' || !reservationExpired) {
+      return
+    }
+
+    let active = true
+    let attempts = 0
+
+    const timer = window.setInterval(() => {
+      attempts += 1
+
+      api
+        .get<{ data: Order }>(`/orders/${order.id}`)
+        .then((response) => {
+          if (!active) {
+            return
+          }
+
+          setOrder(response.data.data)
+
+          if (response.data.data.status !== 'PENDING_PAYMENT' || attempts >= 12) {
+            window.clearInterval(timer)
+          }
+        })
+        .catch(() => {
+          if (!active || attempts >= 12) {
+            window.clearInterval(timer)
+          }
+        })
+    }, 10000)
+
+    return () => {
+      active = false
+      window.clearInterval(timer)
+    }
+  }, [order?.id, order?.status, reservationExpired])
 
   useEffect(() => {
     let active = true
@@ -157,6 +330,7 @@ export default function OrderDetailPage() {
     latestPayment?.status === 'PENDING' &&
     latestPayment.simulated !== true &&
     order.status === 'PENDING_PAYMENT'
+  const returnAlert = checkoutReturnAlert(order, latestPayment)
 
   const startPayment = async () => {
     setPaymentSubmitting(true)
@@ -216,9 +390,10 @@ export default function OrderDetailPage() {
       {error && <Alert tone="danger">{error}</Alert>}
 
       {returnedFromCheckout && (
-        <Alert tone="info">
-          Si completaste el pago en Mercado Pago, actualiza o verifica el estado. La confirmación
-          se obtiene en el servidor; la URL de retorno no marca la orden como pagada.
+        <Alert tone={returnAlert.tone}>
+          {returnCheck === 'checking'
+            ? 'Consultando el estado real del pago con el proveedor…'
+            : returnAlert.text}
         </Alert>
       )}
 

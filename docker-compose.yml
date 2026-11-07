@@ -68,8 +68,8 @@ services:
       RAFFLES_DB_DATABASE: ${DB_DATABASE:-rifacloud}
       RAFFLES_DB_USERNAME: ${DB_USERNAME:-rifacloud}
       RAFFLES_DB_PASSWORD: ${DB_PASSWORD:?Set DB_PASSWORD in the root .env file}
-      RAFFLES_RESERVATION_MINUTES: ${RESERVATION_MINUTES:-10}
-      RAFFLES_ORDER_MAX_NUMBERS: ${ORDER_MAX_NUMBERS:-50}
+      # Reservation duration comes from src/.env (RESERVATION_MINUTES) through
+      # env_file so the catalog, orders-service and the monolith always agree.
       RAFFLE_MAX_NUMBERS: ${RAFFLE_MAX_NUMBERS:-10000}
     depends_on:
       mysql:
@@ -99,8 +99,8 @@ services:
       ORDERS_DB_DATABASE: ${DB_DATABASE:-rifacloud}
       ORDERS_DB_USERNAME: ${DB_USERNAME:-rifacloud}
       ORDERS_DB_PASSWORD: ${DB_PASSWORD:?Set DB_PASSWORD in the root .env file}
-      ORDERS_RESERVATION_MINUTES: ${RESERVATION_MINUTES:-10}
-      ORDERS_ORDER_MAX_NUMBERS: ${ORDER_MAX_NUMBERS:-50}
+      # RESERVATION_MINUTES and ORDER_MAX_NUMBERS come from src/.env through
+      # env_file; see services/orders-service/src/Config.php.
     depends_on:
       mysql:
         condition: service_healthy

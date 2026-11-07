@@ -22,10 +22,14 @@ services:
   raffles-service:
     environment:
       RAFFLES_DB_DATABASE: rifacloud_test
+      # S6 proves that the catalog, orders-service and the monolith share one
+      # reservation duration. Defaults to the real 10 minutes.
+      RESERVATION_MINUTES: ${S6_RESERVATION_MINUTES:-10}
   orders-service:
     environment:
       ORDERS_DB_DATABASE: rifacloud_test
       PAYMENT_GATEWAY: fake
+      RESERVATION_MINUTES: ${S6_RESERVATION_MINUTES:-10}
   payments-service:
     environment:
       PAYMENTS_DB_DATABASE: rifacloud_test

@@ -1,15 +1,17 @@
 import { useState, type FormEvent } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { apiErrorMessage } from '../api/client'
 import { useAuth } from '../auth/AuthContext'
 import AuthShell from '../components/AuthShell'
 import Alert from '../components/ui/Alert'
 import Button from '../components/ui/Button'
 import Field from '../components/ui/Field'
+import { postLoginPath } from '../lib/navigation'
 
 export default function RegisterPage() {
   const { register } = useAuth()
   const navigate = useNavigate()
+  const location = useLocation()
   const [form, setForm] = useState({
     name: '',
     email: '',
@@ -31,7 +33,7 @@ export default function RegisterPage() {
 
     try {
       await register(form)
-      navigate('/')
+      navigate(postLoginPath(location.state), { replace: true })
     } catch (caught) {
       setError(apiErrorMessage(caught))
     } finally {

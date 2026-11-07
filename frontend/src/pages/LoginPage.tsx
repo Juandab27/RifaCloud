@@ -1,15 +1,17 @@
 import { useState, type FormEvent } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { apiErrorMessage } from '../api/client'
 import { useAuth } from '../auth/AuthContext'
 import AuthShell from '../components/AuthShell'
 import Alert from '../components/ui/Alert'
 import Button from '../components/ui/Button'
 import Field from '../components/ui/Field'
+import { postLoginPath } from '../lib/navigation'
 
 export default function LoginPage() {
   const { login } = useAuth()
   const navigate = useNavigate()
+  const location = useLocation()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState<string | null>(null)
@@ -22,7 +24,7 @@ export default function LoginPage() {
 
     try {
       await login(email, password)
-      navigate('/')
+      navigate(postLoginPath(location.state), { replace: true })
     } catch (caught) {
       setError(apiErrorMessage(caught))
     } finally {
