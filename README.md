@@ -45,6 +45,22 @@ docker compose exec app php artisan migrate --seed
 
 La aplicación queda en <http://localhost>.
 
+## Despliegue en AWS EC2
+
+La preparación reproducible (Compose de producción, HTTPS con ALB/ACM o Nginx
+TLS, bootstrap de MySQL con 13 migraciones, grants mínimos, backups cifrados y
+procedimiento de restauración) está en
+[`deploy/aws/README.md`](deploy/aws/README.md).
+
+No se crean recursos AWS automáticamente. El despliegue requiere dominio/DNS,
+certificado, credenciales sandbox de Mercado Pago, SMTP (opcional) y un bucket
+S3 para respaldos. El webhook real no se considera verificado hasta probar una
+notificación firmada del proveedor.
+
+Los documentos SDD y `AGENTS.md` están desbloqueados en `.gitignore` para que
+puedan versionarse; deben commitearse y pushearse para recuperarlos desde
+GitHub.
+
 ### Administrador inicial
 
 `AdminUserSeeder` crea (o actualiza) el administrador leyendo

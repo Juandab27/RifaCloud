@@ -1,0 +1,119 @@
+# RifaCloud — production overlay for a single AWS EC2 instance.
+#
+# Usage on the server (after copying deploy/aws/env.production.example to .env
+# and filling the secrets):
+#
+#   docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d
+#
+# This overlay:
+#   - injects production/session/mail/payment variables explicitly;
+#   - keeps MySQL and the business services internal (only Nginx is published);
+#   - adds healthchecks for app and nginx;
+#   - does not include the Mercado Pago token in auth/raffles/orders.
+#
+# For direct Nginx TLS (no ALB), use also docker-compose.prod-tls.yml.
+
+x-production-app-env: &production-app-env
+  APP_NAME: RifaCloud
+  APP_ENV: production
+  APP_DEBUG: "false"
+  APP_KEY: ${APP_KEY:?Set APP_KEY in the root .env file}
+  APP_URL: ${APP_URL:?Set APP_URL (https://...) in the root .env file}
+  TRUSTED_PROXIES: ${TRUSTED_PROXIES:-127.0.0.1,::1}
+  DB_CONNECTION: mysql
+  DB_HOST: mysql
+  DB_PORT: "3306"
+  DB_DATABASE: ${DB_DATABASE:-rifacloud}
+  DB_USERNAME: ${DB_USERNAME:-rifacloud}
+  DB_PASSWORD: ${DB_PASSWORD:?Set DB_PASSWORD in the root .env file}
+  SESSION_DRIVER: database
+  SESSION_LIFETIME: ${SESSION_LIFETIME:-120}
+  SESSION_COOKIE: rifacloud-session
+  SESSION_DOMAIN: ${APP_DOMAIN:?Set APP_DOMAIN in the root .env file}
+  SESSION_SECURE_COOKIE: ${SESSION_SECURE_COOKIE:-true}
+  SESSION_SAME_SITE: ${SESSION_SAME_SITE:-lax}
+  SESSION_ENCRYPT: "false"
+  SANCTUM_STATEFUL_DOMAINS: ${SANCTUM_STATEFUL_DOMAINS:?Set SANCTUM_STATEFUL_DOMAINS in the root .env file}
+  CACHE_STORE: database
+  QUEUE_CONNECTION: sync
+  LOG_CHANNEL: stderr
+  LOG_LEVEL: ${LOG_LEVEL:-warning}
+  MAIL_MAILER: ${MAIL_MAILER:-log}
+  MAIL_HOST: ${MAIL_HOST:-}
+  MAIL_PORT: ${MAIL_PORT:-587}
+  MAIL_USERNAME: ${MAIL_USERNAME:-}
+  MAIL_PASSWORD: ${MAIL_PASSWORD:-}
+  MAIL_SCHEME: ${MAIL_SCHEME:-tls}
+  MAIL_FROM_ADDRESS: ${MAIL_FROM_ADDRESS:-no-reply@localhost}
+  MAIL_FROM_NAME: RifaCloud
+  PAYMENT_GATEWAY: ${PAYMENT_GATEWAY:-mercadopago}
+  PAYMENT_FAKE_OUTCOME: ${PAYMENT_FAKE_OUTCOME:-UNKNOWN}
+  MERCADOPAGO_ACCESS_TOKEN: ${MERCADOPAGO_ACCESS_TOKEN:?Set the Mercado Pago access token}
+  MERCADOPAGO_PUBLIC_KEY: ${MERCADOPAGO_PUBLIC_KEY:-}
+  MERCADOPAGO_WEBHOOK_SECRET: ${MERCADOPAGO_WEBHOOK_SECRET:?Set the Mercado Pago webhook secret}
+  MERCADOPAGO_WEBHOOK_URL: ${MERCADOPAGO_WEBHOOK_URL:?Set the public HTTPS webhook URL}
+  MERCADOPAGO_BACK_URL: ${MERCADOPAGO_BACK_URL:?Set the public HTTPS back URL}
+  MERCADOPAGO_SANDBOX: ${MERCADOPAGO_SANDBOX:-true}
+  MERCADOPAGO_BASE_URL: ${MERCADOPAGO_BASE_URL:-https://api.mercadopago.com}
+  MERCADOPAGO_TIMEOUT: ${MERCADOPAGO_TIMEOUT:-10}
+  ADMIN_NAME: ${ADMIN_NAME:-}
+  ADMIN_EMAIL: ${ADMIN_EMAIL:-}
+  ADMIN_PASSWORD: ${ADMIN_PASSWORD:-}
+  ADMIN_PHONE: ${ADMIN_PHONE:-0000000000}
+  RESERVATION_MINUTES: ${RESERVATION_MINUTES:-10}
+  ORDER_MAX_NUMBERS: ${ORDER_MAX_NUMBERS:-50}
+  RAFFLE_MAX_NUMBERS: ${RAFFLE_MAX_NUMBERS:-10000}
+  ORDERS_SERVICE_URL: http://orders-service
+  PAYMENTS_SERVICE_URL: http://payments-service
+
+services:
+  app:
+    environment:
+      <<: *production-app-env
+    healthcheck:
+      test: ["CMD-SHELL", "php -r 'exit(@fsockopen(\"127.0.0.1\", 9000) === false ? 1 : 0);'"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+
+  scheduler:
+    environment:
+      <<: *production-app-env
+
+  nginx:
+    # Direct HTTP origin behind ALB/ACM by default. Only Nginx is published.
+    ports:
+      - "80:80"
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O /dev/null http://127.0.0.1/healthz || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
+
+  payments-service:
+    # The base service loads src/.env (a non-secret placeholder in production).
+    # These explicit values come from the root .env and keep Mercado Pago
+    # credentials out of auth/raffles/orders.
+    environment:
+      APP_ENV: production
+      APP_KEY: ${APP_KEY:?Set APP_KEY in the root .env file}
+      APP_URL: ${APP_URL:?Set APP_URL (https://...) in the root .env file}
+      SESSION_COOKIE: rifacloud-session
+      SESSION_LIFETIME: ${SESSION_LIFETIME:-120}
+      SESSION_TABLE: sessions
+      PAYMENT_GATEWAY: ${PAYMENT_GATEWAY:-mercadopago}
+      PAYMENT_FAKE_OUTCOME: ${PAYMENT_FAKE_OUTCOME:-UNKNOWN}
+      MERCADOPAGO_ACCESS_TOKEN: ${MERCADOPAGO_ACCESS_TOKEN:?Set the Mercado Pago access token}
+      MERCADOPAGO_WEBHOOK_SECRET: ${MERCADOPAGO_WEBHOOK_SECRET:?Set the Mercado Pago webhook secret}
+      MERCADOPAGO_WEBHOOK_URL: ${MERCADOPAGO_WEBHOOK_URL:?Set the public HTTPS webhook URL}
+      MERCADOPAGO_BACK_URL: ${MERCADOPAGO_BACK_URL:?Set the public HTTPS back URL}
+      MERCADOPAGO_SANDBOX: ${MERCADOPAGO_SANDBOX:-true}
+      MERCADOPAGO_BASE_URL: ${MERCADOPAGO_BASE_URL:-https://api.mercadopago.com}
+      MERCADOPAGO_TIMEOUT: ${MERCADOPAGO_TIMEOUT:-10}
+      ORDERS_INTERNAL_TIMEOUT: ${ORDERS_INTERNAL_TIMEOUT:-5}
+
+  mysql:
+    # Kept internal. The named mysql_data volume is the only data volume.
+    restart: unless-stopped

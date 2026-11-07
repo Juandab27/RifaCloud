@@ -18,6 +18,18 @@ return Application::configure(basePath: dirname(__DIR__))
         // session issued here is accepted by the existing protected routes.
         $middleware->statefulApi();
 
+        // Trust the scheme forwarded by ALB/Nginx when the origin is restricted
+        // to that proxy. Direct Nginx TLS uses HTTPS=on instead.
+        $trustedProxies = env('TRUSTED_PROXIES');
+
+        if (is_string($trustedProxies) && trim($trustedProxies) !== '') {
+            $middleware->trustProxies(
+                at: trim($trustedProxies) === '*'
+                    ? '*'
+                    : array_map('trim', explode(',', $trustedProxies)),
+            );
+        }
+
         // The service is API-only: force JSON negotiation so unauthenticated
         // requests return 401 instead of redirecting to a missing login route.
         $middleware->api(prepend: [

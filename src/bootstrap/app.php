@@ -17,6 +17,18 @@ return Application::configure(basePath: dirname(__DIR__))
         // Session-cookie authentication for the React SPA (Sanctum, no tokens).
         $middleware->statefulApi();
 
+        // Behind an ALB/Nginx the public scheme arrives in X-Forwarded-Proto.
+        // Only trust it when the origin port is restricted to that proxy.
+        $trustedProxies = env('TRUSTED_PROXIES');
+
+        if (is_string($trustedProxies) && trim($trustedProxies) !== '') {
+            $middleware->trustProxies(
+                at: trim($trustedProxies) === '*'
+                    ? '*'
+                    : array_map('trim', explode(',', $trustedProxies)),
+            );
+        }
+
         $middleware->alias([
             'admin' => EnsureUserIsAdmin::class,
         ]);

@@ -2,9 +2,9 @@
 # RifaCloud - root .gitignore
 # =============================================================================
 
-# --- Specification documents: local only, never committed ---
-/docs/sdd/
-/AGENTS.md
+# --- Specification documents: versioned for the university delivery ---
+# /docs/sdd/ and /AGENTS.md are intentionally tracked so the SDD and agent
+# instructions can be recovered from GitHub. Local agent notes remain ignored.
 /src/AGENTS.md
 /src/CLAUDE.md
 
@@ -30,6 +30,11 @@
 /services/*/.env
 /services/*/.env.*
 !/services/*/.env.example
+
+# --- AWS deployment generated files (never versioned) ---
+/deploy/aws/nginx/https.conf
+/deploy/aws/certs/
+/deploy/aws/backup.env
 
 # --- Generated builds ---
 /frontend/dist/
