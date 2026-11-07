@@ -1,0 +1,23 @@
+{
+    "name": "rifacloud/auth-service",
+    "type": "project",
+    "description": "RifaCloud authentication service (users, sessions and roles).",
+    "license": "MIT",
+    "require": {
+        "php": "^8.4",
+        "laravel/framework": "^13.17",
+        "laravel/sanctum": "^4.3"
+    },
+    "autoload": {
+        "psr-4": {
+            "RifaCloud\\AuthService\\": "app/"
+        }
+    },
+    "config": {
+        "optimize-autoloader": true,
+        "preferred-install": "dist",
+        "sort-packages": true
+    },
+    "minimum-stability": "stable",
+    "prefer-stable": true
+}

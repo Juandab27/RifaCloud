@@ -246,7 +246,7 @@ class MercadoPagoCheckoutTest extends TestCase
         $payment = $this->createCheckout($user, $order);
 
         $this->travel(11)->minutes();
-        $this->artisan('orders:expire-reservations')->assertExitCode(0);
+        app(\App\Modules\Orders\Services\ReservationExpiryService::class)->expire();
 
         Http::fake([
             'https://api.mercadopago.test/v1/payments/search*' => Http::response([

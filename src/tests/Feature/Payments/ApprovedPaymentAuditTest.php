@@ -51,10 +51,11 @@ class ApprovedPaymentAuditTest extends TestCase
             ]),
         ]);
 
-        $this->artisan('payments:reconcile', ['--approved' => true])
-            ->expectsOutput('Approved payments audited: 1')
-            ->expectsOutput('Multiple-approval incidents: 1')
-            ->assertExitCode(0);
+        $result = app(\App\Modules\Payments\Services\PaymentService::class)->reconcileApproved();
+
+        $this->assertSame(1, $result['inspected']);
+        $this->assertSame(1, $result['incidents']);
+        $this->assertSame(0, $result['errors']);
 
         $order->refresh();
         $payment->refresh();
@@ -79,10 +80,11 @@ class ApprovedPaymentAuditTest extends TestCase
             ]),
         ]);
 
-        $this->artisan('payments:reconcile', ['--approved' => true])
-            ->expectsOutput('Approved payments audited: 1')
-            ->expectsOutput('Multiple-approval incidents: 0')
-            ->assertExitCode(0);
+        $result = app(\App\Modules\Payments\Services\PaymentService::class)->reconcileApproved();
+
+        $this->assertSame(1, $result['inspected']);
+        $this->assertSame(0, $result['incidents']);
+        $this->assertSame(0, $result['errors']);
 
         $this->assertSame(OrderStatus::PAID, $order->refresh()->status);
         $this->assertSame(PaymentState::APPROVED, $payment->refresh()->status);
@@ -97,11 +99,11 @@ class ApprovedPaymentAuditTest extends TestCase
             'https://api.mercadopago.test/v1/payments/search*' => Http::response([], 503),
         ]);
 
-        $this->artisan('payments:reconcile', ['--approved' => true])
-            ->expectsOutput('Approved payments audited: 1')
-            ->expectsOutput('Multiple-approval incidents: 0')
-            ->expectsOutput('Unconfirmed audits: 1')
-            ->assertExitCode(1);
+        $result = app(\App\Modules\Payments\Services\PaymentService::class)->reconcileApproved();
+
+        $this->assertSame(1, $result['inspected']);
+        $this->assertSame(0, $result['incidents']);
+        $this->assertSame(1, $result['errors']);
 
         $this->assertSame(OrderStatus::PAID, $order->refresh()->status);
         $this->assertSame(PaymentState::APPROVED, $payment->refresh()->status);
@@ -117,9 +119,9 @@ class ApprovedPaymentAuditTest extends TestCase
         $gateway = $this->mock(PaymentGateway::class);
         $gateway->shouldNotReceive('verifyPayment');
 
-        $this->artisan('payments:reconcile', ['--approved' => true, '--dry-run' => true])
-            ->expectsOutput('Approved payments to audit: 1')
-            ->assertExitCode(0);
+        $result = app(\App\Modules\Payments\Services\PaymentService::class)->reconcileApproved(50, true);
+
+        $this->assertSame(1, $result['inspected']);
 
         $this->assertSame(OrderStatus::PAID, $order->refresh()->status);
         $this->assertSame(PaymentState::APPROVED, $payment->refresh()->status);

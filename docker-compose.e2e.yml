@@ -1,0 +1,33 @@
+# Test-only overlay for scripts/verify-payments-service.ps1.
+#
+# Runs the whole stack against the fully migrated `rifacloud_test` schema and
+# forces the simulated gateway, so the E2E never touches the development data
+# or Mercado Pago. The main `rifacloud` schema is not modified.
+#
+# Why the test schema: `rifacloud` still has two pending additive migrations
+# (`payments.order_id` unique index and `payment_webhook_events`). Running
+# migrations on the main schema is explicitly out of scope for this task.
+#
+# Never use this overlay outside local verification.
+services:
+  app:
+    environment:
+      DB_DATABASE: rifacloud_test
+  scheduler:
+    environment:
+      DB_DATABASE: rifacloud_test
+  auth-service:
+    environment:
+      DB_DATABASE: rifacloud_test
+  raffles-service:
+    environment:
+      RAFFLES_DB_DATABASE: rifacloud_test
+  orders-service:
+    environment:
+      ORDERS_DB_DATABASE: rifacloud_test
+      PAYMENT_GATEWAY: fake
+  payments-service:
+    environment:
+      PAYMENTS_DB_DATABASE: rifacloud_test
+      PAYMENT_GATEWAY: fake
+      PAYMENT_FAKE_OUTCOME: ${PAYMENT_FAKE_OUTCOME:-APPROVED}

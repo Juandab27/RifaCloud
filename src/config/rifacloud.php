@@ -47,6 +47,37 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | orders-service (S3)
+    |--------------------------------------------------------------------------
+    |
+    | The monolith scheduler delegates reservation expiry to orders-service.
+    | It never releases numbers locally, so only one owner can expire a
+    | reservation. The service must run for the command to succeed; when it is
+    | unavailable the command fails closed and the next scheduled run retries.
+    |
+    */
+
+    'orders_service_url' => env('ORDERS_SERVICE_URL', 'http://orders-service'),
+
+    'orders_internal_timeout' => max(1, (int) env('ORDERS_INTERNAL_TIMEOUT', 5)),
+
+    /*
+    |--------------------------------------------------------------------------
+    | payments-service (S4)
+    |--------------------------------------------------------------------------
+    |
+    | The monolith scheduler delegates provider reconciliation to
+    | payments-service. It never queries the provider or writes payments
+    | locally, so only one owner can reconcile a payment.
+    |
+    */
+
+    'payments_service_url' => env('PAYMENTS_SERVICE_URL', 'http://payments-service'),
+
+    'payments_internal_timeout' => max(1, (int) env('PAYMENTS_INTERNAL_TIMEOUT', 10)),
+
+    /*
+    |--------------------------------------------------------------------------
     | Admin bootstrap
     |--------------------------------------------------------------------------
     |

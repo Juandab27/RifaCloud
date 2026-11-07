@@ -2,7 +2,11 @@
 
 namespace App\Providers;
 
+use App\Modules\Orders\Clients\InternalOrdersClient;
+use App\Modules\Orders\Contracts\ReservationExpiryClient;
+use App\Modules\Payments\Clients\InternalPaymentsClient;
 use App\Modules\Payments\Contracts\PaymentGateway;
+use App\Modules\Payments\Contracts\PaymentsReconciliationClient;
 use App\Modules\Payments\Gateways\FakePaymentGateway;
 use App\Modules\Payments\Gateways\MercadoPagoGateway;
 use Illuminate\Support\ServiceProvider;
@@ -32,6 +36,22 @@ class AppServiceProvider extends ServiceProvider
                     "Unsupported payment gateway driver [{$driver}].",
                 ),
             };
+        });
+
+        $this->app->bind(ReservationExpiryClient::class, function (): ReservationExpiryClient {
+            return new InternalOrdersClient(
+                (string) config('rifacloud.orders_service_url'),
+                (string) config('app.key'),
+                (int) config('rifacloud.orders_internal_timeout'),
+            );
+        });
+
+        $this->app->bind(PaymentsReconciliationClient::class, function (): PaymentsReconciliationClient {
+            return new InternalPaymentsClient(
+                (string) config('rifacloud.payments_service_url'),
+                (string) config('app.key'),
+                (int) config('rifacloud.payments_internal_timeout'),
+            );
         });
     }
 

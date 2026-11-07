@@ -270,7 +270,7 @@ class MercadoPagoWebhookTest extends TestCase
         $payment = $this->pendingPayment($order);
 
         $this->travel(11)->minutes();
-        $this->artisan('orders:expire-reservations')->assertExitCode(0);
+        app(\App\Modules\Orders\Services\ReservationExpiryService::class)->expire();
 
         $otherBuyer = User::factory()->create();
         $otherOrder = $this->reservedOrder($otherBuyer, raffle: $raffle);

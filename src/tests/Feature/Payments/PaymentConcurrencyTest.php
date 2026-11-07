@@ -177,9 +177,10 @@ class PaymentConcurrencyTest extends TestCase
 
         $this->travel(11)->minutes();
 
-        $this->artisan('orders:expire-reservations')
-            ->expectsOutput('Expired orders: 0')
-            ->assertExitCode(0);
+        $this->assertSame(
+            0,
+            app(\App\Modules\Orders\Services\ReservationExpiryService::class)->expire(),
+        );
 
         $this->assertSame(OrderStatus::PAID, $order->refresh()->status);
         $this->assertSame(PaymentState::APPROVED, $payment->refresh()->status);
@@ -199,9 +200,10 @@ class PaymentConcurrencyTest extends TestCase
 
         $this->travel(11)->minutes();
 
-        $this->artisan('orders:expire-reservations')
-            ->expectsOutput('Expired orders: 1')
-            ->assertExitCode(0);
+        $this->assertSame(
+            1,
+            app(\App\Modules\Orders\Services\ReservationExpiryService::class)->expire(),
+        );
 
         config(['rifacloud.payment_fake_outcome' => 'APPROVED']);
 

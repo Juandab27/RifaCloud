@@ -10,6 +10,16 @@ use App\Modules\Payments\Models\Payment;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
+/**
+ * Local reservation-expiry implementation, retained only as the S3 rollback
+ * path and as the reference used by the payment regression tests.
+ *
+ * S3 moved the scheduled expiry to orders-service: `orders:expire-reservations`
+ * delegates through InternalOrdersClient and never calls this class, so exactly
+ * one owner can release a reservation. Do not schedule or call this from
+ * production code while orders-service is deployed; doing so reintroduces the
+ * double-expiry risk that S3 removed.
+ */
 class ReservationExpiryService
 {
     public const CHUNK_SIZE = 100;

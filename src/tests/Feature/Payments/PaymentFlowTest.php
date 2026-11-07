@@ -312,9 +312,10 @@ class PaymentFlowTest extends TestCase
 
         $this->travel(11)->minutes();
 
-        $this->artisan('orders:expire-reservations')
-            ->expectsOutput('Expired orders: 0')
-            ->assertExitCode(0);
+        $this->assertSame(
+            0,
+            app(\App\Modules\Orders\Services\ReservationExpiryService::class)->expire(),
+        );
 
         $this->assertSame(OrderStatus::PAYMENT_REVIEW, $order->refresh()->status);
         $this->assertSame(2, RaffleNumber::query()->where('status', NumberStatus::RESERVED->value)->count());
@@ -387,9 +388,10 @@ class PaymentFlowTest extends TestCase
 
         $this->travel(11)->minutes();
 
-        $this->artisan('orders:expire-reservations')
-            ->expectsOutput('Expired orders: 1')
-            ->assertExitCode(0);
+        $this->assertSame(
+            1,
+            app(\App\Modules\Orders\Services\ReservationExpiryService::class)->expire(),
+        );
 
         $this->assertSame(OrderStatus::EXPIRED, $order->refresh()->status);
         $this->assertSame(PaymentState::PENDING, $payment->refresh()->status);
@@ -450,9 +452,10 @@ class PaymentFlowTest extends TestCase
 
         // The order is no longer PENDING_PAYMENT, so the scheduler must not
         // release the still-reserved numbers behind the manual refund review.
-        $this->artisan('orders:expire-reservations')
-            ->expectsOutput('Expired orders: 0')
-            ->assertExitCode(0);
+        $this->assertSame(
+            0,
+            app(\App\Modules\Orders\Services\ReservationExpiryService::class)->expire(),
+        );
 
         $this->assertSame(OrderStatus::REQUIRES_REFUND, $order->refresh()->status);
         $this->assertSame(2, RaffleNumber::query()->where('status', NumberStatus::RESERVED->value)->count());
@@ -476,9 +479,10 @@ class PaymentFlowTest extends TestCase
 
         $this->travel(11)->minutes();
 
-        $this->artisan('orders:expire-reservations')
-            ->expectsOutput('Expired orders: 0')
-            ->assertExitCode(0);
+        $this->assertSame(
+            0,
+            app(\App\Modules\Orders\Services\ReservationExpiryService::class)->expire(),
+        );
 
         $this->assertSame(OrderStatus::PAID, $order->refresh()->status);
         $this->assertSame(2, RaffleNumber::query()->where('status', NumberStatus::SOLD->value)->count());
@@ -496,7 +500,7 @@ class PaymentFlowTest extends TestCase
 
         $this->travel(11)->minutes();
 
-        $this->artisan('orders:expire-reservations')->assertExitCode(0);
+        app(\App\Modules\Orders\Services\ReservationExpiryService::class)->expire();
 
         $otherBuyer = User::factory()->create();
         $otherOrder = app(OrderReservationService::class)->create($otherBuyer, $order->raffle_id, [1, 2]);
@@ -531,7 +535,7 @@ class PaymentFlowTest extends TestCase
         $payment = $this->createCheckout($user, $order);
 
         $this->travel(11)->minutes();
-        $this->artisan('orders:expire-reservations')->assertExitCode(0);
+        app(\App\Modules\Orders\Services\ReservationExpiryService::class)->expire();
 
         config(['rifacloud.payment_fake_outcome' => 'REJECTED']);
 
@@ -557,7 +561,7 @@ class PaymentFlowTest extends TestCase
         $payment = $this->createCheckout($user, $order);
 
         $this->travel(11)->minutes();
-        $this->artisan('orders:expire-reservations')->assertExitCode(0);
+        app(\App\Modules\Orders\Services\ReservationExpiryService::class)->expire();
 
         config(['rifacloud.payment_fake_outcome' => 'REJECTED']);
         $this->verify($user, $order, $payment)
@@ -589,7 +593,7 @@ class PaymentFlowTest extends TestCase
         $payment = $this->createCheckout($user, $order);
 
         $this->travel(11)->minutes();
-        $this->artisan('orders:expire-reservations')->assertExitCode(0);
+        app(\App\Modules\Orders\Services\ReservationExpiryService::class)->expire();
 
         config(['rifacloud.payment_fake_outcome' => 'UNKNOWN']);
 
@@ -642,9 +646,10 @@ class PaymentFlowTest extends TestCase
         $this->assertSame(2, RaffleNumber::query()->where('status', NumberStatus::RESERVED->value)->count());
         $this->assertSame(0, RaffleNumber::query()->where('status', NumberStatus::SOLD->value)->count());
 
-        $this->artisan('orders:expire-reservations')
-            ->expectsOutput('Expired orders: 0')
-            ->assertExitCode(0);
+        $this->assertSame(
+            0,
+            app(\App\Modules\Orders\Services\ReservationExpiryService::class)->expire(),
+        );
 
         $this->assertSame(OrderStatus::REQUIRES_REFUND, $order->refresh()->status);
         $this->assertSame(2, RaffleNumber::query()->where('status', NumberStatus::RESERVED->value)->count());
@@ -670,9 +675,10 @@ class PaymentFlowTest extends TestCase
 
         $this->travel(11)->minutes();
 
-        $this->artisan('orders:expire-reservations')
-            ->expectsOutput('Expired orders: 0')
-            ->assertExitCode(0);
+        $this->assertSame(
+            0,
+            app(\App\Modules\Orders\Services\ReservationExpiryService::class)->expire(),
+        );
 
         $this->assertSame(OrderStatus::PENDING_PAYMENT, $order->refresh()->status);
         $this->assertSame(2, RaffleNumber::query()->where('status', NumberStatus::RESERVED->value)->count());

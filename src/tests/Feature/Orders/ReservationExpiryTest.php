@@ -2,146 +2,60 @@
 
 namespace Tests\Feature\Orders;
 
-use App\Modules\Auth\Models\User;
-use App\Modules\Numbers\Enums\NumberStatus;
-use App\Modules\Numbers\Models\RaffleNumber;
-use App\Modules\Orders\Enums\OrderStatus;
-use App\Modules\Orders\Models\Order;
-use App\Modules\Orders\Services\OrderReservationService;
-use App\Modules\Raffles\Models\Raffle;
+use App\Modules\Orders\Contracts\ReservationExpiryClient;
 use Illuminate\Console\Scheduling\Schedule;
-use Illuminate\Foundation\Testing\RefreshDatabase;
-use Tests\Concerns\CreatesRaffles;
+use RuntimeException;
 use Tests\TestCase;
 
+/**
+ * S3 moved reservation expiry to orders-service. These tests verify that the
+ * monolith command delegates to the internal client and fails closed instead of
+ * running the old local expiry logic (which would create a second owner).
+ *
+ * The behavioural expiry rules (release, idempotency, protected states,
+ * UNKNOWN payments, SOLD numbers and the advisory lock) are covered by
+ * services/orders-service/tests/orders_integration.php against rifacloud_test.
+ */
 class ReservationExpiryTest extends TestCase
 {
-    use CreatesRaffles;
-    use RefreshDatabase;
-
-    public function test_expired_pending_order_releases_numbers(): void
+    public function test_expiry_command_delegates_to_orders_service(): void
     {
-        $this->travelTo(now()->startOfSecond());
+        $client = new class implements ReservationExpiryClient
+        {
+            public int $calls = 0;
 
-        $raffle = $this->createRaffle();
-        $order = $this->reservedOrder($raffle, [1, 2]);
+            public function expire(): int
+            {
+                $this->calls++;
 
-        $this->travel(11)->minutes();
+                return 3;
+            }
+        };
+
+        $this->app->instance(ReservationExpiryClient::class, $client);
 
         $this->artisan('orders:expire-reservations')
-            ->expectsOutput('Expired orders: 1')
+            ->expectsOutput('Expired orders: 3')
             ->assertExitCode(0);
 
-        $order->refresh();
-
-        $this->assertSame(OrderStatus::EXPIRED, $order->status);
-
-        foreach (RaffleNumber::query()->whereIn('number', [1, 2])->get() as $number) {
-            $this->assertSame(NumberStatus::AVAILABLE, $number->status);
-            $this->assertNull($number->reserved_at);
-            $this->assertNull($number->reserved_until);
-            $this->assertNull($number->order_id);
-        }
-
-        // Line items remain for audit and reconciliation (NFR-014).
-        $this->assertDatabaseCount('order_items', 2);
+        $this->assertSame(1, $client->calls);
     }
 
-    public function test_expiry_is_idempotent(): void
+    public function test_expiry_command_fails_closed_when_orders_service_is_unavailable(): void
     {
-        $this->travelTo(now()->startOfSecond());
+        $client = new class implements ReservationExpiryClient
+        {
+            public function expire(): int
+            {
+                throw new RuntimeException('orders-service is unreachable.');
+            }
+        };
 
-        $raffle = $this->createRaffle();
-        $order = $this->reservedOrder($raffle, [1]);
-
-        $this->travel(11)->minutes();
-
-        $this->artisan('orders:expire-reservations')->assertExitCode(0);
-        $this->artisan('orders:expire-reservations')
-            ->expectsOutput('Expired orders: 0')
-            ->assertExitCode(0);
-
-        $this->assertSame(OrderStatus::EXPIRED, $order->refresh()->status);
-        $this->assertSame(NumberStatus::AVAILABLE, RaffleNumber::query()->where('number', 1)->firstOrFail()->status);
-        $this->assertDatabaseCount('orders', 1);
-    }
-
-    public function test_active_reservation_is_not_released(): void
-    {
-        $this->travelTo(now()->startOfSecond());
-
-        $raffle = $this->createRaffle();
-        $order = $this->reservedOrder($raffle, [1]);
-
-        $this->travel(5)->minutes();
+        $this->app->instance(ReservationExpiryClient::class, $client);
 
         $this->artisan('orders:expire-reservations')
-            ->expectsOutput('Expired orders: 0')
-            ->assertExitCode(0);
-
-        $this->assertSame(OrderStatus::PENDING_PAYMENT, $order->refresh()->status);
-        $this->assertSame(NumberStatus::RESERVED, RaffleNumber::query()->where('number', 1)->firstOrFail()->status);
-    }
-
-    public function test_orders_in_review_or_refund_states_are_never_released(): void
-    {
-        $this->travelTo(now()->startOfSecond());
-
-        $protectedStatuses = [
-            OrderStatus::PAYMENT_REVIEW,
-            OrderStatus::REQUIRES_REFUND,
-            OrderStatus::PAID,
-        ];
-
-        /** @var array<int, Order> $orders */
-        $orders = [];
-
-        foreach ($protectedStatuses as $status) {
-            $raffle = $this->createRaffle();
-            $order = $this->reservedOrder($raffle, [1, 2]);
-            $order->update(['status' => $status]);
-            $orders[] = $order;
-        }
-
-        $this->travel(11)->minutes();
-
-        $this->artisan('orders:expire-reservations')->assertExitCode(0);
-
-        foreach ($orders as $index => $order) {
-            $order->refresh();
-
-            $this->assertSame($protectedStatuses[$index], $order->status);
-            $this->assertSame(
-                2,
-                RaffleNumber::query()
-                    ->where('order_id', $order->id)
-                    ->where('status', NumberStatus::RESERVED->value)
-                    ->count(),
-            );
-        }
-    }
-
-    public function test_order_with_sold_numbers_is_not_expired_or_released(): void
-    {
-        $this->travelTo(now()->startOfSecond());
-
-        $raffle = $this->createRaffle();
-        $order = $this->reservedOrder($raffle, [1, 2]);
-
-        RaffleNumber::query()->where('number', 1)->update([
-            'status' => NumberStatus::SOLD->value,
-            'sold_at' => now(),
-        ]);
-
-        $this->travel(11)->minutes();
-
-        $this->artisan('orders:expire-reservations')
-            ->expectsOutput('Expired orders: 0')
-            ->assertExitCode(0);
-
-        $this->assertSame(OrderStatus::PENDING_PAYMENT, $order->refresh()->status);
-        $this->assertSame(NumberStatus::SOLD, RaffleNumber::query()->where('number', 1)->firstOrFail()->status);
-        $this->assertSame(NumberStatus::RESERVED, RaffleNumber::query()->where('number', 2)->firstOrFail()->status);
+            ->expectsOutput('Reservation expiry failed: orders-service is unreachable.')
+            ->assertExitCode(1);
     }
 
     public function test_expiry_command_is_scheduled_every_minute(): void
@@ -156,15 +70,5 @@ class ReservationExpiryTest extends TestCase
         $this->assertSame('* * * * *', $event->expression);
         $this->assertTrue($event->withoutOverlapping);
         $this->assertSame(5, $event->expiresAt);
-    }
-
-    /**
-     * @param  list<int>  $numbers
-     */
-    private function reservedOrder(Raffle $raffle, array $numbers): Order
-    {
-        $user = User::factory()->create();
-
-        return app(OrderReservationService::class)->create($user, $raffle->id, $numbers);
     }
 }

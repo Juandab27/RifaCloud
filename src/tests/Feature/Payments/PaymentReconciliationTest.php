@@ -32,9 +32,7 @@ class PaymentReconciliationTest extends TestCase
         $order = $this->reservedOrder($user);
         $payment = $this->payment($order, PaymentState::PENDING);
 
-        $this->artisan('payments:reconcile')
-            ->expectsOutput('Payments reconciled: 1')
-            ->assertExitCode(0);
+        $this->assertSame(1, app(\App\Modules\Payments\Services\PaymentService::class)->reconcile());
 
         $this->assertSame(OrderStatus::PAID, $order->refresh()->status);
         $this->assertSame(PaymentState::APPROVED, $payment->refresh()->status);
@@ -54,9 +52,7 @@ class PaymentReconciliationTest extends TestCase
         $order->forceFill(['status' => OrderStatus::PAYMENT_REVIEW])->save();
         $payment = $this->payment($order, PaymentState::UNKNOWN);
 
-        $this->artisan('payments:reconcile')
-            ->expectsOutput('Payments reconciled: 1')
-            ->assertExitCode(0);
+        $this->assertSame(1, app(\App\Modules\Payments\Services\PaymentService::class)->reconcile());
 
         $this->assertSame(OrderStatus::PAID, $order->refresh()->status);
         $this->assertSame(PaymentState::APPROVED, $payment->refresh()->status);
@@ -74,9 +70,7 @@ class PaymentReconciliationTest extends TestCase
         $order = $this->reservedOrder($user);
         $payment = $this->payment($order, PaymentState::PENDING);
 
-        $this->artisan('payments:reconcile', ['--dry-run' => true])
-            ->expectsOutput('Payments to reconcile: 1')
-            ->assertExitCode(0);
+        $this->assertSame(1, app(\App\Modules\Payments\Services\PaymentService::class)->reconcile(50, true));
 
         $this->assertSame(OrderStatus::PENDING_PAYMENT, $order->refresh()->status);
         $this->assertSame(PaymentState::PENDING, $payment->refresh()->status);
@@ -94,9 +88,7 @@ class PaymentReconciliationTest extends TestCase
         $order = $this->reservedOrder($user);
         $payment = $this->payment($order, PaymentState::PENDING);
 
-        $this->artisan('payments:reconcile')
-            ->expectsOutput('Payments reconciled: 1')
-            ->assertExitCode(0);
+        $this->assertSame(1, app(\App\Modules\Payments\Services\PaymentService::class)->reconcile());
 
         $this->assertSame(OrderStatus::PAYMENT_REVIEW, $order->refresh()->status);
         $this->assertSame(PaymentState::UNKNOWN, $payment->refresh()->status);
@@ -113,9 +105,7 @@ class PaymentReconciliationTest extends TestCase
         $order = $this->reservedOrder($user);
         $payment = $this->payment($order, PaymentState::APPROVED);
 
-        $this->artisan('payments:reconcile')
-            ->expectsOutput('Payments reconciled: 0')
-            ->assertExitCode(0);
+        $this->assertSame(0, app(\App\Modules\Payments\Services\PaymentService::class)->reconcile());
 
         $this->assertSame(PaymentState::APPROVED, $payment->refresh()->status);
         $this->assertSame(OrderStatus::PENDING_PAYMENT, $order->refresh()->status);
@@ -140,3 +130,4 @@ class PaymentReconciliationTest extends TestCase
         ]);
     }
 }
+

@@ -11,6 +11,8 @@ services:
     volumes:
       # Laravel public/index.php is required by PHP-FPM for /api and /sanctum.
       - ./src:/var/www:ro
+      # Keep the gateway routes in source control and reloadable without a rebuild.
+      - ./docker/nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
     depends_on:
       - app
     restart: unless-stopped
@@ -23,6 +25,11 @@ services:
     working_dir: /var/www
     volumes:
       - ./src:/var/www
+    environment:
+      # The monolith scheduler sends the signed expiry/reconcile commands to
+      # the owning services; it never writes their state locally (S3/S4).
+      ORDERS_SERVICE_URL: http://orders-service
+      PAYMENTS_SERVICE_URL: http://payments-service
     depends_on:
       mysql:
         condition: service_healthy
@@ -36,11 +43,138 @@ services:
     working_dir: /var/www
     volumes:
       - ./src:/var/www
+    environment:
+      ORDERS_SERVICE_URL: http://orders-service
+      PAYMENTS_SERVICE_URL: http://payments-service
     depends_on:
       mysql:
         condition: service_healthy
     command: php artisan schedule:work
     restart: unless-stopped
+
+  raffles-service:
+    build:
+      context: .
+      dockerfile: services/raffles-service/Dockerfile
+    container_name: rifacloud-raffles-service
+    # S2 shares the Laravel session contract with auth-service and the
+    # monolith: same APP_KEY, cookie name and database-backed sessions.
+    # The service reads sessions/users and writes only raffles/raffle_numbers.
+    env_file:
+      - ./src/.env
+    environment:
+      RAFFLES_DB_HOST: mysql
+      RAFFLES_DB_PORT: "3306"
+      RAFFLES_DB_DATABASE: ${DB_DATABASE:-rifacloud}
+      RAFFLES_DB_USERNAME: ${DB_USERNAME:-rifacloud}
+      RAFFLES_DB_PASSWORD: ${DB_PASSWORD:?Set DB_PASSWORD in the root .env file}
+      RAFFLES_RESERVATION_MINUTES: ${RESERVATION_MINUTES:-10}
+      RAFFLES_ORDER_MAX_NUMBERS: ${ORDER_MAX_NUMBERS:-50}
+      RAFFLE_MAX_NUMBERS: ${RAFFLE_MAX_NUMBERS:-10000}
+    depends_on:
+      mysql:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "php -r 'exit(@file_get_contents(\"http://127.0.0.1/health\") === false ? 1 : 0);'"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 10s
+    restart: unless-stopped
+    # Internal only: the public entry point remains nginx on port 80.
+
+  orders-service:
+    build:
+      context: .
+      dockerfile: services/orders-service/Dockerfile
+    container_name: rifacloud-orders-service
+    # S3 shares the Laravel session contract and the MySQL schema during the
+    # transition. The service owns orders/order_items and the reservation
+    # columns of raffle_numbers. Payments stay in the monolith until S4.
+    env_file:
+      - ./src/.env
+    environment:
+      ORDERS_DB_HOST: mysql
+      ORDERS_DB_PORT: "3306"
+      ORDERS_DB_DATABASE: ${DB_DATABASE:-rifacloud}
+      ORDERS_DB_USERNAME: ${DB_USERNAME:-rifacloud}
+      ORDERS_DB_PASSWORD: ${DB_PASSWORD:?Set DB_PASSWORD in the root .env file}
+      ORDERS_RESERVATION_MINUTES: ${RESERVATION_MINUTES:-10}
+      ORDERS_ORDER_MAX_NUMBERS: ${ORDER_MAX_NUMBERS:-50}
+    depends_on:
+      mysql:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "php -r 'exit(@file_get_contents(\"http://127.0.0.1/health\") === false ? 1 : 0);'"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 10s
+    restart: unless-stopped
+    # Internal only: the public entry point remains nginx on port 80.
+
+  payments-service:
+    build:
+      context: .
+      dockerfile: services/payments-service/Dockerfile
+    container_name: rifacloud-payments-service
+    # S4 shares the Laravel session contract and the MySQL schema during the
+    # transition. The service owns payments and payment_webhook_events; order
+    # and number transitions are delegated to orders-service through a signed
+    # internal command.
+    env_file:
+      - ./src/.env
+    environment:
+      PAYMENTS_DB_HOST: mysql
+      PAYMENTS_DB_PORT: "3306"
+      PAYMENTS_DB_DATABASE: ${DB_DATABASE:-rifacloud}
+      PAYMENTS_DB_USERNAME: ${DB_USERNAME:-rifacloud}
+      PAYMENTS_DB_PASSWORD: ${DB_PASSWORD:?Set DB_PASSWORD in the root .env file}
+      ORDERS_SERVICE_URL: http://orders-service
+      ORDERS_INTERNAL_TIMEOUT: ${ORDERS_INTERNAL_TIMEOUT:-5}
+    depends_on:
+      mysql:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "php -r 'exit(@file_get_contents(\"http://127.0.0.1/health\") === false ? 1 : 0);'"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 10s
+    restart: unless-stopped
+    # Internal only. It deliberately does not depend on orders-service being
+    # healthy: checkout stays available while order verification fails closed.
+
+  auth-service:
+    build:
+      context: .
+      dockerfile: services/auth-service/Dockerfile
+    container_name: rifacloud-auth-service
+    working_dir: /var/www
+    # The service shares the Laravel session contract with the monolith during
+    # the transition: same APP_KEY, cookie name and database-backed sessions.
+    # It never writes raffles, numbers, orders or payments.
+    env_file:
+      - ./src/.env
+    environment:
+      APP_ENV: production
+      APP_DEBUG: "false"
+      LOG_CHANNEL: stderr
+      SESSION_DRIVER: database
+      # Shared cache table so login throttling survives across PHP-FPM workers.
+      CACHE_STORE: database
+      QUEUE_CONNECTION: sync
+    depends_on:
+      mysql:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "php", "/var/www/healthcheck.php"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 15s
+    restart: unless-stopped
+    # Internal only: Nginx is the single public entry point.
 
   mysql:
     image: mysql:8.4

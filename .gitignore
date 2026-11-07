@@ -23,7 +23,13 @@
 
 # --- Installed dependencies ---
 /src/vendor/
+/services/*/vendor/
 /frontend/node_modules/
+
+# --- Service secrets ---
+/services/*/.env
+/services/*/.env.*
+!/services/*/.env.example
 
 # --- Generated builds ---
 /frontend/dist/
