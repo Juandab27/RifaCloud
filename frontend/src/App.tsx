@@ -11,6 +11,7 @@ import RaffleDetailPage from './pages/RaffleDetailPage'
 import RegisterPage from './pages/RegisterPage'
 import AdminRaffleFormPage from './pages/admin/AdminRaffleFormPage'
 import AdminRafflesPage from './pages/admin/AdminRafflesPage'
+import AdminOrdersPage from './pages/admin/AdminOrdersPage'
 
 export default function App() {
   return (
@@ -28,6 +29,7 @@ export default function App() {
 
         <Route element={<AdminRoute />}>
           <Route path="admin/raffles" element={<AdminRafflesPage />} />
+          <Route path="admin/orders" element={<AdminOrdersPage />} />
           <Route path="admin/raffles/new" element={<AdminRaffleFormPage />} />
           <Route path="admin/raffles/:raffleId/edit" element={<AdminRaffleFormPage />} />
         </Route>

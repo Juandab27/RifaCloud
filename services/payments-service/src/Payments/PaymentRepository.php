@@ -274,6 +274,64 @@ final class PaymentRepository
         }
     }
 
+    public function countIncidents(?string $status = null): int
+    {
+        $sql = "SELECT COUNT(*) FROM payments p WHERE p.status IN ('UNKNOWN', 'REFUND_REQUIRED')";
+        $parameters = [];
+
+        if ($status !== null && $status !== '') {
+            $sql .= ' AND p.status = :status';
+            $parameters[':status'] = $status;
+        }
+
+        $statement = $this->pdo->prepare($sql);
+        $statement->execute($parameters);
+
+        return (int) $statement->fetchColumn();
+    }
+
+    /**
+     * Administrative read model for payment incidents. It joins the order and
+     * buyer only to display context; no financial state is changed here.
+     *
+     * @return list<array<string, mixed>>
+     */
+    public function listIncidents(?string $status, int $limit, int $offset): array
+    {
+        $sql = <<<'SQL'
+                SELECT p.id, p.order_id, p.status, p.amount, p.currency,
+                       p.created_at, p.verified_at,
+                       o.order_number, o.user_id,
+                       u.name AS customer_name, u.email AS customer_email,
+                       r.id AS raffle_id, r.title AS raffle_title
+                FROM payments p
+                INNER JOIN orders o ON o.id = p.order_id
+                INNER JOIN users u ON u.id = o.user_id
+                INNER JOIN raffles r ON r.id = o.raffle_id
+                WHERE p.status IN ('UNKNOWN', 'REFUND_REQUIRED')
+            SQL;
+        $parameters = [];
+
+        if ($status !== null && $status !== '') {
+            $sql .= ' AND p.status = :status';
+            $parameters[':status'] = $status;
+        }
+
+        $sql .= ' ORDER BY p.id DESC LIMIT :limit OFFSET :offset';
+
+        $statement = $this->pdo->prepare($sql);
+
+        foreach ($parameters as $name => $value) {
+            $statement->bindValue($name, $value);
+        }
+
+        $statement->bindValue(':limit', max(1, $limit), PDO::PARAM_INT);
+        $statement->bindValue(':offset', max(0, $offset), PDO::PARAM_INT);
+        $statement->execute();
+
+        return $statement->fetchAll();
+    }
+
     /**
      * @return list<array<string, mixed>>
      */

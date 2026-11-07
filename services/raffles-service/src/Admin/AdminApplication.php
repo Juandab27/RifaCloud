@@ -108,6 +108,19 @@ final class AdminApplication
                 ]);
             }
 
+            if (preg_match('#^/api/admin/raffles/([0-9]+)/result$#', $path, $matches) === 1) {
+                if ($method !== 'POST') {
+                    return $this->methodNotAllowed(['POST']);
+                }
+
+                $body = $this->parseBody($rawBody, $headers);
+                $admin = $this->authorize($method, $headers, $cookies, $body);
+
+                return new JsonResponse([
+                    'data' => $this->raffles->publishResult((int) $matches[1], $body, $admin),
+                ]);
+            }
+
             return new JsonResponse(['message' => 'Not Found'], 404);
         } catch (AdminAuthException $exception) {
             return new JsonResponse(['message' => $exception->getMessage()], $exception->status);

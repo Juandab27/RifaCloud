@@ -19,4 +19,9 @@ final class AuthException extends RuntimeException
     {
         return new self('Unauthenticated.', 401);
     }
+
+    public static function forbidden(): self
+    {
+        return new self('Forbidden.', 403);
+    }
 }

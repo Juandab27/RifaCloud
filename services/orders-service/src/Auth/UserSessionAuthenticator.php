@@ -109,6 +109,23 @@ final class UserSessionAuthenticator
     }
 
     /**
+     * Administrative reads require the role stored by auth-service. A client
+     * header can never grant this: the role comes from the users table.
+     *
+     * @throws AuthException
+     */
+    public function requireAdmin(?UserSessionContext $context): UserSessionContext
+    {
+        $user = $this->requireUser($context);
+
+        if (strtoupper($user->role) !== 'ADMIN') {
+            throw AuthException::forbidden();
+        }
+
+        return $user;
+    }
+
+    /**
      * Laravel/Sanctum parity: CSRF only applies to stateful requests. The SPA
      * sends Origin/Sec-Fetch-Site plus X-XSRF-TOKEN; stateless API clients are
      * rejected by authentication instead of by a CSRF error.

@@ -10,6 +10,13 @@ export interface User {
 
 export type RaffleStatus = 'DRAFT' | 'PUBLISHED' | 'CLOSED' | 'FINISHED'
 
+export interface RaffleResult {
+  winning_number: number
+  published_at: string | null
+  evidence_description: string | null
+  evidence_url: string | null
+}
+
 export interface Raffle {
   id: number
   title: string
@@ -24,6 +31,7 @@ export interface Raffle {
   starts_at: string | null
   ends_at: string | null
   numbers_count?: number
+  result?: RaffleResult | null
   created_at: string | null
   updated_at: string | null
 }
@@ -113,4 +121,33 @@ export interface Order {
   }
   numbers?: OrderNumber[]
   payments?: Payment[]
+}
+
+export interface AdminOrder extends Order {
+  customer: {
+    id: number
+    name: string
+    email: string
+  }
+  latest_payment_status: PaymentState | null
+}
+
+export interface PaymentIncident {
+  id: number
+  order_id: number
+  order_number: string
+  status: PaymentState
+  amount: number
+  currency: string
+  created_at: string | null
+  verified_at: string | null
+  customer: {
+    id: number
+    name: string
+    email: string
+  }
+  raffle: {
+    id: number
+    title: string
+  }
 }

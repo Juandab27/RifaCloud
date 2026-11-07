@@ -119,6 +119,13 @@ export default function CatalogPage() {
                 </p>
               )}
 
+              {raffle.result && (
+                <p className="raffle-card-result">
+                  <Icon name="ticket" size={14} />
+                  Ganador: <strong>N.º {raffle.result.winning_number}</strong>
+                </p>
+              )}
+
               <Link
                 className="button raffle-card-cta"
                 to={`/raffles/${raffle.id}`}

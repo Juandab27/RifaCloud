@@ -7,10 +7,11 @@ import { useToast } from '../components/ToastProvider'
 import Alert from '../components/ui/Alert'
 import Badge from '../components/ui/Badge'
 import Button from '../components/ui/Button'
+import Card from '../components/ui/Card'
 import ErrorState from '../components/ui/ErrorState'
 import Skeleton from '../components/ui/Skeleton'
 import StatusPill from '../components/ui/StatusPill'
-import { formatCents } from '../lib/format'
+import { formatCents, formatDate } from '../lib/format'
 import type { NumberAvailabilityResponse, Order, Raffle } from '../types'
 
 const NUMBER_STATE_LABEL = {
@@ -90,6 +91,11 @@ export default function RaffleDetailPage() {
   }
 
   function toggleNumber(number: number) {
+    if (raffle && raffle.status !== 'PUBLISHED') {
+      setError('La rifa ya no admite nuevas reservas.')
+      return
+    }
+
     if (!user) {
       setError('Debes iniciar sesión para reservar números.')
       return
@@ -233,6 +239,50 @@ export default function RaffleDetailPage() {
 
       {error && <Alert tone="danger">{error}</Alert>}
 
+      {raffle?.result && (
+        <Card className="raffle-result">
+          <p className="page-header-eyebrow">Resultado oficial</p>
+          <div className="raffle-result-main">
+            <div>
+              <h2>Número ganador</h2>
+              <p className="raffle-result-number">{raffle.result.winning_number}</p>
+            </div>
+            <dl className="raffle-result-meta">
+              <div>
+                <dt>Publicado</dt>
+                <dd>{formatDate(raffle.result.published_at)}</dd>
+              </div>
+              <div>
+                <dt>Evidencia</dt>
+                <dd>
+                  {raffle.result.evidence_description ?? 'Sin descripción'}
+                  {raffle.result.evidence_url && (
+                    <>
+                      {' · '}
+                      <a
+                        href={raffle.result.evidence_url}
+                        target="_blank"
+                        rel="noreferrer"
+                      >
+                        Ver evidencia
+                      </a>
+                    </>
+                  )}
+                </dd>
+              </div>
+            </dl>
+          </div>
+        </Card>
+      )}
+
+      {raffle && raffle.status !== 'PUBLISHED' && (
+        <Alert tone="info">
+          {raffle.status === 'CLOSED'
+            ? 'La rifa está cerrada. El resultado oficial se publicará cuando el administrador lo confirme.'
+            : 'La rifa está finalizada y no admite nuevas reservas.'}
+        </Alert>
+      )}
+
       <section
         className="numbers-panel"
         aria-labelledby="numbers-heading"
@@ -283,7 +333,7 @@ export default function RaffleDetailPage() {
                     key={item.id}
                     type="button"
                     className={`number ${item.status.toLowerCase()}${selected ? ' selected' : ''}`}
-                    disabled={item.status !== 'AVAILABLE'}
+                    disabled={item.status !== 'AVAILABLE' || raffle?.status !== 'PUBLISHED'}
                     aria-pressed={item.status === 'AVAILABLE' ? selected : undefined}
                     aria-label={`Número ${item.number}, ${stateLabel}`}
                     onClick={() => toggleNumber(item.number)}
@@ -321,53 +371,62 @@ export default function RaffleDetailPage() {
               </Button>
             </div>
 
-            <div className="selection-bar" role="region" aria-label="Resumen de selección">
-              <div className="selection-info">
-                <p className="selection-summary" aria-live="polite">
-                  <strong>
-                    {selectedNumbers.length}{' '}
-                    {selectedNumbers.length === 1 ? 'número' : 'números'}
-                  </strong>{' '}
-                  <span className="muted">· Total {formatCents(totalAmount)}</span>
-                </p>
+            {raffle?.status === 'PUBLISHED' ? (
+              <div className="selection-bar" role="region" aria-label="Resumen de selección">
+                <div className="selection-info">
+                  <p className="selection-summary" aria-live="polite">
+                    <strong>
+                      {selectedNumbers.length}{' '}
+                      {selectedNumbers.length === 1 ? 'número' : 'números'}
+                    </strong>{' '}
+                    <span className="muted">· Total {formatCents(totalAmount)}</span>
+                  </p>
+                  <p className="muted selection-detail">
+                    {selectedNumbers.length === 0
+                      ? 'Selecciona uno o más números disponibles.'
+                      : `Seleccionados: ${selectedNumbers.join(', ')}`}
+                  </p>
+                  <p className="muted selection-detail">
+                    La reserva es temporal ({raffle.reservation_minutes} minutos); los
+                    números se liberan si no se completa el pago. Máximo{' '}
+                    {raffle.max_numbers_per_order} números por orden.
+                  </p>
+                </div>
+
+                <div className="selection-actions">
+                  {selectedNumbers.length > 0 && (
+                    <button
+                      type="button"
+                      className="link-button"
+                      onClick={() => setSelectedNumbers([])}
+                    >
+                      Limpiar
+                    </button>
+                  )}
+
+                  {user ? (
+                    <Button
+                      onClick={handleReserve}
+                      disabled={selectedNumbers.length === 0 || submitting}
+                      loading={submitting}
+                    >
+                      {submitting ? 'Reservando…' : 'Reservar números'}
+                    </Button>
+                  ) : (
+                    <Link className="button" to="/login">
+                      Inicia sesión para reservar
+                    </Link>
+                  )}
+                </div>
+              </div>
+            ) : (
+              <div className="selection-bar selection-bar--closed">
                 <p className="muted selection-detail">
-                  {selectedNumbers.length === 0
-                    ? 'Selecciona uno o más números disponibles.'
-                    : `Seleccionados: ${selectedNumbers.join(', ')}`}
-                </p>
-                <p className="muted selection-detail">
-                  La reserva es temporal ({raffle?.reservation_minutes ?? 10} minutos); los
-                  números se liberan si no se completa el pago. Máximo{' '}
-                  {raffle?.max_numbers_per_order ?? 50} números por orden.
+                  La rifa está {raffle?.status === 'FINISHED' ? 'finalizada' : 'cerrada'}; los
+                  números se muestran solo como consulta.
                 </p>
               </div>
-
-              <div className="selection-actions">
-                {selectedNumbers.length > 0 && (
-                  <button
-                    type="button"
-                    className="link-button"
-                    onClick={() => setSelectedNumbers([])}
-                  >
-                    Limpiar
-                  </button>
-                )}
-
-                {user ? (
-                  <Button
-                    onClick={handleReserve}
-                    disabled={selectedNumbers.length === 0 || submitting}
-                    loading={submitting}
-                  >
-                    {submitting ? 'Reservando…' : 'Reservar números'}
-                  </Button>
-                ) : (
-                  <Link className="button" to="/login">
-                    Inicia sesión para reservar
-                  </Link>
-                )}
-              </div>
-            </div>
+            )}
           </>
         )}
       </section>

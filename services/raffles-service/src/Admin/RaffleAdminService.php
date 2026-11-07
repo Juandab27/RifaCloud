@@ -74,6 +74,104 @@ final class RaffleAdminService
     }
 
     /**
+     * FR-014: publish the manually verified winner and close the raffle.
+     *
+     * Only a CLOSED raffle can receive its single result. The number must be
+     * in range and must have been marked SOLD by orders-service; this service
+     * writes only raffle_results and the raffle status, never number state.
+     *
+     * @param  array<string, mixed>  $input
+     * @return array<string, mixed>
+     *
+     * @throws NotFoundException
+     * @throws ValidationException
+     */
+    public function publishResult(int $raffleId, array $input, AdminSession $admin): array
+    {
+        $number = filter_var($input['winning_number'] ?? null, FILTER_VALIDATE_INT);
+
+        if ($number === false || $number < 1) {
+            throw ValidationException::single(
+                'winning_number',
+                'The winning number must be a positive integer.',
+            );
+        }
+
+        $evidence = trim((string) ($input['evidence_description'] ?? ''));
+
+        if ($evidence === '' || mb_strlen($evidence) > 2000) {
+            throw ValidationException::single(
+                'evidence_description',
+                'Evidence description is required and must not exceed 2000 characters.',
+            );
+        }
+
+        $url = trim((string) ($input['evidence_url'] ?? ''));
+
+        if (
+            $url !== ''
+            && (mb_strlen($url) > 500 || filter_var($url, FILTER_VALIDATE_URL) === false)
+        ) {
+            throw ValidationException::single(
+                'evidence_url',
+                'Evidence URL must be a valid URL of at most 500 characters.',
+            );
+        }
+
+        $this->transaction(function () use ($raffleId, $number, $evidence, $url, $admin): void {
+            if (! $this->repository->raffleResultsAvailable()) {
+                throw ValidationException::single(
+                    'result',
+                    'Result publishing is temporarily unavailable: the pending migration has not been applied.',
+                );
+            }
+
+            $raffle = $this->repository->findForUpdate($raffleId);
+
+            if ($raffle === null) {
+                throw new NotFoundException();
+            }
+
+            $this->transition((string) $raffle['status'], 'FINISHED');
+
+            if ($number < (int) $raffle['min_number'] || $number > (int) $raffle['max_number']) {
+                throw ValidationException::single(
+                    'winning_number',
+                    'The winning number is outside the raffle range.',
+                );
+            }
+
+            if ($this->repository->findResult($raffleId) !== null) {
+                throw ValidationException::single(
+                    'result',
+                    'A result has already been published for this raffle.',
+                );
+            }
+
+            $raffleNumberId = $this->repository->findSoldNumber($raffleId, $number);
+
+            if ($raffleNumberId === null) {
+                throw ValidationException::single(
+                    'winning_number',
+                    'The winning number must be sold and belong to this raffle.',
+                );
+            }
+
+            $this->repository->insertResult(
+                $raffleId,
+                $number,
+                $raffleNumberId,
+                $admin->userId,
+                $evidence,
+                $url === '' ? null : $url,
+            );
+            $this->repository->updateStatus($raffleId, 'FINISHED');
+        });
+
+        return $this->show($raffleId);
+    }
+
+    /**
      * @param  array<string, mixed>  $input
      * @return array<string, mixed>
      *
@@ -227,6 +325,7 @@ final class RaffleAdminService
         $allowed = match ($from) {
             'DRAFT' => ['PUBLISHED'],
             'PUBLISHED' => ['CLOSED'],
+            'CLOSED' => ['FINISHED'],
             default => [],
         };
 

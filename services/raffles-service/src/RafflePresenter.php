@@ -18,12 +18,14 @@ final class RafflePresenter
 {
     /**
      * @param  array<string, mixed>  $row
+     * @param  array<string, mixed>|null  $result
      * @return array<string, mixed>
      */
     public static function present(
         array $row,
         int $reservationMinutes,
         int $maxNumbersPerOrder,
+        ?array $result = null,
     ): array {
         $min = (int) $row['min_number'];
         $max = (int) $row['max_number'];
@@ -42,6 +44,16 @@ final class RafflePresenter
             'starts_at' => self::iso8601($row['starts_at']),
             'ends_at' => self::iso8601($row['ends_at']),
             'numbers_count' => (int) ($row['numbers_count'] ?? 0),
+            'result' => $result === null ? null : [
+                'winning_number' => (int) $result['winning_number'],
+                'published_at' => self::iso8601($result['published_at']),
+                'evidence_description' => $result['evidence_description'] === null
+                    ? null
+                    : (string) $result['evidence_description'],
+                'evidence_url' => $result['evidence_url'] === null
+                    ? null
+                    : (string) $result['evidence_url'],
+            ],
             'created_at' => self::iso8601($row['created_at']),
             'updated_at' => self::iso8601($row['updated_at']),
         ];

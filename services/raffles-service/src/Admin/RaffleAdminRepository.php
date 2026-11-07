@@ -22,6 +22,9 @@ final class RaffleAdminRepository
 
     public const NUMBER_CHUNK_SIZE = 1000;
 
+    /** @var bool|null */
+    private ?bool $raffleResultsAvailable = null;
+
     private const FIELDS = [
         'title',
         'description',
@@ -58,7 +61,7 @@ final class RaffleAdminRepository
         $statement->execute();
 
         return [
-            'data' => array_map($this->present(...), $statement->fetchAll()),
+            'data' => $this->withResults($statement->fetchAll()),
             'total' => $total,
             'page' => $page,
             'per_page' => $perPage,
@@ -75,7 +78,11 @@ final class RaffleAdminRepository
         $statement->execute([':id' => $raffleId]);
         $row = $statement->fetch();
 
-        return $row === false ? null : $this->present($row);
+        if ($row === false) {
+            return null;
+        }
+
+        return $this->withResults([$row])[0];
     }
 
     /**
@@ -176,6 +183,91 @@ final class RaffleAdminRepository
         ]);
     }
 
+    public function raffleResultsAvailable(): bool
+    {
+        if ($this->raffleResultsAvailable === null) {
+            $this->raffleResultsAvailable =
+                $this->pdo->query("SHOW TABLES LIKE 'raffle_results'")->fetchColumn() !== false;
+        }
+
+        return $this->raffleResultsAvailable;
+    }
+
+    /**
+     * @return array<string, mixed>|null
+     */
+    public function findResult(int $raffleId): ?array
+    {
+        if (! $this->raffleResultsAvailable()) {
+            return null;
+        }
+
+        $statement = $this->pdo->prepare(
+            'SELECT raffle_id, winning_number, published_at, evidence_description, evidence_url
+             FROM raffle_results
+             WHERE raffle_id = :raffle_id
+             LIMIT 1',
+        );
+        $statement->execute([':raffle_id' => $raffleId]);
+        $row = $statement->fetch();
+
+        return $row === false ? null : $row;
+    }
+
+    /**
+     * The result can only reference a number that orders-service marked SOLD.
+     */
+    public function findSoldNumber(int $raffleId, int $number): ?int
+    {
+        $statement = $this->pdo->prepare(
+            "SELECT id FROM raffle_numbers
+             WHERE raffle_id = :raffle_id AND number = :number AND status = 'SOLD'
+             LIMIT 1",
+        );
+        $statement->execute([
+            ':raffle_id' => $raffleId,
+            ':number' => $number,
+        ]);
+        $id = $statement->fetchColumn();
+
+        return $id === false ? null : (int) $id;
+    }
+
+    public function insertResult(
+        int $raffleId,
+        int $winningNumber,
+        int $winningRaffleNumberId,
+        int $publishedBy,
+        string $evidenceDescription,
+        ?string $evidenceUrl,
+    ): void {
+        $now = gmdate('Y-m-d H:i:s');
+
+        $statement = $this->pdo->prepare(
+            <<<'SQL'
+                INSERT INTO raffle_results
+                    (raffle_id, winning_number, winning_raffle_number_id,
+                     published_by, published_at, evidence_description, evidence_url,
+                     created_at, updated_at)
+                VALUES
+                    (:raffle_id, :winning_number, :winning_raffle_number_id,
+                     :published_by, :published_at, :evidence_description, :evidence_url,
+                     :created_at, :updated_at)
+            SQL,
+        );
+        $statement->execute([
+            ':raffle_id' => $raffleId,
+            ':winning_number' => $winningNumber,
+            ':winning_raffle_number_id' => $winningRaffleNumberId,
+            ':published_by' => $publishedBy,
+            ':published_at' => $now,
+            ':evidence_description' => $evidenceDescription,
+            ':evidence_url' => $evidenceUrl,
+            ':created_at' => $now,
+            ':updated_at' => $now,
+        ]);
+    }
+
     public function delete(int $raffleId): void
     {
         $statement = $this->pdo->prepare('DELETE FROM raffles WHERE id = :id');
@@ -262,14 +354,50 @@ final class RaffleAdminRepository
 
     /**
      * @param  array<string, mixed>  $row
+     * @param  array<string, mixed>|null  $result
      * @return array<string, mixed>
      */
-    private function present(array $row): array
+    private function present(array $row, ?array $result = null): array
     {
         return RafflePresenter::present(
             $row,
             $this->reservationMinutes,
             $this->maxNumbersPerOrder,
+            $result,
+        );
+    }
+
+    /**
+     * @param  list<array<string, mixed>>  $rows
+     * @return list<array<string, mixed>>
+     */
+    private function withResults(array $rows): array
+    {
+        if ($rows === [] || ! $this->raffleResultsAvailable()) {
+            return array_map(fn (array $row): array => $this->present($row), $rows);
+        }
+
+        $ids = array_map(static fn (array $row): int => (int) $row['id'], $rows);
+        $placeholders = implode(',', array_fill(0, count($ids), '?'));
+        $statement = $this->pdo->prepare(
+            'SELECT raffle_id, winning_number, published_at, evidence_description, evidence_url
+             FROM raffle_results
+             WHERE raffle_id IN ('.$placeholders.')',
+        );
+        $statement->execute($ids);
+
+        $results = [];
+
+        foreach ($statement->fetchAll() as $result) {
+            $results[(int) $result['raffle_id']] = $result;
+        }
+
+        return array_map(
+            fn (array $row): array => $this->present(
+                $row,
+                $results[(int) $row['id']] ?? null,
+            ),
+            $rows,
         );
     }
 }

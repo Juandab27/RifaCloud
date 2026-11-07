@@ -20,6 +20,9 @@ final class RaffleRepository
 
     public const NUMBERS_MAX_PAGE_SIZE = 200;
 
+    /** @var bool|null */
+    private ?bool $raffleResultsAvailable = null;
+
     public function __construct(
         private readonly PDO $pdo,
         private readonly int $reservationMinutes,
@@ -35,7 +38,7 @@ final class RaffleRepository
         $perPage = self::CATALOG_PAGE_SIZE;
 
         $total = (int) $this->pdo
-            ->query("SELECT COUNT(*) FROM raffles WHERE status = 'PUBLISHED'")
+            ->query("SELECT COUNT(*) FROM raffles WHERE status IN ('PUBLISHED', 'FINISHED')")
             ->fetchColumn();
 
         $lastPage = max(1, (int) ceil($total / $perPage));
@@ -57,7 +60,7 @@ final class RaffleRepository
                     r.updated_at,
                     (SELECT COUNT(*) FROM raffle_numbers rn WHERE rn.raffle_id = r.id) AS numbers_count
                 FROM raffles r
-                WHERE r.status = 'PUBLISHED'
+                WHERE r.status IN ('PUBLISHED', 'FINISHED')
                 ORDER BY r.created_at DESC, r.id DESC
                 LIMIT :limit OFFSET :offset
             SQL,
@@ -67,10 +70,7 @@ final class RaffleRepository
         $statement->execute();
 
         return [
-            'data' => array_map(
-                fn (array $row): array => $this->presentRaffle($row),
-                $statement->fetchAll(),
-            ),
+            'data' => $this->withResults($statement->fetchAll()),
             'total' => $total,
             'page' => $page,
             'per_page' => $perPage,
@@ -99,14 +99,18 @@ final class RaffleRepository
                     r.updated_at,
                     (SELECT COUNT(*) FROM raffle_numbers rn WHERE rn.raffle_id = r.id) AS numbers_count
                 FROM raffles r
-                WHERE r.id = :raffle_id AND r.status = 'PUBLISHED'
+                WHERE r.id = :raffle_id AND r.status IN ('PUBLISHED', 'FINISHED')
                 LIMIT 1
             SQL,
         );
         $statement->execute([':raffle_id' => $raffleId]);
         $row = $statement->fetch();
 
-        return $row === false ? null : $this->presentRaffle($row);
+        if ($row === false) {
+            return null;
+        }
+
+        return $this->withResults([$row])[0];
     }
 
     /**
@@ -118,7 +122,7 @@ final class RaffleRepository
     public function numbersForPublishedRaffle(int $raffleId, int $page, int $perPage): ?array
     {
         $exists = $this->pdo->prepare(
-            "SELECT 1 FROM raffles WHERE id = :raffle_id AND status = 'PUBLISHED' LIMIT 1",
+            "SELECT 1 FROM raffles WHERE id = :raffle_id AND status IN ('PUBLISHED', 'FINISHED') LIMIT 1",
         );
         $exists->execute([':raffle_id' => $raffleId]);
 
@@ -198,14 +202,69 @@ final class RaffleRepository
 
     /**
      * @param  array<string, mixed>  $row
+     * @param  array<string, mixed>|null  $result
      * @return array<string, mixed>
      */
-    private function presentRaffle(array $row): array
+    private function presentRaffle(array $row, ?array $result = null): array
     {
         return RafflePresenter::present(
             $row,
             $this->reservationMinutes,
             $this->maxNumbersPerOrder,
+            $result,
+        );
+    }
+
+    /**
+     * The migration that creates raffle_results can be pending on a
+     * transitional database. The public read model stays available and simply
+     * omits the result until the table exists.
+     */
+    private function raffleResultsAvailable(): bool
+    {
+        if ($this->raffleResultsAvailable === null) {
+            $this->raffleResultsAvailable =
+                $this->pdo->query("SHOW TABLES LIKE 'raffle_results'")->fetchColumn() !== false;
+        }
+
+        return $this->raffleResultsAvailable;
+    }
+
+    /**
+     * @param  list<array<string, mixed>>  $rows
+     * @return list<array<string, mixed>>
+     */
+    private function withResults(array $rows): array
+    {
+        if ($rows === []) {
+            return [];
+        }
+
+        if (! $this->raffleResultsAvailable()) {
+            return array_map(fn (array $row): array => $this->presentRaffle($row), $rows);
+        }
+
+        $ids = array_map(static fn (array $row): int => (int) $row['id'], $rows);
+        $placeholders = implode(',', array_fill(0, count($ids), '?'));
+        $statement = $this->pdo->prepare(
+            'SELECT raffle_id, winning_number, published_at, evidence_description, evidence_url
+             FROM raffle_results
+             WHERE raffle_id IN ('.$placeholders.')',
+        );
+        $statement->execute($ids);
+
+        $results = [];
+
+        foreach ($statement->fetchAll() as $result) {
+            $results[(int) $result['raffle_id']] = $result;
+        }
+
+        return array_map(
+            fn (array $row): array => $this->presentRaffle(
+                $row,
+                $results[(int) $row['id']] ?? null,
+            ),
+            $rows,
         );
     }
 }

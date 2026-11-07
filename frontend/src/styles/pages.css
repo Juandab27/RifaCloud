@@ -996,6 +996,69 @@ button.number.selected {
   font-size: var(--fs-xs);
 }
 
+.raffle-card-result {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  margin: 0;
+  padding: 0.3rem 0.6rem;
+  align-self: flex-start;
+  background: var(--accent-soft);
+  border: 1px solid var(--accent-line);
+  border-radius: var(--r-pill);
+  color: var(--accent-hi);
+  font-size: var(--fs-sm);
+}
+
+.raffle-result {
+  border-color: var(--accent-line);
+}
+
+.raffle-result-main {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: var(--sp-5);
+}
+
+.raffle-result-number {
+  margin: var(--sp-1) 0 0;
+  color: var(--accent);
+  font-family: var(--font-display);
+  font-size: var(--fs-3xl);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: var(--tracking-tight);
+  line-height: 1;
+}
+
+.raffle-result-meta {
+  flex: 1;
+  min-width: 240px;
+  display: grid;
+  gap: var(--sp-2);
+  margin: 0;
+}
+
+.raffle-result-meta dt {
+  color: var(--text-3);
+  font-size: var(--fs-2xs);
+  font-weight: 600;
+  letter-spacing: var(--tracking-label);
+  text-transform: uppercase;
+}
+
+.raffle-result-meta dd {
+  margin: 0;
+  color: var(--text);
+  font-size: var(--fs-md);
+  overflow-wrap: anywhere;
+}
+
+.selection-bar--closed {
+  justify-content: flex-start;
+}
+
 /* --- Detalle de orden --------------------------------------------------- */
 .order-numbers-legend {
   display: flex;

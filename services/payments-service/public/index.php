@@ -142,6 +142,7 @@ try {
             Config::internalSecret(),
             Config::internalClockSkewSeconds(),
         ),
+        $repository,
         Config::reconcileBatchSize(),
     );
 

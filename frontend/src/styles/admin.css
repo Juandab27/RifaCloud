@@ -137,3 +137,67 @@
     width: 100%;
   }
 }
+
+/* ==========================================================================
+   S9.1 — Órdenes e incidencias administrativas
+   ========================================================================== */
+
+.admin-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-2);
+  margin-bottom: var(--sp-3);
+}
+
+.admin-filters {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: var(--sp-3);
+  margin-bottom: var(--sp-4);
+}
+
+.admin-filter {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-1);
+  min-width: 200px;
+  color: var(--text-2);
+  font-size: var(--fs-xs);
+  font-weight: 500;
+}
+
+.admin-cell-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.admin-cell-stack strong {
+  color: var(--text);
+  font-weight: 600;
+}
+
+.admin-cell-stack .muted {
+  font-size: var(--fs-xs);
+}
+
+.admin-pagination {
+  margin-top: var(--sp-4);
+}
+
+@media (max-width: 760px) {
+  .admin-tabs .btn {
+    flex: 1 1 auto;
+  }
+
+  .admin-filter {
+    width: 100%;
+  }
+
+  .admin-table td.actions .btn {
+    width: 100%;
+  }
+}

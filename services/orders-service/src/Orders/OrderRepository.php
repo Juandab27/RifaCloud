@@ -98,6 +98,64 @@ final class OrderRepository
         return (int) $statement->fetchColumn();
     }
 
+    public function countAll(?string $status = null): int
+    {
+        $sql = 'SELECT COUNT(*) FROM orders';
+        $parameters = [];
+
+        if ($status !== null && $status !== '') {
+            $sql .= ' WHERE status = :status';
+            $parameters[':status'] = $status;
+        }
+
+        $statement = $this->pdo->prepare($sql);
+        $statement->execute($parameters);
+
+        return (int) $statement->fetchColumn();
+    }
+
+    /**
+     * Admin projection: every order, newest first, with its buyer and latest
+     * payment state. It is a read model only; financial rules stay in the
+     * payment-result command.
+     *
+     * @return list<array<string, mixed>>
+     */
+    public function listAll(?string $status, int $limit, int $offset): array
+    {
+        $sql = <<<'SQL'
+                SELECT o.id, o.user_id, o.raffle_id, o.order_number, o.total_amount,
+                       o.status, o.expires_at, o.paid_at, o.created_at,
+                       r.title AS raffle_title,
+                       u.name AS customer_name, u.email AS customer_email,
+                       (SELECT p.status FROM payments p
+                        WHERE p.order_id = o.id ORDER BY p.id DESC LIMIT 1) AS latest_payment_status
+                FROM orders o
+                INNER JOIN raffles r ON r.id = o.raffle_id
+                INNER JOIN users u ON u.id = o.user_id
+            SQL;
+        $parameters = [];
+
+        if ($status !== null && $status !== '') {
+            $sql .= ' WHERE o.status = :status';
+            $parameters[':status'] = $status;
+        }
+
+        $sql .= ' ORDER BY o.id DESC LIMIT :limit OFFSET :offset';
+
+        $statement = $this->pdo->prepare($sql);
+
+        foreach ($parameters as $name => $value) {
+            $statement->bindValue($name, $value);
+        }
+
+        $statement->bindValue(':limit', max(1, $limit), PDO::PARAM_INT);
+        $statement->bindValue(':offset', max(0, $offset), PDO::PARAM_INT);
+        $statement->execute();
+
+        return $statement->fetchAll();
+    }
+
     /**
      * Newest first, always scoped to the authenticated owner.
      *

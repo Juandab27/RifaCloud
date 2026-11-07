@@ -124,6 +124,14 @@ final class OrderApplication
             return new JsonResponse(['status' => 'ok']);
         }
 
+        if ($path === '/api/admin/orders') {
+            if ($method !== 'GET') {
+                return new JsonResponse(['message' => 'Method Not Allowed'], 405, ['Allow' => 'GET']);
+            }
+
+            return $this->adminList($query, $headers, $cookies);
+        }
+
         if ($path === '/api/orders') {
             if ($method === 'POST') {
                 return $this->create($headers, $cookies, $rawBody, $baseUrl);
@@ -202,6 +210,59 @@ final class OrderApplication
     }
 
     /**
+     * Paginated administrative order list. Every order is visible, but only
+     * the role loaded from auth-service can reach it.
+     *
+     * @param  array<string, mixed>  $query
+     * @param  array<string, string>  $headers
+     * @param  array<string, mixed>  $cookies
+     */
+    private function adminList(array $query, array $headers, array $cookies): JsonResponse
+    {
+        $context = $this->authenticator->load($cookies);
+        $this->authenticator->assertCsrf('GET', $headers, [], $context);
+        $this->authenticator->requireAdmin($context);
+
+        $page = max(1, (int) ($query['page'] ?? 1));
+        $perPage = min(50, max(1, (int) ($query['per_page'] ?? 15)));
+        $status = strtoupper(trim((string) ($query['status'] ?? '')));
+        $allowed = [
+            'PENDING_PAYMENT',
+            'PAID',
+            'REJECTED',
+            'EXPIRED',
+            'PAYMENT_REVIEW',
+            'REQUIRES_REFUND',
+        ];
+
+        if ($status !== '' && ! in_array($status, $allowed, true)) {
+            throw ValidationException::field('status', 'The selected status is invalid.');
+        }
+
+        $total = $this->orders->countAll($status === '' ? null : $status);
+        $orders = $this->orders->listAll(
+            $status === '' ? null : $status,
+            $perPage,
+            ($page - 1) * $perPage,
+        );
+        $orderIds = array_map(
+            static fn (array $order): int => (int) $order['id'],
+            $orders,
+        );
+
+        return new JsonResponse(
+            $this->presenter->presentAdminCollection(
+                $orders,
+                $this->orders->numbersForOrders($orderIds),
+                $this->orders->paymentsForOrders($orderIds),
+                $page,
+                $perPage,
+                $total,
+            ),
+        );
+    }
+
+    /**
      * Authenticated "My purchases" list, newest first.
      *
      * The owner filter is part of the SQL query, so another user's orders can
@@ -210,8 +271,7 @@ final class OrderApplication
      * @param  array<string, mixed>  $query
      * @param  array<string, mixed>  $cookies
      */
-    private function list(array $query, array $cookies): JsonResponse
-    {
+    private function list(array $query, array $cookies): JsonResponse    {
         $context = $this->authenticator->load($cookies);
         $user = $this->authenticator->requireUser($context);
 

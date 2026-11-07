@@ -6,6 +6,8 @@ namespace RifaCloud\PaymentsService\Payments;
 
 use PDO;
 use PDOException;
+use DateTimeImmutable;
+use DateTimeZone;
 use RifaCloud\PaymentsService\Auth\AuthException;
 use RifaCloud\PaymentsService\Auth\CsrfTokenMismatchException;
 use RifaCloud\PaymentsService\Auth\UserSessionAuthenticator;
@@ -30,6 +32,7 @@ final class PaymentApplication
         private readonly WebhookService $webhook,
         private readonly OrderProjection $projection,
         private readonly InternalRequestVerifier $internalVerifier,
+        private readonly PaymentRepository $payments,
         private readonly int $reconcileLimit,
     ) {}
 
@@ -168,6 +171,14 @@ final class PaymentApplication
             return $this->resolve((int) $matches[1], (int) $matches[2], $headers, $cookies, $rawBody, $baseUrl);
         }
 
+        if ($path === '/api/admin/payments/incidents') {
+            if ($method !== 'GET') {
+                return new JsonResponse(['message' => 'Method Not Allowed'], 405, ['Allow' => 'GET']);
+            }
+
+            return $this->incidents($query, $headers, $cookies);
+        }
+
         return new JsonResponse(['message' => 'Not Found'], 404);
     }
 
@@ -238,6 +249,78 @@ final class PaymentApplication
         $this->verification->resolve($orderId, $paymentId);
 
         return new JsonResponse($this->projection->present($orderId));
+    }
+
+    /**
+     * @param  array<string, mixed>  $query
+     * @param  array<string, string>  $headers
+     * @param  array<string, mixed>  $cookies
+     */
+    private function incidents(array $query, array $headers, array $cookies): JsonResponse
+    {
+        $context = $this->authenticator->load($cookies);
+        $this->authenticator->assertCsrf('GET', $headers, [], $context);
+        $this->authenticator->requireAdmin($context);
+
+        $page = max(1, (int) ($query['page'] ?? 1));
+        $perPage = min(50, max(1, (int) ($query['per_page'] ?? 15)));
+        $status = strtoupper(trim((string) ($query['status'] ?? '')));
+
+        if ($status !== '' && ! in_array($status, ['UNKNOWN', 'REFUND_REQUIRED'], true)) {
+            return new JsonResponse([
+                'message' => 'The selected payment status is invalid.',
+                'errors' => ['status' => ['The selected payment status is invalid.']],
+            ], 422);
+        }
+
+        $total = $this->payments->countIncidents($status === '' ? null : $status);
+        $rows = $this->payments->listIncidents(
+            $status === '' ? null : $status,
+            $perPage,
+            ($page - 1) * $perPage,
+        );
+
+        $data = array_map(
+            static fn (array $row): array => [
+                'id' => (int) $row['id'],
+                'order_id' => (int) $row['order_id'],
+                'order_number' => (string) $row['order_number'],
+                'status' => (string) $row['status'],
+                'amount' => (int) $row['amount'],
+                'currency' => (string) $row['currency'],
+                'created_at' => self::iso($row['created_at']),
+                'verified_at' => self::iso($row['verified_at']),
+                'customer' => [
+                    'id' => (int) $row['user_id'],
+                    'name' => (string) $row['customer_name'],
+                    'email' => (string) $row['customer_email'],
+                ],
+                'raffle' => [
+                    'id' => (int) $row['raffle_id'],
+                    'title' => (string) $row['raffle_title'],
+                ],
+            ],
+            $rows,
+        );
+
+        return new JsonResponse([
+            'data' => $data,
+            'meta' => [
+                'current_page' => $page,
+                'per_page' => $perPage,
+                'total' => $total,
+                'last_page' => max(1, (int) ceil($total / max(1, $perPage))),
+            ],
+        ]);
+    }
+
+    private static function iso(mixed $value): ?string
+    {
+        if (! is_string($value) || $value === '') {
+            return null;
+        }
+
+        return (new DateTimeImmutable($value, new DateTimeZone('UTC')))->format('c');
     }
 
     /**

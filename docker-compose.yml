@@ -43,13 +43,22 @@ services:
     working_dir: /var/www
     volumes:
       - ./src:/var/www
+      - ./docker/scheduler/entrypoint.sh:/usr/local/bin/rifacloud-scheduler:ro
     environment:
       ORDERS_SERVICE_URL: http://orders-service
       PAYMENTS_SERVICE_URL: http://payments-service
     depends_on:
       mysql:
         condition: service_healthy
-    command: php artisan schedule:work
+    command: sh /usr/local/bin/rifacloud-scheduler
+    init: true
+    stop_grace_period: 30s
+    healthcheck:
+      test: ["CMD-SHELL", "test -f /tmp/rifacloud-scheduler-heartbeat && [ $$(($$(date +%s) - $$(cat /tmp/rifacloud-scheduler-heartbeat))) -lt 180 ]"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 75s
     restart: unless-stopped
 
   raffles-service:
@@ -60,16 +69,20 @@ services:
     # S2 shares the Laravel session contract with auth-service and the
     # monolith: same APP_KEY, cookie name and database-backed sessions.
     # The service reads sessions/users and writes only raffles/raffle_numbers.
-    env_file:
-      - ./src/.env
+    # Least privilege: this service receives only raffle/session variables.
+    # It never sees the Mercado Pago token or the shared database password.
     environment:
       RAFFLES_DB_HOST: mysql
       RAFFLES_DB_PORT: "3306"
       RAFFLES_DB_DATABASE: ${DB_DATABASE:-rifacloud}
       RAFFLES_DB_USERNAME: ${RAFFLES_DB_USERNAME:?Set RAFFLES_DB_USERNAME in the root .env file}
       RAFFLES_DB_PASSWORD: ${RAFFLES_DB_PASSWORD:?Set RAFFLES_DB_PASSWORD in the root .env file}
-      # Reservation duration comes from src/.env (RESERVATION_MINUTES) through
-      # env_file so the catalog, orders-service and the monolith always agree.
+      APP_KEY: ${APP_KEY:?Set APP_KEY in the root .env file}
+      SESSION_COOKIE: rifacloud-session
+      SESSION_LIFETIME: ${SESSION_LIFETIME:-120}
+      SESSION_TABLE: sessions
+      RESERVATION_MINUTES: ${RESERVATION_MINUTES:-10}
+      ORDER_MAX_NUMBERS: ${ORDER_MAX_NUMBERS:-50}
       RAFFLE_MAX_NUMBERS: ${RAFFLE_MAX_NUMBERS:-10000}
     depends_on:
       mysql:
@@ -91,16 +104,20 @@ services:
     # S3 shares the Laravel session contract and the MySQL schema during the
     # transition. The service owns orders/order_items and the reservation
     # columns of raffle_numbers. Payments stay in the monolith until S4.
-    env_file:
-      - ./src/.env
+    # Least privilege: this service receives only order/session variables.
     environment:
       ORDERS_DB_HOST: mysql
       ORDERS_DB_PORT: "3306"
       ORDERS_DB_DATABASE: ${DB_DATABASE:-rifacloud}
       ORDERS_DB_USERNAME: ${ORDERS_DB_USERNAME:?Set ORDERS_DB_USERNAME in the root .env file}
       ORDERS_DB_PASSWORD: ${ORDERS_DB_PASSWORD:?Set ORDERS_DB_PASSWORD in the root .env file}
-      # RESERVATION_MINUTES and ORDER_MAX_NUMBERS come from src/.env through
-      # env_file; see services/orders-service/src/Config.php.
+      APP_KEY: ${APP_KEY:?Set APP_KEY in the root .env file}
+      SESSION_COOKIE: rifacloud-session
+      SESSION_LIFETIME: ${SESSION_LIFETIME:-120}
+      SESSION_TABLE: sessions
+      RESERVATION_MINUTES: ${RESERVATION_MINUTES:-10}
+      ORDER_MAX_NUMBERS: ${ORDER_MAX_NUMBERS:-50}
+      PAYMENT_GATEWAY: ${PAYMENT_GATEWAY:-mercadopago}
     depends_on:
       mysql:
         condition: service_healthy
@@ -130,6 +147,11 @@ services:
       PAYMENTS_DB_DATABASE: ${DB_DATABASE:-rifacloud}
       PAYMENTS_DB_USERNAME: ${PAYMENTS_DB_USERNAME:?Set PAYMENTS_DB_USERNAME in the root .env file}
       PAYMENTS_DB_PASSWORD: ${PAYMENTS_DB_PASSWORD:?Set PAYMENTS_DB_PASSWORD in the root .env file}
+      # Keep the generic names aligned with the dedicated user so the shared
+      # fallback is never used.
+      DB_DATABASE: ${DB_DATABASE:-rifacloud}
+      DB_USERNAME: ${PAYMENTS_DB_USERNAME}
+      DB_PASSWORD: ${PAYMENTS_DB_PASSWORD}
       ORDERS_SERVICE_URL: http://orders-service
       ORDERS_INTERNAL_TIMEOUT: ${ORDERS_INTERNAL_TIMEOUT:-5}
     depends_on:
@@ -154,19 +176,33 @@ services:
     # The service shares the Laravel session contract with the monolith during
     # the transition: same APP_KEY, cookie name and database-backed sessions.
     # It never writes raffles, numbers, orders or payments.
-    env_file:
-      - ./src/.env
+    # Least privilege: auth-service receives only Laravel/session/DB variables.
+    # It never sees the Mercado Pago token or the shared database password.
     environment:
+      APP_NAME: RifaCloud
       APP_ENV: production
+      APP_KEY: ${APP_KEY:?Set APP_KEY in the root .env file}
       APP_DEBUG: "false"
-      LOG_CHANNEL: stderr
-      SESSION_DRIVER: database
-      # S5: dedicated least-privilege MySQL user (root .env, never committed).
+      APP_URL: ${APP_URL:-http://localhost}
+      DB_CONNECTION: mysql
+      DB_HOST: mysql
+      DB_PORT: "3306"
+      DB_DATABASE: ${DB_DATABASE:-rifacloud}
       DB_USERNAME: ${AUTH_DB_USERNAME:?Set AUTH_DB_USERNAME in the root .env file}
       DB_PASSWORD: ${AUTH_DB_PASSWORD:?Set AUTH_DB_PASSWORD in the root .env file}
-      # Shared cache table so login throttling survives across PHP-FPM workers.
+      SESSION_DRIVER: database
+      SESSION_LIFETIME: ${SESSION_LIFETIME:-120}
+      SESSION_DOMAIN: ${SESSION_DOMAIN:-localhost}
+      SESSION_SECURE_COOKIE: ${SESSION_SECURE_COOKIE:-false}
+      SESSION_SAME_SITE: ${SESSION_SAME_SITE:-lax}
+      SESSION_ENCRYPT: "false"
+      SANCTUM_STATEFUL_DOMAINS: ${SANCTUM_STATEFUL_DOMAINS:-localhost,127.0.0.1}
+      # Shared cache table so login/registration throttling survives across
+      # PHP-FPM workers.
       CACHE_STORE: database
       QUEUE_CONNECTION: sync
+      LOG_CHANNEL: stderr
+      LOG_LEVEL: ${LOG_LEVEL:-warning}
     depends_on:
       mysql:
         condition: service_healthy

@@ -68,6 +68,51 @@ final class OrderPresenter
     }
 
     /**
+     * @param  list<array<string, mixed>>  $orders
+     * @param  array<int, list<array<string, mixed>>>  $numbersByOrder
+     * @param  array<int, list<array<string, mixed>>>  $paymentsByOrder
+     * @return array<string, mixed>
+     */
+    public function presentAdminCollection(
+        array $orders,
+        array $numbersByOrder,
+        array $paymentsByOrder,
+        int $page,
+        int $perPage,
+        int $total,
+    ): array {
+        $data = [];
+
+        foreach ($orders as $order) {
+            $orderId = (int) $order['id'];
+            $entry = $this->presentData(
+                $order,
+                $numbersByOrder[$orderId] ?? [],
+                $paymentsByOrder[$orderId] ?? [],
+            );
+            $entry['customer'] = [
+                'id' => (int) $order['user_id'],
+                'name' => (string) ($order['customer_name'] ?? ''),
+                'email' => (string) ($order['customer_email'] ?? ''),
+            ];
+            $entry['latest_payment_status'] = $order['latest_payment_status'] === null
+                ? null
+                : (string) $order['latest_payment_status'];
+            $data[] = $entry;
+        }
+
+        return [
+            'data' => $data,
+            'meta' => [
+                'current_page' => $page,
+                'per_page' => $perPage,
+                'total' => $total,
+                'last_page' => max(1, (int) ceil($total / max(1, $perPage))),
+            ],
+        ];
+    }
+
+    /**
      * @param  array<string, mixed>  $order
      * @param  list<array<string, mixed>>  $numbers
      * @param  list<array<string, mixed>>  $payments
