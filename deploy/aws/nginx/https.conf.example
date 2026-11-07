@@ -55,6 +55,9 @@ server {
         internal;
         default_type application/json;
         add_header Cache-Control "no-store" always;
+        add_header Strict-Transport-Security "max-age=31536000; includeSubDomains" always;
+        add_header X-Content-Type-Options "nosniff" always;
+        add_header X-Frame-Options "DENY" always;
         return 503 '{"message":"Catalogo de rifas temporalmente no disponible."}';
     }
 
@@ -62,6 +65,9 @@ server {
         internal;
         default_type application/json;
         add_header Cache-Control "no-store" always;
+        add_header Strict-Transport-Security "max-age=31536000; includeSubDomains" always;
+        add_header X-Content-Type-Options "nosniff" always;
+        add_header X-Frame-Options "DENY" always;
         return 503 '{"message":"Servicio de autenticacion temporalmente no disponible."}';
     }
 
@@ -69,6 +75,9 @@ server {
         internal;
         default_type application/json;
         add_header Cache-Control "no-store" always;
+        add_header Strict-Transport-Security "max-age=31536000; includeSubDomains" always;
+        add_header X-Content-Type-Options "nosniff" always;
+        add_header X-Frame-Options "DENY" always;
         return 503 '{"message":"Servicio de ordenes temporalmente no disponible."}';
     }
 
@@ -76,6 +85,9 @@ server {
         internal;
         default_type application/json;
         add_header Cache-Control "no-store" always;
+        add_header Strict-Transport-Security "max-age=31536000; includeSubDomains" always;
+        add_header X-Content-Type-Options "nosniff" always;
+        add_header X-Frame-Options "DENY" always;
         return 503 '{"message":"Servicio de pagos temporalmente no disponible."}';
     }
 
@@ -132,6 +144,21 @@ server {
         error_page 502 503 504 =503 /api/_raffles_unavailable;
     }
 
+    location = /api/admin/raffles/metrics {
+        set $raffles_admin_upstream raffles-service:80;
+        proxy_pass http://$raffles_admin_upstream$request_uri;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto https;
+        proxy_connect_timeout 2s;
+        proxy_send_timeout 10s;
+        proxy_read_timeout 10s;
+        proxy_intercept_errors on;
+        error_page 502 503 504 =503 /api/_raffles_unavailable;
+    }
+
     location ~ ^/api/admin/raffles(?:/.*)?$ {
         set $raffles_admin_upstream raffles-service:80;
         proxy_pass http://$raffles_admin_upstream$request_uri;
@@ -174,6 +201,21 @@ server {
         proxy_send_timeout 15s;
         proxy_read_timeout 15s;
         proxy_intercept_errors off;
+        error_page 502 503 504 =503 /api/_orders_unavailable;
+    }
+
+    location = /api/admin/orders/metrics {
+        set $orders_upstream orders-service:80;
+        proxy_pass http://$orders_upstream$request_uri;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto https;
+        proxy_connect_timeout 2s;
+        proxy_send_timeout 10s;
+        proxy_read_timeout 10s;
+        proxy_intercept_errors on;
         error_page 502 503 504 =503 /api/_orders_unavailable;
     }
 
@@ -252,6 +294,21 @@ server {
         error_page 502 503 504 =503 /api/_payments_unavailable;
     }
 
+    location = /api/admin/payments/incidents/metrics {
+        set $payments_upstream payments-service:80;
+        proxy_pass http://$payments_upstream$request_uri;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto https;
+        proxy_connect_timeout 2s;
+        proxy_send_timeout 10s;
+        proxy_read_timeout 10s;
+        proxy_intercept_errors on;
+        error_page 502 503 504 =503 /api/_payments_unavailable;
+    }
+
     location = /api/admin/payments/incidents {
         set $payments_upstream payments-service:80;
         proxy_pass http://$payments_upstream$request_uri;
@@ -281,6 +338,11 @@ server {
     }
 
     location / {
+        # A location with its own add_header no longer inherits server-level
+        # headers, so repeat the HTTPS security headers here.
+        add_header Strict-Transport-Security "max-age=31536000; includeSubDomains" always;
+        add_header X-Content-Type-Options "nosniff" always;
+        add_header X-Frame-Options "DENY" always;
         add_header Referrer-Policy "same-origin" always;
         try_files $uri $uri/ /index.html;
     }

@@ -156,6 +156,11 @@ un timer del sistema; recargar Nginx tras la renovación.
 ```bash
 docker compose -f docker-compose.yml -f docker-compose.prod.yml build
 
+# The monolith image does not embed vendor/ (src/ is mounted at runtime).
+# Install the locked PHP dependencies once on a fresh checkout:
+docker compose -f docker-compose.yml -f docker-compose.prod.yml \
+    run --rm app composer install --no-dev --no-interaction --prefer-dist --no-progress
+
 # First deployment: migrate and create least-privilege users before exposing app.
 set -a; . ./.env; set +a
 CONFIRM_MIGRATE=yes deploy/aws/bootstrap-db.sh
@@ -198,7 +203,8 @@ MERCADOPAGO_SANDBOX=true
 MERCADOPAGO_ACCESS_TOKEN=...
 MERCADOPAGO_WEBHOOK_SECRET=...
 MERCADOPAGO_WEBHOOK_URL=https://YOUR_DOMAIN/api/webhooks/mercadopago
-MERCADOPAGO_BACK_URL=https://YOUR_DOMAIN/orders
+# Base URL only: payments-service appends /orders/{id}?pago=retorno.
+MERCADOPAGO_BACK_URL=https://YOUR_DOMAIN
 ```
 
 La URL pública apunta a Nginx, que la reenvía a `payments-service`; `/internal/`
@@ -215,8 +221,9 @@ La validación real requiere una notificación sandbox del proveedor con la
 firma correcta. **No afirmar que el webhook funciona hasta completar esa
 prueba** y verificar que la orden/números cambian una sola vez.
 
-Para el retorno, `MERCADOPAGO_BACK_URL` debe ser la URL pública; la aprobación
-la decide el servidor con `/verify`, nunca la URL del navegador.
+Para el retorno, `MERCADOPAGO_BACK_URL` debe ser la **base** de la URL pública
+(sin `/orders`): `payments-service` añade `/orders/{id}?pago=retorno`. La
+aprobación la decide el servidor con `/verify`, nunca la URL del navegador.
 
 ## 9. Backups cifrados y restauración
 
@@ -274,6 +281,8 @@ No borrar el volumen `mysql_data` como parte de una restauración.
 
 ```bash
 deploy/aws/verify-deployment.sh
+# Con Nginx TLS directo, usar la URL HTTPS pública:
+BASE_URL=https://YOUR_DOMAIN deploy/aws/verify-deployment.sh
 ```
 
 Comprueba Compose, contenedores, `/healthz`, catálogo, 401 administrativo,

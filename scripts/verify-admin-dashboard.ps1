@@ -307,6 +307,48 @@ try {
     )
     Compare-Metric 'pending_incidents' $incidents $Fixture.expected.pending_incidents $incidents.Body
 
+    $orderList = Invoke-Api -Path '/api/admin/orders?per_page=50' -Jar $AdminJar -XsrfToken $adminXsrf
+    $orderListJson = Get-Json $orderList.Body
+    Add-Result 'ADMIN order list' '200' "$($orderList.Status)" ($orderList.Status -eq 200)
+    Add-Result 'ADMIN order list exposes buyer context' 'true' "$([bool]($orderListJson.data[0].customer.email))" (
+        $null -ne $orderListJson -and $null -ne $orderListJson.data -and
+        $orderListJson.data.Count -gt 0 -and [bool]($orderListJson.data[0].customer.email)
+    )
+
+    $incidentList = Invoke-Api -Path '/api/admin/payments/incidents?per_page=50' -Jar $AdminJar -XsrfToken $adminXsrf
+    $incidentListJson = Get-Json $incidentList.Body
+    Add-Result 'ADMIN incident list' '200' "$($incidentList.Status)" ($incidentList.Status -eq 200)
+    Add-Result 'ADMIN incident list exposes order state' 'true' "$([bool]($incidentListJson.data[0].order_status))" (
+        $null -ne $incidentListJson -and $null -ne $incidentListJson.data -and
+        $incidentListJson.data.Count -gt 0 -and [bool]($incidentListJson.data[0].order_status)
+    )
+
+    $resultRaffleId = [int]$Fixture.raffle_ids[0]
+    $closedForResult = Invoke-Api -Method POST -Path "/api/admin/raffles/$resultRaffleId/close" -Jar $AdminJar -XsrfToken $adminXsrf -Body '{}'
+    Add-Result 'Close raffle before result' '200 CLOSED' "$($closedForResult.Status)" (
+        $closedForResult.Status -eq 200 -and
+        (Get-Json $closedForResult.Body).data.status -eq 'CLOSED'
+    )
+
+    $resultPayload = @{
+        winning_number = 1
+        evidence_description = 'Acta E2E del sorteo'
+        evidence_url = 'https://example.invalid/acta'
+    } | ConvertTo-Json -Compress
+    $resultResponse = Invoke-Api -Method POST -Path "/api/admin/raffles/$resultRaffleId/result" -Body $resultPayload -Jar $AdminJar -XsrfToken $adminXsrf
+    $resultJson = Get-Json $resultResponse.Body
+    Add-Result 'Publish result' '200 FINISHED' "$($resultResponse.Status)" (
+        $resultResponse.Status -eq 200 -and $resultJson.data.status -eq 'FINISHED' -and
+        [int]$resultJson.data.result.winning_number -eq 1
+    )
+    $publicResult = Invoke-Api -Path "/api/raffles/$resultRaffleId"
+    $publicResultJson = Get-Json $publicResult.Body
+    Add-Result 'Public result is visible' 'winning_number=1' "$($publicResult.Status)" (
+        $publicResult.Status -eq 200 -and [int]$publicResultJson.data.result.winning_number -eq 1
+    )
+    $duplicateResult = Invoke-Api -Method POST -Path "/api/admin/raffles/$resultRaffleId/result" -Body $resultPayload -Jar $AdminJar -XsrfToken $adminXsrf
+    Add-Result 'Duplicate result rejected' '422' "$($duplicateResult.Status)" ($duplicateResult.Status -eq 422)
+
     $wrongMethod = Invoke-Api -Method POST -Path '/api/admin/orders/metrics' -Jar $AdminJar -XsrfToken $adminXsrf -Body '{}'
     Add-Result 'POST on metrics returns 405' '405' "$($wrongMethod.Status)" ($wrongMethod.Status -eq 405)
 

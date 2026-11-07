@@ -305,13 +305,28 @@ export default function AdminOrdersPage() {
                   </td>
                   <td data-label="Detectada">{formatDate(incident.created_at)}</td>
                   <td className="actions" data-label="Acción">
-                    <Button
-                      size="sm"
-                      loading={busyIncident === incident.id}
-                      onClick={() => void resolveIncident(incident)}
-                    >
-                      Resolver con proveedor
-                    </Button>
+                    {incident.status === 'UNKNOWN' && incident.order_status === 'PAYMENT_REVIEW' ? (
+                      <Button
+                        size="sm"
+                        loading={busyIncident === incident.id}
+                        onClick={() => void resolveIncident(incident)}
+                      >
+                        Resolver con proveedor
+                      </Button>
+                    ) : (
+                      <span
+                        className="muted"
+                        title={
+                          incident.status === 'REFUND_REQUIRED'
+                            ? 'El reembolso se procesa fuera de la plataforma; el pago queda como evidencia.'
+                            : 'La orden ya no está en revisión; la verificación automática o la consulta del comprador resolverá el resultado.'
+                        }
+                      >
+                        {incident.status === 'REFUND_REQUIRED'
+                          ? 'Reembolso manual'
+                          : 'Reconciliación automática'}
+                      </span>
+                    )}
                   </td>
                 </tr>
               ))}

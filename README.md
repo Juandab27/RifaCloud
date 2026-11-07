@@ -35,15 +35,36 @@ docker compose run --rm app composer install
 # 3. Clave de aplicación
 docker compose run --rm app php artisan key:generate
 
-# 4. Construir y levantar servicios
+# La clave queda en src/.env. Copia el MISMO valor de APP_KEY a la raíz .env:
+# los cuatro servicios y el monolito comparten la cookie de sesión.
+# (Si usas key:generate --show, pega el valor en ambos archivos.)
+
+# 4. Usuarios MySQL de servicio (solo en un volumen nuevo; ver nota abajo)
+# Reemplaza los placeholders de scripts/mysql-s5-grants.sql por los valores
+# AUTH_DB_PASSWORD, RAFFLES_DB_PASSWORD, ORDERS_DB_PASSWORD y
+# PAYMENTS_DB_PASSWORD de .env, y aplica el archivo como root.
+docker compose up -d mysql
+docker compose exec -T mysql sh -c 'mysql -uroot -p"$MYSQL_ROOT_PASSWORD"' \
+    < scripts/mysql-s5-grants.sql
+docker compose exec -T mysql sh -c 'mysql -uroot -p"$MYSQL_ROOT_PASSWORD"' \
+    < scripts/mysql-s91-grants.sql
+# PowerShell no admite "<": usa
+# Get-Content scripts/mysql-s5-grants.sql -Raw |
+#   docker compose exec -T mysql sh -c 'mysql -uroot -p"$MYSQL_ROOT_PASSWORD"'
+
+# 5. Construir y levantar servicios
 docker compose build
 docker compose up -d
 
-# 5. Esquema y datos iniciales
+# 6. Esquema y datos iniciales
 docker compose exec app php artisan migrate --seed
 ```
 
-La aplicación queda en <http://localhost>.
+La aplicación queda en <http://localhost>. Si el volumen `mysql_data` ya
+existía antes de S5/S9.1, los usuarios de servicio y los grants ya deben estar
+creados; en un volumen nuevo el paso 4 es obligatorio o los servicios
+arrancarán con errores de acceso a MySQL. No uses el usuario compartido
+`rifacloud` para el código de los servicios.
 
 ## Dashboard administrativo
 
@@ -127,6 +148,22 @@ FLUSH PRIVILEGES;
    Si no necesitas conservar los datos locales, `docker compose down -v` recrea
    el volumen y el script de init vuelve a ejecutarse (**borra** los datos).
 
+5. Crea la cuenta **exclusiva de fixtures** usada por las pruebas de integración
+   de `orders-service` y `payments-service`. Solo tiene permisos sobre
+   `rifacloud_test`; no usa el usuario compartido del monolito ni recibe
+   permisos en `rifacloud`:
+
+```sh
+# Define TEST_FIXTURE_DB_PASSWORD en src/.env.testing (archivo no versionado)
+# y reemplaza el placeholder de scripts/mysql-test-fixture-grants.sql.
+docker compose exec -T mysql sh -c 'mysql -uroot -p"$MYSQL_ROOT_PASSWORD"' \
+    < scripts/mysql-test-fixture-grants.sql
+```
+
+   Las pruebas de integración reciben `TEST_FIXTURE_DB_PASSWORD` por entorno;
+   si falta, se niegan a ejecutarse en lugar de reutilizar credenciales de
+   producción.
+
 ### Ejecución
 
 ```sh
@@ -147,7 +184,7 @@ sus validaciones.
 ```sh
 cd frontend
 npm run test:unit    # 16 comprobaciones puras del estado temporal
-npx playwright test  # 12 pruebas de navegador con Chrome instalado
+npx playwright test  # 20 pruebas de navegador con Chrome instalado
 ```
 
 Las pruebas de navegador interceptan `/api/**` en el propio navegador: usan
@@ -183,9 +220,11 @@ docker compose down -v       # elimina también los datos locales
   (NFR-011 / AC-029).
 - Los valores monetarios se almacenan en **centavos** (NFR-013).
 - El correo local usa el mailer `log` (P1); Mailtrap se configura en P2.
-- En local el gateway de pagos es simulado (`PAYMENT_GATEWAY=fake`). La interfaz
-  lo marca como **SIMULADO** y no se procesa dinero real. La aplicación se niega
-  a arrancar en `production` si `PAYMENT_GATEWAY=fake`.
+- El valor por defecto de `src/.env.example` usa el gateway simulado
+  (`PAYMENT_GATEWAY=fake`); la interfaz lo marca como **SIMULADO** y no se
+  procesa dinero real. Si configuras `mercadopago`, revisa también el secreto y
+  la URL pública del webhook. La aplicación se niega a arrancar en `production`
+  si `PAYMENT_GATEWAY=fake`.
 - Las reservas duran `RESERVATION_MINUTES` (10 por defecto) y se crean de forma
   atómica con locks de fila; los números reservados no se pueden duplicar
   (NFR-002, NFR-004).

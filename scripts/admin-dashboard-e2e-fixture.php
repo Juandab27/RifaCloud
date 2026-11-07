@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use Illuminate\Contracts\Console\Kernel;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 
 /**
  * Disposable fixtures for the S10.3 admin-dashboard E2E test.
@@ -57,6 +58,12 @@ function cleanupFixture(array $raffleIds, array $userIds): void
         $orders = DB::table('orders')->whereIn('raffle_id', $raffleIds)->pluck('id')->all();
 
         if ($orders !== []) {
+            // notifications.order_id is nullable on delete; remove the rows
+            // explicitly to keep the test schema free of delivery residue.
+            if (Schema::hasTable('notifications')) {
+                DB::table('notifications')->whereIn('order_id', $orders)->delete();
+            }
+
             DB::table('payments')->whereIn('order_id', $orders)->delete();
             DB::table('order_items')->whereIn('order_id', $orders)->delete();
         }

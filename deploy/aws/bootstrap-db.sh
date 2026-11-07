@@ -22,6 +22,7 @@ REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 cd "$REPO_ROOT"
 
 COMPOSE=(docker compose -f docker-compose.yml -f docker-compose.prod.yml)
+BASE_COMPOSE=(docker compose -f docker-compose.yml)
 ENV_FILE="$REPO_ROOT/.env"
 GRANTS_FILE="$REPO_ROOT/deploy/aws/grants-production.sql"
 
@@ -81,6 +82,16 @@ done
 if ! "${COMPOSE[@]}" exec -T mysql sh -c 'mysqladmin ping -h 127.0.0.1 -u root -p"$MYSQL_ROOT_PASSWORD" --silent' >/dev/null 2>&1; then
     echo "ERROR: MySQL did not become healthy." >&2
     exit 1
+fi
+
+# The app image intentionally does not embed vendor/ because src/ is mounted at
+# runtime. A fresh EC2 checkout therefore needs the locked dependencies before
+# any artisan command can run. Use the base compose file so this step does not
+# require the Mercado Pago/domain variables.
+if [[ ! -f "$REPO_ROOT/src/vendor/autoload.php" ]]; then
+    echo "Installing PHP dependencies from src/composer.lock..."
+    "${BASE_COMPOSE[@]}" run --rm -e APP_KEY="$APP_KEY" app composer install \
+        --no-dev --no-interaction --prefer-dist --no-progress
 fi
 
 TABLE_COUNT="$("${COMPOSE[@]}" exec -T mysql sh -c '

@@ -301,7 +301,7 @@ final class PaymentRepository
         $sql = <<<'SQL'
                 SELECT p.id, p.order_id, p.status, p.amount, p.currency,
                        p.created_at, p.verified_at,
-                       o.order_number, o.user_id,
+                       o.order_number, o.user_id, o.status AS order_status,
                        u.name AS customer_name, u.email AS customer_email,
                        r.id AS raffle_id, r.title AS raffle_title
                 FROM payments p

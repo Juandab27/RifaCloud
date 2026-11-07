@@ -91,9 +91,11 @@ docker run --rm -v "${PWD}/services/payments-service:/var/www/html" \
   rifacloud-payments-service php tests/gateway_integration.php
 
 # Requiere un orders-service apuntando a rifacloud_test y todas las migraciones.
+# Exporta TEST_FIXTURE_DB_PASSWORD desde src/.env.testing antes de ejecutar.
 docker run --rm --network rifacloud_default --env-file src/.env \
   -e PAYMENTS_DB_HOST=mysql -e PAYMENTS_DB_DATABASE=rifacloud_test \
   -e PAYMENTS_TEST_DB_DATABASE=rifacloud_test \
+  -e TEST_FIXTURE_DB_PASSWORD="$TEST_FIXTURE_DB_PASSWORD" \
   -e ORDERS_SERVICE_URL=http://rifacloud-orders-service-test \
   -v "${PWD}/services/payments-service:/var/www/html" \
   rifacloud-payments-service php tests/payments_integration.php

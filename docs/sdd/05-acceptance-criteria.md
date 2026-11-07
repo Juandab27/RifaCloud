@@ -435,8 +435,8 @@ normal stack was restored afterwards and the main data was not touched.
   `/api/_payments_unavailable`).
 - `/admin/dashboard` reuses the S8 UI, shows loading/empty/error/retry and a
   refresh action. A failed service is shown as «No disponible», never as zero.
-- Verification: 20/20 E2E on `rifacloud_test` with known fixtures and each
-  service stopped in turn; 19/19 Playwright (values, loading, partial/all
+- Verification: 28/28 E2E on `rifacloud_test` with known fixtures and each
+  service stopped in turn; 20/20 Playwright (values, loading, partial/all
   errors, empty, mobile); 129/129 orders integration; 77/77 payments
   integration; 42/42 S6; 44/44 S7; 39/39 payments E2E; 12/12 auth; 193/193
   monolith; frontend typecheck/build.
@@ -464,4 +464,4 @@ normal stack was restored afterwards and the main data was not touched.
 | 1.13 | 2026-11-07 | S9.1 activated on main with explicit authorization: migrations 000009/000010 applied separately and verified; `raffle_results` granted to `rifacloud_raffles`; scheduler healthy; reconcile dry-run 3 pending; notification queue/dispatch produced 2 incident rows SENT via log mailer (no real email); main business counts unchanged. |
 | 1.14 | 2026-11-07 | S10.1 evidence recorded: production Compose and TLS template validated, scripts syntax-checked, secret separation inspected, critical regressions green. No AWS resource created; docs unignored but need commit/push. |
 | 1.15 | 2026-11-07 | S10.2 evidence recorded: derived raffle states, reservation UI gated by the sale window, rejected/expired payment recovery and result presentation. 16/16 unit checks, 12/12 Playwright tests with intercepted API, 42/42 S6, 44/44 S7, 39/39 payments, 123/123 orders, 12/12 auth, 193/193 monolith; main data unchanged. |
-| 1.16 | 2026-11-07 | S10.3 evidence recorded: four read-only owner-service aggregates, ADMIN authorization, controlled 503 and partial-availability dashboard. 20/20 E2E on `rifacloud_test`, 19/19 Playwright, 129/129 orders, 77/77 payments, 42/42 S6, 44/44 S7, 39/39 payments E2E, 12/12 auth, 193/193 monolith; main data unchanged. |
+| 1.16 | 2026-11-07 | S10.3 evidence recorded: four read-only owner-service aggregates, ADMIN authorization, controlled 503 and partial-availability dashboard. 28/28 E2E on `rifacloud_test` (including admin order/incident lists and result publication), 20/20 Playwright, 129/129 orders, 77/77 payments, 42/42 S6, 44/44 S7, 39/39 payments E2E, 12/12 auth, 193/193 monolith; main data unchanged. |

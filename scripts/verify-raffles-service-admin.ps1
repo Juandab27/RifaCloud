@@ -39,6 +39,7 @@ param(
 $ErrorActionPreference = 'Continue'
 
 $RepoRoot = Split-Path -Parent $PSScriptRoot
+$Compose = @('-f', 'docker-compose.yml', '-f', 'docker-compose.e2e.yml')
 $Results = New-Object System.Collections.Generic.List[object]
 $Warnings = New-Object System.Collections.Generic.List[string]
 $Token = [guid]::NewGuid().ToString('N').Substring(0, 8)
@@ -184,9 +185,9 @@ function Get-Json {
 function Invoke-Fixture {
     param([string[]]$ExtraEnv, [string]$Action)
 
-    $dockerArgs = @(
-        'compose', 'run', '--rm', '-T', '--no-deps',
-        '-e', 'DB_DATABASE=rifacloud'
+    $dockerArgs = @('compose') + $Compose + @(
+        'run', '--rm', '-T', '--no-deps',
+        '-e', 'DB_DATABASE=rifacloud_test'
     )
 
     foreach ($entry in $ExtraEnv) {
@@ -246,9 +247,44 @@ function Login {
     }
 }
 
+function Wait-ServiceHealthy {
+    param([string]$Container, [int]$TimeoutSeconds)
+
+    $deadline = (Get-Date).AddSeconds($TimeoutSeconds)
+
+    while ((Get-Date) -lt $deadline) {
+        $status = (& docker inspect --format '{{if .State.Health}}{{.State.Health.Status}}{{else}}{{.State.Status}}{{end}}' $Container 2>$null | Out-String).Trim()
+
+        if ($status -eq 'healthy' -or $status -eq 'running') {
+            return $true
+        }
+
+        Start-Sleep -Milliseconds 500
+    }
+
+    return $false
+}
+
 Push-Location $RepoRoot
 
 try {
+    Write-Host "`n== Recreating the stack on rifacloud_test ==" -ForegroundColor Cyan
+    & docker compose @Compose build auth-service raffles-service orders-service payments-service 2>&1 | Out-Null
+    & docker compose @Compose up -d --force-recreate app auth-service raffles-service orders-service payments-service nginx 2>&1 | Out-Null
+    # The test must control expiry/reconcile timing and must not queue mail for fixtures.
+    & docker compose @Compose stop scheduler *> $null
+
+    foreach ($container in @(
+        'rifacloud-auth-service',
+        'rifacloud-raffles-service',
+        'rifacloud-orders-service',
+        'rifacloud-payments-service'
+    )) {
+        if (-not (Wait-ServiceHealthy $container $StartTimeoutSeconds)) {
+            throw "Container $container did not become healthy."
+        }
+    }
+
     Write-Host "`n== 0. Preconditions ==" -ForegroundColor Cyan
     $catalog = Wait-ForStatus -Path '/api/raffles' -Expected @(200) -TimeoutSeconds 30
     Add-Result 'Catalog is available before the test' '200' "$($catalog.Status)" ($catalog.Status -eq 200)
@@ -534,7 +570,7 @@ try {
 
     # ---- Stop/start isolation -------------------------------------------
     Write-Host "`n== 5. Stop/start isolation ==" -ForegroundColor Cyan
-    & docker compose stop raffles-service | Out-Null
+    & docker compose @Compose stop raffles-service | Out-Null
     Add-Result 'docker compose stop raffles-service' 'exit 0' "$LASTEXITCODE" ($LASTEXITCODE -eq 0)
 
     $catalogDown = Wait-ForStatus -Path '/api/raffles' -Expected @(502, 503) -TimeoutSeconds $StopTimeoutSeconds
@@ -564,7 +600,7 @@ try {
     $webhookDown = Invoke-Api -Method POST -Path '/api/webhooks/mercadopago' -Body '{}'
     Add-Result 'Webhook still works while raffles is down' '400' "$($webhookDown.Status)" ($webhookDown.Status -eq 400)
 
-    & docker compose start raffles-service | Out-Null
+    & docker compose @Compose start raffles-service | Out-Null
     Add-Result 'docker compose start raffles-service' 'exit 0' "$LASTEXITCODE" ($LASTEXITCODE -eq 0)
 
     $catalogUp = Wait-ForStatus -Path '/api/raffles' -Expected @(200) -TimeoutSeconds $StartTimeoutSeconds
@@ -585,7 +621,7 @@ try {
     Add-Result 'Unexpected error' 'no exception' $_.Exception.Message $false
 } finally {
     # Never leave the catalog stopped because a check failed.
-    & docker compose start raffles-service | Out-Null
+    & docker compose @Compose start raffles-service | Out-Null
 
     Write-Host "`n== Cleanup ==" -ForegroundColor Cyan
     $emails = @($AdminEmail, $UserEmail) -join ','
@@ -597,6 +633,20 @@ try {
     }
 
     Remove-Item $AdminJar, $UserJar, $AnonymousJar -Force -ErrorAction SilentlyContinue
+
+    Write-Host 'Restoring the normal stack...' -ForegroundColor Cyan
+    & docker compose up -d --force-recreate app scheduler auth-service raffles-service orders-service payments-service nginx *> $null
+
+    foreach ($container in @(
+        'rifacloud-auth-service',
+        'rifacloud-raffles-service',
+        'rifacloud-orders-service',
+        'rifacloud-payments-service',
+        'rifacloud-scheduler'
+    )) {
+        Wait-ServiceHealthy $container $StartTimeoutSeconds | Out-Null
+    }
+
     Pop-Location
 }
 

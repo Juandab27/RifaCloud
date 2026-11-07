@@ -10,6 +10,10 @@ umask 077
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 cd "$REPO_ROOT"
 COMPOSE=(docker compose -f docker-compose.yml -f docker-compose.prod.yml)
+# Direct TLS mode redirects HTTP API requests to HTTPS. Override this on the
+# command line (for example BASE_URL=https://your.domain) when using
+# docker-compose.prod-tls.yml.
+BASE_URL="${BASE_URL:-http://127.0.0.1}"
 FAIL=0
 
 check() {
@@ -35,10 +39,13 @@ done
 
 echo "== Public health and route boundaries =="
 if command -v curl >/dev/null 2>&1; then
-    check "Nginx /healthz" curl -fsS http://127.0.0.1/healthz
-    check "catalog HTTP 200" bash -c '[[ "$(curl -s -o /dev/null -w "%{http_code}" http://127.0.0.1/api/raffles)" == "200" ]]'
-    check "admin orders requires auth" bash -c '[[ "$(curl -s -o /dev/null -w "%{http_code}" http://127.0.0.1/api/admin/orders)" == "401" ]]'
-    check "/internal is not public" bash -c '[[ "$(curl -s -o /dev/null -w "%{http_code}" http://127.0.0.1/internal/health)" == "404" ]]'
+    check "Nginx /healthz" curl -fsS "${BASE_URL}/healthz"
+    catalog_status="$(curl -s -o /dev/null -w '%{http_code}' "${BASE_URL}/api/raffles" || true)"
+    check "catalog HTTP 200" test "$catalog_status" = "200"
+    admin_status="$(curl -s -o /dev/null -w '%{http_code}' "${BASE_URL}/api/admin/orders" || true)"
+    check "admin orders requires auth" test "$admin_status" = "401"
+    internal_status="$(curl -s -o /dev/null -w '%{http_code}' "${BASE_URL}/internal/health" || true)"
+    check "/internal is not public" test "$internal_status" = "404"
 else
     echo "WARN  curl not installed; HTTP checks skipped" >&2
 fi

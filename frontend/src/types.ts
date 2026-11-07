@@ -136,6 +136,7 @@ export interface PaymentIncident {
   id: number
   order_id: number
   order_number: string
+  order_status: OrderStatus
   status: PaymentState
   amount: number
   currency: string

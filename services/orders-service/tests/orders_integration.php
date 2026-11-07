@@ -67,6 +67,16 @@ if ($appKey === '') {
 
 $key = LaravelCrypto::key($appKey);
 $pdo = Database::connect($database);
+$fixtureUsername = getenv('TEST_FIXTURE_DB_USERNAME') ?: 'rifacloud_test_fixture';
+$fixturePassword = getenv('TEST_FIXTURE_DB_PASSWORD');
+if (! is_string($fixturePassword) || $fixturePassword === '') {
+    error_log("Refusing to run: TEST_FIXTURE_DB_PASSWORD is required (dedicated test account).\n");
+    exit(2);
+}
+$fixtureConfig = $database;
+$fixtureConfig['username'] = $fixtureUsername;
+$fixtureConfig['password'] = $fixturePassword;
+$fixturePdo = Database::connect($fixtureConfig);
 $prefix = 's3-test-'.bin2hex(random_bytes(4));
 $failures = 0;
 $cookieName = 'rifacloud-session';
@@ -198,7 +208,7 @@ function internalHeaders(string $body, string $secret, ?int $timestamp = null): 
 }
 
 try {
-    $insertUser = $pdo->prepare(
+    $insertUser = $fixturePdo->prepare(
         <<<'SQL'
             INSERT INTO users (name, email, phone, password, role, created_at, updated_at)
             VALUES (:name, :email, :phone, :password, :role, NOW(), NOW())
@@ -215,7 +225,7 @@ try {
         ':password' => $passwordHash,
         ':role' => 'USER',
     ]);
-    $ownerId = (int) $pdo->lastInsertId();
+    $ownerId = (int) $fixturePdo->lastInsertId();
     $createdUserIds[] = $ownerId;
 
     $insertUser->execute([
@@ -225,7 +235,7 @@ try {
         ':password' => $passwordHash,
         ':role' => 'USER',
     ]);
-    $otherId = (int) $pdo->lastInsertId();
+    $otherId = (int) $fixturePdo->lastInsertId();
     $createdUserIds[] = $otherId;
 
     $insertUser->execute([
@@ -235,7 +245,7 @@ try {
         ':password' => $passwordHash,
         ':role' => 'ADMIN',
     ]);
-    $adminId = (int) $pdo->lastInsertId();
+    $adminId = (int) $fixturePdo->lastInsertId();
     $createdUserIds[] = $adminId;
 
     $ownerCsrf = bin2hex(random_bytes(20));
@@ -246,7 +256,7 @@ try {
     $adminSessionId = bin2hex(random_bytes(20));
     $expiredSessionId = bin2hex(random_bytes(20));
 
-    $insertSession = $pdo->prepare(
+    $insertSession = $fixturePdo->prepare(
         <<<'SQL'
             INSERT INTO sessions (id, user_id, ip_address, user_agent, payload, last_activity)
             VALUES (:id, :user_id, '127.0.0.1', 's3-test', :payload, :last_activity)
@@ -314,7 +324,7 @@ try {
         'origin' => 'http://localhost',
     ];
 
-    $insertRaffle = $pdo->prepare(
+    $insertRaffle = $fixturePdo->prepare(
         <<<'SQL'
             INSERT INTO raffles
                 (title, description, price_per_number, min_number, max_number, status, starts_at, ends_at, created_by, created_at, updated_at)
@@ -322,7 +332,7 @@ try {
                 (:title, :description, :price, :min, :max, :status, :starts_at, :ends_at, :created_by, NOW(), NOW())
         SQL,
     );
-    $insertNumber = $pdo->prepare(
+    $insertNumber = $fixturePdo->prepare(
         <<<'SQL'
             INSERT INTO raffle_numbers (raffle_id, number, status, created_at, updated_at)
             VALUES (:raffle_id, :number, 'AVAILABLE', NOW(), NOW())
@@ -336,7 +346,7 @@ try {
         int $max = 10,
         ?string $startsAt = null,
         ?string $endsAt = null,
-    ) use ($pdo, $insertRaffle, $insertNumber, $adminId, $prefix, &$createdRaffleIds): int {
+    ) use ($fixturePdo, $insertRaffle, $insertNumber, $adminId, $prefix, &$createdRaffleIds): int {
         $insertRaffle->execute([
             ':title' => $prefix.' '.$label,
             ':description' => 'Fixture for the orders-service integration test.',
@@ -348,7 +358,7 @@ try {
             ':ends_at' => $endsAt,
             ':created_by' => $adminId,
         ]);
-        $raffleId = (int) $pdo->lastInsertId();
+        $raffleId = (int) $fixturePdo->lastInsertId();
         $createdRaffleIds[] = $raffleId;
 
         for ($number = $min; $number <= $max; $number++) {
@@ -667,7 +677,7 @@ try {
     $expiryRaffleId = $newRaffle('expiry');
     $expiring = createOrder($app, $ownerCookies, $expiryRaffleId, [1, 2]);
     $expiringId = (int) $expiring['payload']['data']['id'];
-    $pdo->exec('UPDATE orders SET expires_at = DATE_SUB(UTC_TIMESTAMP(), INTERVAL 1 MINUTE) WHERE id = '.(int) $expiringId);
+    $fixturePdo->exec('UPDATE orders SET expires_at = DATE_SUB(UTC_TIMESTAMP(), INTERVAL 1 MINUTE) WHERE id = '.(int) $expiringId);
 
     $expiredRun = $expiry->expireWithLock();
     check($expiredRun === ['expired' => 1, 'skipped' => false], 'Expiry releases one expired order');
@@ -704,7 +714,7 @@ try {
         $protectedRaffleId = $newRaffle('protected-'.$protected);
         $protectedOrder = createOrder($app, $ownerCookies, $protectedRaffleId, [1, 2]);
         $protectedOrderId = (int) $protectedOrder['payload']['data']['id'];
-        $pdo->exec("UPDATE orders SET status = '{$protected}', expires_at = DATE_SUB(UTC_TIMESTAMP(), INTERVAL 1 MINUTE) WHERE id = ".(int) $protectedOrderId);
+        $fixturePdo->exec("UPDATE orders SET status = '{$protected}', expires_at = DATE_SUB(UTC_TIMESTAMP(), INTERVAL 1 MINUTE) WHERE id = ".(int) $protectedOrderId);
 
         $expiry->expireWithLock();
 
@@ -719,7 +729,7 @@ try {
     }
 
     // ---- Expiry: payment uncertainty blocks release -------------------
-    $paymentInsert = $pdo->prepare(
+    $paymentInsert = $fixturePdo->prepare(
         <<<'SQL'
             INSERT INTO payments
                 (order_id, provider, external_id, status, amount, currency, checkout_url, response_data, verified_at, created_at, updated_at)
@@ -732,7 +742,7 @@ try {
         $blockedRaffleId = $newRaffle('payment-'.$blocking);
         $blockedOrder = createOrder($app, $ownerCookies, $blockedRaffleId, [1]);
         $blockedOrderId = (int) $blockedOrder['payload']['data']['id'];
-        $pdo->exec('UPDATE orders SET expires_at = DATE_SUB(UTC_TIMESTAMP(), INTERVAL 1 MINUTE) WHERE id = '.(int) $blockedOrderId);
+        $fixturePdo->exec('UPDATE orders SET expires_at = DATE_SUB(UTC_TIMESTAMP(), INTERVAL 1 MINUTE) WHERE id = '.(int) $blockedOrderId);
         $paymentInsert->execute([
             ':order_id' => $blockedOrderId,
             ':external_id' => $prefix.'-'.$blocking,
@@ -755,7 +765,7 @@ try {
     $releasedRaffleId = $newRaffle('payment-PENDING');
     $releasedOrder = createOrder($app, $ownerCookies, $releasedRaffleId, [1]);
     $releasedOrderId = (int) $releasedOrder['payload']['data']['id'];
-    $pdo->exec('UPDATE orders SET expires_at = DATE_SUB(UTC_TIMESTAMP(), INTERVAL 1 MINUTE) WHERE id = '.(int) $releasedOrderId);
+    $fixturePdo->exec('UPDATE orders SET expires_at = DATE_SUB(UTC_TIMESTAMP(), INTERVAL 1 MINUTE) WHERE id = '.(int) $releasedOrderId);
     $paymentInsert->execute([
         ':order_id' => $releasedOrderId,
         ':external_id' => $prefix.'-PENDING',
@@ -772,8 +782,8 @@ try {
     $soldRaffleId = $newRaffle('sold-expiry');
     $soldOrder = createOrder($app, $ownerCookies, $soldRaffleId, [1, 2]);
     $soldOrderId = (int) $soldOrder['payload']['data']['id'];
-    $pdo->exec("UPDATE raffle_numbers SET status = 'SOLD', sold_at = UTC_TIMESTAMP() WHERE raffle_id = ".(int) $soldRaffleId.' AND number = 1');
-    $pdo->exec('UPDATE orders SET expires_at = DATE_SUB(UTC_TIMESTAMP(), INTERVAL 1 MINUTE) WHERE id = '.(int) $soldOrderId);
+    $fixturePdo->exec("UPDATE raffle_numbers SET status = 'SOLD', sold_at = UTC_TIMESTAMP() WHERE raffle_id = ".(int) $soldRaffleId.' AND number = 1');
+    $fixturePdo->exec('UPDATE orders SET expires_at = DATE_SUB(UTC_TIMESTAMP(), INTERVAL 1 MINUTE) WHERE id = '.(int) $soldOrderId);
 
     $expiry->expireWithLock();
 
@@ -790,7 +800,7 @@ try {
     $lockRaffleId = $newRaffle('advisory-lock');
     $lockOrder = createOrder($app, $ownerCookies, $lockRaffleId, [1]);
     $lockOrderId = (int) $lockOrder['payload']['data']['id'];
-    $pdo->exec('UPDATE orders SET expires_at = DATE_SUB(UTC_TIMESTAMP(), INTERVAL 1 MINUTE) WHERE id = '.(int) $lockOrderId);
+    $fixturePdo->exec('UPDATE orders SET expires_at = DATE_SUB(UTC_TIMESTAMP(), INTERVAL 1 MINUTE) WHERE id = '.(int) $lockOrderId);
 
     $otherConnection = Database::connect($database);
     $acquired = $otherConnection->query(
@@ -812,7 +822,7 @@ try {
     $internalRaffleId = $newRaffle('internal');
     $internalOrder = createOrder($app, $ownerCookies, $internalRaffleId, [1]);
     $internalOrderId = (int) $internalOrder['payload']['data']['id'];
-    $pdo->exec('UPDATE orders SET expires_at = DATE_SUB(UTC_TIMESTAMP(), INTERVAL 1 MINUTE) WHERE id = '.(int) $internalOrderId);
+    $fixturePdo->exec('UPDATE orders SET expires_at = DATE_SUB(UTC_TIMESTAMP(), INTERVAL 1 MINUTE) WHERE id = '.(int) $internalOrderId);
 
     $unsigned = callRaw($app, 'POST', '/internal/orders/expire-reservations', '{}', [], ['content-type' => 'application/json']);
     check($unsigned['status'] === 401, 'The internal endpoint rejects an unsigned request');
@@ -866,14 +876,14 @@ try {
     foreach ([201, 202] as $soldNumber) {
         $metricsOrder = createOrder($app, $ownerCookies, $metricsRaffleId, [$soldNumber]);
         $metricsOrderId = (int) ($metricsOrder['payload']['data']['id'] ?? 0);
-        $pdo->exec("UPDATE orders SET status = 'PAID', paid_at = UTC_TIMESTAMP() WHERE id = ".$metricsOrderId);
-        $pdo->exec("UPDATE raffle_numbers SET status = 'SOLD', sold_at = UTC_TIMESTAMP() WHERE raffle_id = ".$metricsRaffleId.' AND number = '.$soldNumber);
+        $fixturePdo->exec("UPDATE orders SET status = 'PAID', paid_at = UTC_TIMESTAMP() WHERE id = ".$metricsOrderId);
+        $fixturePdo->exec("UPDATE raffle_numbers SET status = 'SOLD', sold_at = UTC_TIMESTAMP() WHERE raffle_id = ".$metricsRaffleId.' AND number = '.$soldNumber);
     }
 
     $rejectedMetricsOrder = createOrder($app, $ownerCookies, $metricsRaffleId, [203]);
     $rejectedMetricsOrderId = (int) ($rejectedMetricsOrder['payload']['data']['id'] ?? 0);
-    $pdo->exec("UPDATE orders SET status = 'REJECTED' WHERE id = ".$rejectedMetricsOrderId);
-    $pdo->exec("UPDATE raffle_numbers SET status = 'AVAILABLE', order_id = NULL, reserved_at = NULL, reserved_until = NULL WHERE raffle_id = ".$metricsRaffleId.' AND number = 203');
+    $fixturePdo->exec("UPDATE orders SET status = 'REJECTED' WHERE id = ".$rejectedMetricsOrderId);
+    $fixturePdo->exec("UPDATE raffle_numbers SET status = 'AVAILABLE', order_id = NULL, reserved_at = NULL, reserved_until = NULL WHERE raffle_id = ".$metricsRaffleId.' AND number = 203');
 
     $metricsAnonymous = call($app, 'GET', '/api/admin/orders/metrics');
     check($metricsAnonymous['status'] === 401, 'Dashboard order metrics require a session (401)');
@@ -910,22 +920,22 @@ try {
     // raffles -> sessions -> users.
     if ($createdRaffleIds !== []) {
         $ids = implode(',', array_map('intval', array_unique($createdRaffleIds)));
-        $pdo->exec('DELETE FROM payments WHERE order_id IN (SELECT id FROM orders WHERE raffle_id IN ('.$ids.'))');
-        $pdo->exec('DELETE FROM order_items WHERE order_id IN (SELECT id FROM orders WHERE raffle_id IN ('.$ids.'))');
-        $pdo->exec('UPDATE raffle_numbers SET order_id = NULL WHERE raffle_id IN ('.$ids.')');
-        $pdo->exec('DELETE FROM orders WHERE raffle_id IN ('.$ids.')');
-        $pdo->exec('DELETE FROM raffle_numbers WHERE raffle_id IN ('.$ids.')');
-        $pdo->exec('DELETE FROM raffles WHERE id IN ('.$ids.')');
+        $fixturePdo->exec('DELETE FROM payments WHERE order_id IN (SELECT id FROM orders WHERE raffle_id IN ('.$ids.'))');
+        $fixturePdo->exec('DELETE FROM order_items WHERE order_id IN (SELECT id FROM orders WHERE raffle_id IN ('.$ids.'))');
+        $fixturePdo->exec('UPDATE raffle_numbers SET order_id = NULL WHERE raffle_id IN ('.$ids.')');
+        $fixturePdo->exec('DELETE FROM orders WHERE raffle_id IN ('.$ids.')');
+        $fixturePdo->exec('DELETE FROM raffle_numbers WHERE raffle_id IN ('.$ids.')');
+        $fixturePdo->exec('DELETE FROM raffles WHERE id IN ('.$ids.')');
     }
 
     if ($createdSessionIds !== []) {
-        $ids = implode(',', array_map(static fn (string $id): string => $pdo->quote($id), array_unique($createdSessionIds)));
-        $pdo->exec('DELETE FROM sessions WHERE id IN ('.$ids.')');
+        $ids = implode(',', array_map(static fn (string $id): string => $fixturePdo->quote($id), array_unique($createdSessionIds)));
+        $fixturePdo->exec('DELETE FROM sessions WHERE id IN ('.$ids.')');
     }
 
     if ($createdUserIds !== []) {
         $ids = implode(',', array_map('intval', array_unique($createdUserIds)));
-        $pdo->exec('DELETE FROM users WHERE id IN ('.$ids.')');
+        $fixturePdo->exec('DELETE FROM users WHERE id IN ('.$ids.')');
     }
 }
 

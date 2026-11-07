@@ -1,6 +1,6 @@
 import axios from 'axios'
 import { useEffect, useState } from 'react'
-import { Link, useNavigate, useParams } from 'react-router-dom'
+import { Link, useLocation, useNavigate, useParams } from 'react-router-dom'
 import { api, apiErrorMessage } from '../api/client'
 import { useAuth } from '../auth/AuthContext'
 import RaffleStatePill from '../components/RaffleStatePill'
@@ -32,6 +32,7 @@ export default function RaffleDetailPage() {
   const { user } = useAuth()
   const toast = useToast()
   const navigate = useNavigate()
+  const location = useLocation()
   const [raffle, setRaffle] = useState<Raffle | null>(null)
   const [numbers, setNumbers] = useState<NumberAvailabilityResponse | null>(null)
   const [page, setPage] = useState(1)
@@ -43,6 +44,14 @@ export default function RaffleDetailPage() {
   const now = useNow()
   const publicState = raffle ? getRafflePublicState(raffle, now) : null
   const canReserve = publicState !== null && canReserveRaffle(publicState)
+
+  // React may reuse this component when navigating between two raffles.
+  // Never carry a selection from one raffle into another.
+  useEffect(() => {
+    setSelectedNumbers([])
+    setPage(1)
+    setError(null)
+  }, [raffleId])
 
   useEffect(() => {
     let active = true
@@ -479,7 +488,17 @@ export default function RaffleDetailPage() {
                       {submitting ? 'Reservando…' : 'Reservar números'}
                     </Button>
                   ) : (
-                    <Link className="button" to="/login">
+                    <Link
+                      className="button"
+                      to="/login"
+                      state={{
+                        from: {
+                          pathname: location.pathname,
+                          search: location.search,
+                          hash: location.hash,
+                        },
+                      }}
+                    >
                       Inicia sesión para reservar
                     </Link>
                   )}

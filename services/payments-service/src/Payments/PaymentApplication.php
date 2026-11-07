@@ -313,6 +313,7 @@ final class PaymentApplication
                 'id' => (int) $row['id'],
                 'order_id' => (int) $row['order_id'],
                 'order_number' => (string) $row['order_number'],
+                'order_status' => (string) $row['order_status'],
                 'status' => (string) $row['status'],
                 'amount' => (int) $row['amount'],
                 'currency' => (string) $row['currency'],

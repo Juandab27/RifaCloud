@@ -70,8 +70,11 @@ echo "Creating temporary database $TMP_DB..."
     "MYSQL_PWD=\"\$MYSQL_ROOT_PASSWORD\" mysql -uroot -e 'CREATE DATABASE \`$TMP_DB\` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;'"
 
 echo "Restoring encrypted dump into $TMP_DB..."
-"${COMPOSE[@]}" exec -T mysql sh -c \
-    "MYSQL_PWD=\"\$MYSQL_ROOT_PASSWORD\" mysql -uroot \`$TMP_DB\`" < "$SQL_FILE"
+# The encrypted file contains the gzip stream produced by backup-db.sh. The
+# decrypted SQL_FILE is still compressed, so decompress it before feeding it to
+# mysql; piping the gzip bytes directly makes mysql reject the dump.
+gzip -dc "$SQL_FILE" | "${COMPOSE[@]}" exec -T mysql sh -c \
+    "MYSQL_PWD=\"\$MYSQL_ROOT_PASSWORD\" mysql -uroot \`$TMP_DB\`"
 
 echo "Verification counts:"
 "${COMPOSE[@]}" exec -T mysql sh -c "

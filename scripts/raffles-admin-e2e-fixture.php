@@ -7,13 +7,14 @@ declare(strict_types=1);
  *
  * Actions:
  *   create   Inserts a temporary user (default role ADMIN) directly in the
- *            main `rifacloud` database and prints its credentials as JSON.
+ *            isolated `rifacloud_test` database and prints its credentials as
+ *            JSON.
  *   cleanup  Removes the temporary users listed in RAFFLES_E2E_EMAILS and every
  *            order, payment, order item, raffle and raffle number created by
  *            them during the test.
  *
  * Safety:
- *   - Refuses to run unless DB_DATABASE is exactly `rifacloud`.
+ *   - Refuses to run unless DB_DATABASE is exactly `rifacloud_test`.
  *   - Refuses any email that does not match the dedicated prefixed pattern.
  *   - Only touches rows owned by those temporary users (created_by/user_id),
  *     never pre-existing production rows.
@@ -23,6 +24,7 @@ declare(strict_types=1);
 
 use Illuminate\Contracts\Console\Kernel;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 
 require '/var/www/vendor/autoload.php';
 
@@ -35,8 +37,8 @@ $kernel->bootstrap();
 
 $database = (string) config('database.connections.mysql.database');
 
-if ($database !== 'rifacloud') {
-    fwrite(STDERR, "Refusing to run: database must be rifacloud, got '{$database}'.\n");
+if ($database !== 'rifacloud_test') {
+    fwrite(STDERR, "Refusing to run: database must be rifacloud_test, got '{$database}'.\n");
     exit(2);
 }
 
@@ -132,6 +134,12 @@ if ($action === 'cleanup') {
         $counts = [];
 
         if ($orderIds !== []) {
+            // S9.1 notification rows are nullable on order delete; remove them
+            // explicitly so a test run cannot leave audit/email residue.
+            if (Schema::hasTable('notifications')) {
+                $counts['notifications'] = DB::table('notifications')->whereIn('order_id', $orderIds)->delete();
+            }
+
             $counts['payments'] = DB::table('payments')->whereIn('order_id', $orderIds)->delete();
             $counts['order_items'] = DB::table('order_items')->whereIn('order_id', $orderIds)->delete();
         }

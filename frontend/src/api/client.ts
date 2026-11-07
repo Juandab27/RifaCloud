@@ -89,6 +89,10 @@ export function apiErrorMessage(error: unknown): string {
       return 'La sesión de seguridad expiró. Inténtalo de nuevo.'
     }
 
+    if (error.response?.status === 429) {
+      return 'Demasiados intentos. Espera un momento antes de volver a intentarlo.'
+    }
+
     if (error.response?.status === 503) {
       return 'El servicio no está disponible en este momento. Inténtalo de nuevo.'
     }

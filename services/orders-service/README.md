@@ -101,10 +101,12 @@ respuesta es `409` con `code=NUMBERS_UNAVAILABLE` y `unavailable_numbers`.
 ## Pruebas
 
 ```bash
-# Integración contra rifacloud_test (rechaza cualquier otra base)
+# Integración contra rifacloud_test (rechaza cualquier otra base).
+# Exporta TEST_FIXTURE_DB_PASSWORD desde src/.env.testing antes de ejecutar.
 docker run --rm --network rifacloud_default --env-file src/.env \
   -e ORDERS_DB_HOST=mysql -e ORDERS_DB_DATABASE=rifacloud_test \
   -e ORDERS_TEST_DB_DATABASE=rifacloud_test \
+  -e TEST_FIXTURE_DB_PASSWORD="$TEST_FIXTURE_DB_PASSWORD" \
   -v "${PWD}/services/orders-service:/var/www/html" \
   rifacloud-orders-service php tests/orders_integration.php
 
