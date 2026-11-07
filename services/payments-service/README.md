@@ -105,7 +105,8 @@ docker run ... php tests/webhook_concurrency.php
 powershell -ExecutionPolicy Bypass -File scripts/verify-payments-service.ps1
 ```
 
-> **Requisito de esquema:** la base principal `rifacloud` todavía tiene dos
-> migraciones aditivas pendientes (`payments.order_id` único y
-> `payment_webhook_events`). El E2E usa `rifacloud_test`, que ya está migrada.
-> No ejecutes `migrate` sobre `rifacloud` sin autorización.
+> **Esquema principal (S5 aplicado):** `rifacloud` ya tiene el índice único
+> `payments.order_id` y la tabla `payment_webhook_events`; cada servicio usa su
+> propio usuario MySQL. Pendiente para producción: configurar
+> `MERCADOPAGO_WEBHOOK_SECRET` y una URL pública. No ejecutes `migrate` ni
+> cambies credenciales sin autorización.

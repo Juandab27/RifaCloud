@@ -66,8 +66,8 @@ services:
       RAFFLES_DB_HOST: mysql
       RAFFLES_DB_PORT: "3306"
       RAFFLES_DB_DATABASE: ${DB_DATABASE:-rifacloud}
-      RAFFLES_DB_USERNAME: ${DB_USERNAME:-rifacloud}
-      RAFFLES_DB_PASSWORD: ${DB_PASSWORD:?Set DB_PASSWORD in the root .env file}
+      RAFFLES_DB_USERNAME: ${RAFFLES_DB_USERNAME:?Set RAFFLES_DB_USERNAME in the root .env file}
+      RAFFLES_DB_PASSWORD: ${RAFFLES_DB_PASSWORD:?Set RAFFLES_DB_PASSWORD in the root .env file}
       # Reservation duration comes from src/.env (RESERVATION_MINUTES) through
       # env_file so the catalog, orders-service and the monolith always agree.
       RAFFLE_MAX_NUMBERS: ${RAFFLE_MAX_NUMBERS:-10000}
@@ -97,8 +97,8 @@ services:
       ORDERS_DB_HOST: mysql
       ORDERS_DB_PORT: "3306"
       ORDERS_DB_DATABASE: ${DB_DATABASE:-rifacloud}
-      ORDERS_DB_USERNAME: ${DB_USERNAME:-rifacloud}
-      ORDERS_DB_PASSWORD: ${DB_PASSWORD:?Set DB_PASSWORD in the root .env file}
+      ORDERS_DB_USERNAME: ${ORDERS_DB_USERNAME:?Set ORDERS_DB_USERNAME in the root .env file}
+      ORDERS_DB_PASSWORD: ${ORDERS_DB_PASSWORD:?Set ORDERS_DB_PASSWORD in the root .env file}
       # RESERVATION_MINUTES and ORDER_MAX_NUMBERS come from src/.env through
       # env_file; see services/orders-service/src/Config.php.
     depends_on:
@@ -128,8 +128,8 @@ services:
       PAYMENTS_DB_HOST: mysql
       PAYMENTS_DB_PORT: "3306"
       PAYMENTS_DB_DATABASE: ${DB_DATABASE:-rifacloud}
-      PAYMENTS_DB_USERNAME: ${DB_USERNAME:-rifacloud}
-      PAYMENTS_DB_PASSWORD: ${DB_PASSWORD:?Set DB_PASSWORD in the root .env file}
+      PAYMENTS_DB_USERNAME: ${PAYMENTS_DB_USERNAME:?Set PAYMENTS_DB_USERNAME in the root .env file}
+      PAYMENTS_DB_PASSWORD: ${PAYMENTS_DB_PASSWORD:?Set PAYMENTS_DB_PASSWORD in the root .env file}
       ORDERS_SERVICE_URL: http://orders-service
       ORDERS_INTERNAL_TIMEOUT: ${ORDERS_INTERNAL_TIMEOUT:-5}
     depends_on:
@@ -161,6 +161,9 @@ services:
       APP_DEBUG: "false"
       LOG_CHANNEL: stderr
       SESSION_DRIVER: database
+      # S5: dedicated least-privilege MySQL user (root .env, never committed).
+      DB_USERNAME: ${AUTH_DB_USERNAME:?Set AUTH_DB_USERNAME in the root .env file}
+      DB_PASSWORD: ${AUTH_DB_PASSWORD:?Set AUTH_DB_PASSWORD in the root .env file}
       # Shared cache table so login throttling survives across PHP-FPM workers.
       CACHE_STORE: database
       QUEUE_CONNECTION: sync
