@@ -295,7 +295,7 @@ try {
         (Test-ServiceHeader $detail.Headers 'orders-service')
 
     # ---- Ignored and malformed webhooks --------------------------------
-    $unknownBody = "{`"type`":`"payment`",`"data`":{`"id`":`"SIM-COP-9999-$($Fixture.token)`"},`"status`":`"APPROVED`"}"
+    $unknownBody = "{`"type`":`"payment`",`"data`":{`"id`":`"SIM-COP-9999-$($Fixture.token.ToUpper())`"},`"status`":`"APPROVED`"}"
     $unknown = Invoke-Api -Method 'POST' -Path '/api/webhooks/mercadopago' -Body $unknownBody
     Add-Result 'An unknown webhook reference returns 200' '200' "$($unknown.Status)" ($unknown.Status -eq 200)
     Add-Result 'An unknown webhook reference is ignored' 'ignored' "$(($unknown.Body | ConvertFrom-Json).status)" (($unknown.Body | ConvertFrom-Json).status -eq 'ignored')
