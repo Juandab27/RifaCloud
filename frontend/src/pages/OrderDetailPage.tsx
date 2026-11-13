@@ -14,6 +14,7 @@ import PageSkeleton from '../components/ui/PageSkeleton'
 import Spinner from '../components/ui/Spinner'
 import StatusPill from '../components/ui/StatusPill'
 import { formatCents, formatDate } from '../lib/format'
+import { CHECKOUT_SANDBOX_NOTICE, CHECKOUT_SIMULATED_NOTICE } from '../lib/legal'
 import {
   NUMBER_STATUS_LABELS,
   ORDER_STATUS_HINT,
@@ -276,7 +277,6 @@ export default function OrderDetailPage() {
 
   const gatewayIsSimulated = order.simulated_payments === true
   const paymentIsSimulated = latestPayment?.simulated ?? gatewayIsSimulated
-  const showSimulatedNotice = gatewayIsSimulated || latestPayment?.simulated === true
 
   const canStartPayment = order.status === 'PENDING_PAYMENT' && latestPayment === null
   const canVerifyPayment =
@@ -449,10 +449,19 @@ export default function OrderDetailPage() {
           )}
         </header>
 
-        {showSimulatedNotice && (
-          <p className="simulated-notice">
-            <Badge tone="accent">SIMULADO</Badge>
-            Este entorno usa el gateway de pruebas. No se procesa dinero real.
+        {order.status === 'PENDING_PAYMENT' && (
+          <p className="checkout-context">
+            {gatewayIsSimulated ? (
+              <>
+                <Badge tone="accent">Gateway simulado</Badge>
+                <span>{CHECKOUT_SIMULATED_NOTICE}</span>
+              </>
+            ) : (
+              <>
+                <Badge tone="info">Mercado Pago sandbox</Badge>
+                <span>{CHECKOUT_SANDBOX_NOTICE}</span>
+              </>
+            )}
           </p>
         )}
 
@@ -463,7 +472,7 @@ export default function OrderDetailPage() {
                 <dt>Medio</dt>
                 <dd>
                   {paymentIsSimulated
-                    ? 'Simulación local (sin cobro real)'
+                    ? 'Gateway simulado interno (sin cobro real)'
                     : latestPayment.provider === 'MERCADOPAGO'
                       ? 'Mercado Pago'
                       : latestPayment.provider}
@@ -503,7 +512,7 @@ export default function OrderDetailPage() {
             {latestPayment.status === 'APPROVED' && (
               <p className="muted">
                 {paymentIsSimulated
-                  ? 'La simulación aprobó el pago y los números quedaron vendidos. No se procesó dinero real.'
+                  ? 'El gateway simulado aprobó el pago y los números quedaron vendidos. No se procesó dinero real.'
                   : 'El pago fue aprobado y los números quedaron vendidos.'}
               </p>
             )}

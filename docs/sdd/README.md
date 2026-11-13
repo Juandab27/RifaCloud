@@ -3,8 +3,8 @@
 **Project:** RifaCloud  
 **Purpose:** Specification-Driven Development documentation for university Cloud Computing project  
 **Status:** Approved (architecture evolution)  
-**Version:** 1.8
-**Last Updated:** 2026-11-07
+**Version:** 1.10
+**Last Updated:** 2026-11-12
 
 ## Purpose
 
@@ -22,6 +22,7 @@ This documentation follows Specification-Driven Development (SDD) principles. Al
 | **[06-open-questions.md](06-open-questions.md)** | Pending decisions requiring user input | Check before deployment/implementation blockers |
 | **[07-resilience-and-failure-handling.md](07-resilience-and-failure-handling.md)** | Failure scenarios, recovery, resilience strategy | Critical for robustness understanding |
 | **[08-adr-001-four-service-architecture.md](08-adr-001-four-service-architecture.md)** | Architecture decision: four business microservices, supersedes the monolith-only target | Read before any extraction work |
+| **[../legal/README.md](../legal/README.md)** | S11 legal/privacy drafts, data inventory, rights limitations, launch requirements and official sources | Read before publishing legal text or receiving real personal data |
 | **[AGENTS.md](../../AGENTS.md)** | Instructions for future OpenCode sessions | Read by AI agents working on this project |
 
 ## Reading Order
@@ -39,7 +40,7 @@ This documentation follows Specification-Driven Development (SDD) principles. Al
 ## Key Decisions (Confirmed)
 
 - **Architecture target:** four business microservices (`auth`, `raffles`, `orders`, `payments`) behind Nginx; incremental extraction from the Laravel modular monolith; React + TypeScript; Docker Compose (ADR-001)
-- **Current state:** monolith + `auth-service` (S1) + `raffles-service` catalog and administration (S0/S2) + `orders-service` orders/reservations/expiry (S3) + `payments-service` payments/Mercado Pago/webhooks (S4); S6 browser continuity, S7 purchase confirmation/history, S9.1 audit corrections, S10.1 AWS deployment preparation, S10.2 functional/UX polish and S10.3 admin dashboard are done. S5 minimal is closed (migrations and per-service MySQL users applied). The full data separation (per-domain DBs, outbox, rollback removal) is deferred to S8, while the AWS resources, domain/certificates and real Mercado Pago webhook remain pending user input
+- **Current state:** monolith + `auth-service` (S1) + `raffles-service` catalog and administration (S0/S2) + `orders-service` orders/reservations/expiry (S3) + `payments-service` payments/Mercado Pago/webhooks (S4); S6 browser continuity, S7 purchase confirmation/history, S9.1 audit corrections, S10.1 AWS deployment preparation, S10.2 functional/UX polish, S10.3 admin dashboard and S11 privacy/transparency are done. S11 adds public privacy/terms/regulatory pages, footer legal links, a contextual checkout clarification and versioned informed consent stored in `user_consents`; the additive S11 migration and the auth-service grant are applied to `rifacloud` (2026-11-12), with a controlled registration/cleanup verifying the three consent rows. S5 minimal is closed (migrations and per-service MySQL users applied). The full data separation (per-domain DBs, outbox, rollback removal) is deferred to S8, while the AWS resources, domain/certificates, real Mercado Pago webhook and legal identity remain pending user input
 - **Data:** single MySQL 8 instance and shared schema during the transition, with per-domain ownership; per-service grants/databases in stage S5
 - **Deployment:** Single AWS EC2 instance (no HA); instance type pending memory/load/budget review
 - **Database:** MySQL, not publicly exposed
@@ -97,7 +98,8 @@ Local development starts with no external credentials. Unresolved P2/P3/P4 quest
 All documents are **Approved** as of 2026-11-06. The architecture target was
 updated by ADR-001 to four business microservices; the previously approved
 monolith decision is preserved in the change history. Open questions remain open
-and are resolved at their phase gates (P1-P4).
+and are resolved at their phase gates (P1-P4). The S11 documents in `docs/legal/`
+are **drafts**, not approved legal advice or operating authorization.
 
 The five migration increments are implemented and verified: the read-only
 catalog `raffles-service` (S0), `auth-service` (S1), raffle administration in
@@ -110,3 +112,11 @@ verified with explicit authorization. The full data separation (per-domain
 databases, outbox/compensation and removal of the monolith rollback path) is
 deferred to S8. See `02-technical-design.md` section 8,
 `04-implementation-plan.md` section 10 and `05-acceptance-criteria.md` section 9.
+
+S11 is documented separately in `docs/legal/`: it adds academic legal drafts,
+public privacy/terms/regulatory pages, a contextual checkout clarification and
+versioned informed consent. The documents are not legal advice and do not
+authorize real raffles.
+The `user_consents` migration and the `auth-service` grant were applied to the
+main schema on 2026-11-12 with explicit authorization; a controlled
+registration/cleanup verified the three consent rows and left no test data.

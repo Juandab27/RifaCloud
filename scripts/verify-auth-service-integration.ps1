@@ -168,6 +168,10 @@ try {
         phone                 = '3000000000'
         password              = 'integration-password'
         password_confirmation = 'integration-password'
+        privacy_consent       = $true
+        terms_consent         = $true
+        marketing_consent     = $false
+        consent_version       = if ($env:LEGAL_CONSENT_VERSION) { $env:LEGAL_CONSENT_VERSION } else { '2026-11-11' }
     } | ConvertTo-Json -Compress
     Set-Content -NoNewline -Path $registerBody -Value $payload
     $register = Invoke-Api -Method POST -Path '/api/register' -BodyFile $registerBody -Token $token
@@ -179,6 +183,37 @@ try {
         $userId = $json.data.id
         Add-Result 'Register returns user id' 'non-empty' "$userId" ($null -ne $userId)
         Add-Result 'Register returns USER role' 'USER' "$($json.data.role)" ($json.data.role -eq 'USER')
+
+        $consentRaw = & docker compose run --rm --no-deps `
+            -e DB_DATABASE=rifacloud_test `
+            -e AUTH_TEST_EMAIL=$email `
+            -v "${repoRoot}/scripts:/scripts:ro" `
+            app php /scripts/verify-auth-consent-evidence.php 2>$null
+        $consentText = (($consentRaw | Out-String).Trim())
+        $consent = $null
+
+        try {
+            $consent = $consentText | ConvertFrom-Json
+        } catch {
+            $consent = $null
+        }
+
+        Add-Result 'Consent evidence query' 'json' $(if ($null -ne $consent) { 'json' } else { 'invalid' }) ($null -ne $consent)
+
+        if ($null -ne $consent -and $consent.table -eq $true) {
+            $types = @($consent.rows | ForEach-Object { [string]$_.type })
+            Add-Result 'Privacy consent recorded' 'PRIVACY' ($types -join ',') ($types -contains 'PRIVACY')
+            Add-Result 'Terms consent recorded' 'TERMS' ($types -join ',') ($types -contains 'TERMS')
+            Add-Result 'Marketing decision recorded separately' 'MARKETING' ($types -join ',') ($types -contains 'MARKETING')
+
+            $expectedVersion = if ($env:LEGAL_CONSENT_VERSION) { $env:LEGAL_CONSENT_VERSION } else { '2026-11-11' }
+            $versions = @($consent.rows | ForEach-Object { [string]$_.document_version } | Select-Object -Unique)
+            Add-Result 'Consent document version' $expectedVersion ($versions -join ',') ($versions.Count -eq 1 -and $versions[0] -eq $expectedVersion)
+
+            $privacyRow = @($consent.rows | Where-Object { $_.type -eq 'PRIVACY' })[0]
+            Add-Result 'Privacy consent accepted' 'True' "$($privacyRow.accepted)" ($privacyRow.accepted -eq $true)
+            Add-Result 'Consent timestamp present' 'non-empty' "$($privacyRow.accepted_at)" (-not [string]::IsNullOrWhiteSpace([string]$privacyRow.accepted_at))
+        }
     }
 
     $me = Invoke-Api -Method GET -Path '/api/me'

@@ -2,8 +2,8 @@
 
 **Project:** RifaCloud  
 **Status:** Approved (architecture evolution)  
-**Version:** 1.5  
-**Last Updated:** 2026-11-06  
+**Version:** 1.18  
+**Last Updated:** 2026-11-12  
 
 ## 1. Timeline Overview
 
@@ -455,7 +455,40 @@ rebuilt Nginx image. Evidence: 123/123 orders-service integration checks
 stop/start), 190/190 monolith tests and `tsc --noEmit` + `vite build`. No new
 service, no schema change and no main-data change.
 
-## 11. Change Log
+### S11 sequencing (privacy, transparency and academic compliance)
+
+1. Inventory the personal data actually collected by the monolith and the four
+   services; do not invent data categories or legal roles.
+2. Add public `/privacidad`, `/terminos` and `/alcance-regulatorio` pages plus
+   footer legal links and a brief contextual checkout clarification.
+3. Require two separate mandatory acceptances (privacy policy and prototype
+   terms) at registration and a third optional, unchecked marketing consent.
+4. Validate `consent_version` against the backend configuration; reject stale
+   versions instead of storing misleading evidence.
+5. Store one `user_consents` row per user, type and version with timestamp and
+   source; do not store IP/user agent in the evidence table.
+6. Keep the same contract in the monolith and `auth-service`; the frontend
+   registration path is served by `auth-service`.
+7. Draft the privacy policy, privacy notice, prototype terms, regulatory scope,
+   rights limitations and launch checklist in `docs/legal/`. Mark them as
+   academic drafts, not legal advice, with explicit placeholders.
+8. Add tests for the required/optional consent, stale version, stored evidence,
+   public pages, absence of a global banner and the simulated-vs-sandbox
+   checkout note. Do not modify reservations or payments.
+9. Do not apply the additive migration to the main schema without explicit
+   authorization. Do not create AWS resources, real charges or Coljuegos claims.
+
+**Status (2026-11-12): implemented and verified end to end.** The four consent
+feature tests, six Playwright legal/checkout tests and the auth-service
+integration (19/19, including the consent evidence query) pass. With explicit
+authorization, the additive migration and `user_consents` grant were applied to
+`rifacloud`; a controlled API registration produced `PRIVACY`/`TERMS` accepted
+and `MARKETING` declined with version `2026-11-11`, then the test user, sessions
+and consent rows were deleted. Q-21 to Q-25 remain open only for legal identity,
+RNBD, provider contracts, real raffle route and human legal review; Q-26 is
+closed.
+
+## 12. Change Log
 
 | Version | Date | Change |
 |---|---|---|
@@ -476,3 +509,5 @@ service, no schema change and no main-data change.
 | 1.14 | 2026-11-07 | S10.1 deployment preparation: production Compose overlay, secret-free env template, ALB/ACM and Nginx TLS strategies, DB bootstrap with encrypted pre-migration backup and production grants, encrypted S3 backup/restore scripts, healthchecks and AWS runbook. Local syntax/Compose validations and critical suites passed; no AWS resource created. Docs unignored but still need a commit. |
 | 1.15 | 2026-11-07 | S10.2 marked done: derived raffle states (upcoming/available/closed/finished) from backend status and sale window, reservation UI disabled outside the window without removing server checks, rejected/expired payment recovery back to the raffle, and result card with winner/date/evidence. Added 16 pure state checks and 12 Playwright browser tests with intercepted API; 42/42 S6, 44/44 S7, 39/39 payments, 123/123 orders, 12/12 auth and 193/193 monolith remain green. No schema or main data change. |
 | 1.16 | 2026-11-07 | S10.3 marked done: minimal admin dashboard with four read-only aggregates sourced from their owner services, ADMIN authorization at every endpoint, controlled JSON 503 and partial-availability UI. 28/28 dashboard E2E on `rifacloud_test`, 20/20 Playwright, 129/129 orders integration, 77/77 payments integration and all critical regressions green. No migration, AWS resource, secret or main-data change. |
+| 1.17 | 2026-11-11 | S11 marked done in the test schema: versioned informed consent, separate optional marketing consent, `user_consents` evidence, public privacy/terms/regulatory pages, footer legal links, contextual checkout clarification and `docs/legal/` drafts. Main schema migration pending authorization; no real raffles, payments or Coljuegos claims. |
+| 1.18 | 2026-11-12 | S11 closed on the main schema with explicit authorization: migration and `user_consents` grant applied, controlled registration verified the three consent rows and cleanup left no test data. Auth 12/12, Playwright 26/26 and TypeScript clean. |

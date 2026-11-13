@@ -12,6 +12,7 @@ import './styles/components.css'
 import './styles/ui.css'
 import './styles/shell.css'
 import './styles/pages.css'
+import './styles/legal.css'
 import './styles/admin.css'
 
 createRoot(document.getElementById('root')!).render(

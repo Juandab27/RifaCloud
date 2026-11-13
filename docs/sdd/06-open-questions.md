@@ -2,8 +2,8 @@
 
 **Project:** RifaCloud  
 **Status:** Approved (architecture evolution)  
-**Version:** 1.5  
-**Last Updated:** 2026-11-06  
+**Version:** 1.7  
+**Last Updated:** 2026-11-12  
 
 All business decisions from the confirmed list remain unchanged. Remaining questions are classified by the phase they actually block. A question only blocks the phase it is assigned to, and never an earlier phase.
 
@@ -112,7 +112,33 @@ unless explicitly stated. S2 resolved Q-19 and added Q-20.
 | **Q-19** | **How does `raffles-service` authorize an admin without trusting a header?** | High - Security | **S2 (resolved)** | Validate the shared `rifacloud-session` cookie at the boundary: `APP_KEY` decryption, MAC/prefix, `sessions` lookup, expiry, `ADMIN` role, `password_hash_web`, and CSRF. No Nginx auth subrequest and no identity headers. | **DECIDED and verified for S2 (2026-11-06)** |
 | **Q-20** | **Should extracted services refresh `sessions.last_activity`?** | Medium - Session lifetime | Before S5 | `sessions` is auth-owned; admin requests currently validate but do not touch it, so idle admin sessions depend on auth/monolith activity. Define a session-touch or sliding-expiry contract in S5. | **OPEN (residual risk, documented)** |
 
-## 11. Change Log
+## 12. S11 Privacy and Legal Review
+
+These questions are created by the S11 privacy and legal documentation. They do
+**not** block P1 development or the academic demo. They block any real public
+operation (P4) and, where indicated, the authorization to apply the S11
+migration to the main schema.
+
+| ID | Question | Impact | Blocks | Recommendation | Status |
+|---|---|---|---|---|---|
+| **Q-21** | **Who is the Responsable del Tratamiento and the contact/DPO?** The project has no legal entity, NIT, address, email or phone defined. | High - Legal identity | **P4** | Do not invent a company or NIT. The institution or future operator must designate the Responsible and publish a real channel before receiving personal data from the public. `docs/legal/02` uses explicit placeholders. | **OPEN** |
+| **Q-22** | **Does the RNBD registration apply, and who registers?** It depends on the Responsible's legal nature and total assets (Decreto 1074, art. 2.2.2.26.1.2). | Medium - Compliance | **P4** | Evaluate with the future Responsible. Do not claim registration is done. | **OPEN** |
+| **Q-23** | **Contracts and international transfers with payment, email and hosting providers?** | High - Data protection | **P4** (and P2/P3 for provider validation) | Identify location, sign transmission contracts, evaluate transfer rules and security. No provider is presented as a current processor. | **OPEN** |
+| **Q-24** | **Which legal route will real raffles use?** RifaCloud is not an authorized operator and has no agreement with one. | High - Commercial operation | **P4** | Contract an authorized operator or define a technology-provider role in writing; comply with Decreto 1486 requirements (registration, GNA/lottery, 14% rights, reports, prizes, guarantees, age control). | **OPEN** |
+| **Q-25** | **Who approves the legal drafts and how are versions maintained?** | High - Consent evidence | **P4** | A human lawyer must review and approve the privacy policy, notice, terms and regulatory scope; bump `LEGAL_CONSENT_VERSION` together with the documents. | **OPEN** |
+| **Q-26** | **Authorization to apply the S11 additive migration to the main schema and grant `user_consents` to `rifacloud_auth`?** | Medium - Consent evidence | S11 completion on the main dev schema | **Authorized and applied on 2026-11-12.** Migration `2026_11_11_000011` ran on `rifacloud`; the grant was applied to `rifacloud_auth`; a controlled API registration verified the three rows and was cleaned up. | **DECIDED / APPLIED** |
+
+### S11 status note
+
+S11 implements the mandatory privacy/terms consent, the separate optional
+marketing decision and evidence storage in `rifacloud_test` and, since
+2026-11-12, in `rifacloud`. The main migration and grant were applied with
+explicit authorization, and a controlled registration/cleanup verified the three
+rows. It does **not** close Q-01/Q-02: those questions remain open for P4 real
+publication. The drafts in `docs/legal/` reduce the missing-content gap but are
+not legal advice and are not approved for commercial use.
+
+## 13. Change Log
 
 | Version | Date | Change |
 |---|---|---|
@@ -122,3 +148,5 @@ unless explicitly stated. S2 resolved Q-19 and added Q-20.
 | 1.3 | 2026-11-05 | ADR-001: added Q-14 to Q-18 (internal auth, database split, session sharing, topology, observability); S1 auth decided to reuse shared sessions, later questions deferred |
 | 1.4 | 2026-11-05 | Q-16 marked verified for S1 after the session-compatibility tests; no new open questions |
 | 1.5 | 2026-11-06 | S2 resolved Q-19 (boundary admin authorization without trusted headers); added Q-20 (session `last_activity` touch contract, residual risk before S5); Q-16 extended to S2 |
+| 1.6 | 2026-11-11 | S11 added Q-21 to Q-26 (legal identity/DPO, RNBD, provider contracts/international transfers, real raffle route, legal review/versioning, main-schema migration authorization). Q-01/Q-02 remain open for P4; the new legal drafts are not approval or advice |
+| 1.7 | 2026-11-12 | Q-26 closed: S11 migration and `user_consents` grant applied to `rifacloud` with explicit authorization; controlled registration verified and cleaned up. Q-21 to Q-25 remain open for P4 |

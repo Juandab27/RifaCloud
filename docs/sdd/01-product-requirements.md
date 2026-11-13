@@ -2,8 +2,8 @@
 
 **Project:** RifaCloud  
 **Status:** Approved (architecture evolution)  
-**Version:** 1.5  
-**Last Updated:** 2026-11-06  
+**Version:** 1.7  
+**Last Updated:** 2026-11-12  
 
 ## 1. Objective
 
@@ -47,7 +47,7 @@ The project is developed as a university assignment for Cloud Computing and must
 - Kubernetes and multi-instance high availability
 - Distributed transactions / two-phase commit
 - Automatic database sharding
-- Legal compliance texts (no legally reviewed content; optional placeholder pages for the demo)
+- Legally reviewed compliance texts (S11 adds clearly marked academic drafts and public pages; no legal review is claimed)
 - Real money transactions
 
 ## 4. Functional Requirements
@@ -69,6 +69,7 @@ The project is developed as a university assignment for Cloud Computing and must
 | FR-013 | Admins can view all orders and payment incidents | ADMIN | Must | Incident management |
 | FR-014 | Admins can manually publish results with winner number, date, and evidence | ADMIN | Must | Must correspond to valid number in raffle |
 | FR-015 | Admins can manage payment review cases | ADMIN | Must | For uncertain payment results |
+| FR-016 | Registration must require informed acceptance of the privacy policy and prototype terms, recorded with document version, date and user; promotional consent must be optional and separate | USER | Must | S11; no real raffle operation authorized |
 
 ## 5. Non-Functional Requirements
 
@@ -93,6 +94,7 @@ The project is developed as a university assignment for Cloud Computing and must
 | NFR-017 | Service-to-service calls must be authenticated and least-privilege | Security | Must | No trust in client-supplied identity headers |
 | NFR-018 | Each domain owns its data; other services access it through an approved contract or read-only grant | Data Integrity | Must | Enforced by code, grants and contract tests |
 | NFR-019 | Failure of one service must not silently corrupt or fake another domain's state | Resilience | Must | Controlled 503, fail closed, no fake orders/payments |
+| NFR-020 | Consent evidence must be versioned, dated and linked to the authenticated user; public privacy/terms/regulatory pages must remain accessible | Privacy / Transparency | Must | S11; migration and grant applied to `rifacloud` on 2026-11-12 |
 
 ## 6. Assumptions
 
@@ -103,6 +105,7 @@ The project is developed as a university assignment for Cloud Computing and must
 - AWS access, SSH, domain, DNS and TLS are required only for deployment (P3) and never block local development.
 - Domain may or may not be available for TLS (HTTP acceptable for controlled demo).
 - Legal requirements and legal notice content are not validated: they block real public release (P4), not the university demo.
+- S11 provides academic drafts for privacy, terms and regulatory scope plus a versioned consent control. They are not legal advice, are not legally validated and do not authorize real raffles.
 - Placeholder legal pages are optional for the demo; legally validated content is mandatory before any real publication.
 - Amazon SES is a future option and does not block any phase.
 
@@ -124,7 +127,7 @@ The business decisions below remain approved and are not open for modification w
 | Email | Queue-based, decoupled from purchase flow |
 | Concurrency | DB constraints + row locks to prevent double-selling |
 | Monetary values | Stored in cents (integers) |
-| Legal | Blocks real public release only; placeholders acceptable for the university demo |
+| Legal | Blocks real public release only; placeholders acceptable for the university demo; S11 drafts are not legal advice |
 
 The architecture decision does not change any business rule above. The current
 deployed state is a modular monolith plus `auth-service` (S1) and
@@ -142,3 +145,5 @@ is the approved target and is reached in stages (S3-S5 in
 | 1.3 | 2026-11-05 | ADR-001: four-service target approved; microservices moved from out-of-scope to in-scope evolution; added NFR-016 to NFR-019; data ownership and failure isolation recorded |
 | 1.4 | 2026-11-05 | S1 auth-service implemented and verified; current-state note updated (no requirement change) |
 | 1.5 | 2026-11-06 | S2 raffle administration implemented and verified; current-state note updated (no requirement change) |
+| 1.6 | 2026-11-11 | S11: added FR-016 (informed privacy/terms consent with version evidence and separate optional marketing consent) and NFR-020 (consent evidence and public legal pages); legal drafts remain unvalidated and do not authorize real raffles |
+| 1.7 | 2026-11-12 | S11 closed on the main schema: `user_consents` migration and auth-service grant applied with explicit authorization; controlled registration verified and cleaned up. No requirement change |

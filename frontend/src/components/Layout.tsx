@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { Link, NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '../auth/AuthContext'
+import SiteFooter from './SiteFooter'
 import { useToast } from './ToastProvider'
 
 /**
@@ -25,6 +26,19 @@ export default function Layout() {
   useEffect(() => {
     window.scrollTo({ top: 0, left: 0, behavior: 'auto' })
   }, [location.pathname])
+
+  // S11: los enlaces del pie pueden apuntar a una sección de una página legal.
+  useEffect(() => {
+    if (!location.hash) {
+      return
+    }
+
+    const target = document.getElementById(location.hash.slice(1))
+
+    if (target) {
+      target.scrollIntoView({ block: 'start' })
+    }
+  }, [location.pathname, location.hash])
 
   // Escape cierra el menú y devuelve el foco al control que lo abrió.
   useEffect(() => {
@@ -166,6 +180,8 @@ export default function Layout() {
           <Outlet />
         </div>
       </main>
+
+      <SiteFooter />
     </div>
   )
 }

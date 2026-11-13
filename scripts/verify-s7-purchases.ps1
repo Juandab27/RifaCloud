@@ -174,6 +174,10 @@ function Register-User {
         phone = '3000000000'
         password = $Password
         password_confirmation = $Password
+        privacy_consent = $true
+        terms_consent = $true
+        marketing_consent = $false
+        consent_version = if ($env:LEGAL_CONSENT_VERSION) { $env:LEGAL_CONSENT_VERSION } else { '2026-11-11' }
     }
 
     # The session id is regenerated on register; refresh the XSRF cookie.

@@ -351,26 +351,6 @@ button:disabled {
   color: var(--danger-text);
 }
 
-.simulated-notice {
-  display: flex;
-  align-items: center;
-  gap: var(--sp-2);
-  padding: 0.65rem 0.8rem;
-  background: var(--accent-soft);
-  border: 1px solid var(--accent-line);
-  border-radius: var(--r-md);
-  color: var(--accent-hi);
-  font-size: var(--fs-md);
-}
-
-@media (max-width: 480px) {
-  .simulated-notice {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: var(--sp-1);
-  }
-}
-
 /* --- Paginación ---------------------------------------------------------- */
 .pagination {
   display: flex;

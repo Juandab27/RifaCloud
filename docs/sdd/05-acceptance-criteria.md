@@ -2,8 +2,8 @@
 
 **Project:** RifaCloud  
 **Status:** Approved (architecture evolution)  
-**Version:** 1.5  
-**Last Updated:** 2026-11-06  
+**Version:** 1.18  
+**Last Updated:** 2026-11-12  
 
 All criteria are verifiable with observable results. Each criterion links to functional requirements.
 
@@ -444,7 +444,46 @@ normal stack was restored afterwards and the main data was not touched.
   Main counts after verification: 8 users, 2 raffles, 15 orders, 8 payments,
   13 migrations, 2 notifications.
 
-## 10. Change Log
+## 10. S11 Privacy, Transparency and Academic Compliance
+
+| ID | Requirement | Acceptance Criteria | Test Method |
+|---|---|---|---|
+| AC-S11-01 | FR-016; NFR-015; Ley 1581 de 2012 | Registration requires an informed acceptance of the privacy policy and the prototype terms. Missing either returns 422 and creates no user. | Feature test |
+| AC-S11-02 | FR-016; Ley 1581 de 2012; Decreto 1074 de 2015 | The accepted document version is validated against the current configured version; a stale version returns 422. | Feature test |
+| AC-S11-03 | FR-016; NFR-020; Ley 1581 de 2012; Decreto 1074 de 2015 | Consent evidence stores user, type (`PRIVACY`, `TERMS`, `MARKETING`), document version, decision, timestamp and source. No consent row implies a different consent type. | Feature/DB test |
+| AC-S11-04 | FR-016; Ley 1581 de 2012 | Promotional consent is optional, unchecked by default, stored separately and never required to register. | Feature/E2E test |
+| AC-S11-05 | NFR-020; transparency | Public `/privacidad`, `/terminos` and `/alcance-regulatorio` pages are reachable without authentication from the registration form and the site footer. | Playwright |
+| AC-S11-06 | NFR-020; transparency; no Coljuegos claim | Footer legal links remain available on every page and a brief, contextual note at checkout identifies the academic prototype, the simulated gateway or the Mercado Pago sandbox, without a global banner. | Playwright/manual |
+| AC-S11-07 | Ley 643 de 2001; Decreto 1486 de 2024 | The regulatory document identifies operator/gestor roles, authorization, 30-day registration, GNA/lottery, 14% rights, prize plan, reporting, age restriction and the gaps of the prototype. | Document review |
+| AC-S11-08 | Ley 1581 de 2012; Decreto 1074 de 2015 | The rights document records what is implemented (profile/order consultation, consent evidence) and what is missing (correction, deletion, revocation channel, RNBD, retention). | Document review |
+
+### S11 evidence (2026-11-12)
+
+- Added an additive `user_consents` migration and consent recorder in the
+  monolith and `auth-service`. The mandatory privacy/terms boxes and the
+  optional marketing box are separate; version, timestamp and user are stored.
+- `php artisan test --filter='AuthenticationTest|ConsentTest'`: 12/12 tests,
+  50 assertions. Existing authentication tests were updated to send the
+  required consent fields.
+- `npx playwright test tests/e2e/legal.spec.ts`: 6/6 tests (footer legal pages
+  without a global banner, required/optional consent and submitted version,
+  mobile layout without overflow, and the simulated-vs-sandbox checkout note).
+- With explicit authorization, migration `2026_11_11_000011` and the
+  `user_consents` grant were applied to `rifacloud`. A controlled API
+  registration created three rows: `PRIVACY` accepted, `TERMS` accepted and
+  `MARKETING` declined, all at version `2026-11-11`; the user, sessions and
+  consent rows were then deleted and the main user count returned to 8.
+- Public pages and footer use the `2026-11-11` version shown in the consent
+  config; the checkout note distinguishes the simulated gateway from Mercado
+  Pago sandbox.
+- Draft legal documents are in `docs/legal/` and are explicitly marked as not
+  legal advice. No company, NIT, address, email or Coljuegos authorization was
+  invented.
+- Remaining blockers: legal identity/DPO, rights channel, RNBD evaluation,
+  provider contracts/transfers, authorized operator route and main-schema
+  migration authorization (Q-21 to Q-26).
+
+## 11. Change Log
 
 | Version | Date | Change |
 |---|---|---|
@@ -465,3 +504,5 @@ normal stack was restored afterwards and the main data was not touched.
 | 1.14 | 2026-11-07 | S10.1 evidence recorded: production Compose and TLS template validated, scripts syntax-checked, secret separation inspected, critical regressions green. No AWS resource created; docs unignored but need commit/push. |
 | 1.15 | 2026-11-07 | S10.2 evidence recorded: derived raffle states, reservation UI gated by the sale window, rejected/expired payment recovery and result presentation. 16/16 unit checks, 12/12 Playwright tests with intercepted API, 42/42 S6, 44/44 S7, 39/39 payments, 123/123 orders, 12/12 auth, 193/193 monolith; main data unchanged. |
 | 1.16 | 2026-11-07 | S10.3 evidence recorded: four read-only owner-service aggregates, ADMIN authorization, controlled 503 and partial-availability dashboard. 28/28 E2E on `rifacloud_test` (including admin order/incident lists and result publication), 20/20 Playwright, 129/129 orders, 77/77 payments, 42/42 S6, 44/44 S7, 39/39 payments E2E, 12/12 auth, 193/193 monolith; main data unchanged. |
+| 1.17 | 2026-11-11 | S11 added AC-S11-01 to AC-S11-08: informed privacy/terms consent with version evidence, separate optional marketing consent, public privacy/terms/regulatory pages, footer legal links, contextual checkout clarification (simulated gateway vs Mercado Pago sandbox), data-rights limitations and real-launch requirements. 4/4 consent tests, 6/6 Playwright legal/checkout tests and 19/19 auth-service integration; main schema not migrated. |
+| 1.18 | 2026-11-12 | S11 closed on main with explicit authorization: migration and `user_consents` grant applied, controlled API registration verified PRIVACY/TERMS/MARKETING rows at version `2026-11-11`, cleanup returned users to 8. Auth 12/12, Playwright 26/26, TypeScript clean. |

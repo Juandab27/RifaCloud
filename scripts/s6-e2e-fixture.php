@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use Illuminate\Contracts\Console\Kernel;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 
 /**
  * Temporary fixtures for the S6 end-to-end check (session continuity,
@@ -261,6 +262,13 @@ try {
 
             foreach (array_unique($userIds) as $id) {
                 DB::table('sessions')->where('user_id', $id)->delete();
+
+                // S11 evidence is restricted on delete; fixtures remove their
+                // own rows before the temporary user.
+                if (Schema::hasTable('user_consents')) {
+                    DB::table('user_consents')->where('user_id', $id)->delete();
+                }
+
                 DB::table('users')->where('id', $id)->delete();
             }
         });

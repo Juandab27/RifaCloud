@@ -193,11 +193,13 @@ services:
       DB_PASSWORD: ${AUTH_DB_PASSWORD:?Set AUTH_DB_PASSWORD in the root .env file}
       SESSION_DRIVER: database
       SESSION_LIFETIME: ${SESSION_LIFETIME:-120}
-      SESSION_DOMAIN: ${SESSION_DOMAIN:-localhost}
+      SESSION_DOMAIN: ${SESSION_DOMAIN:-}
       SESSION_SECURE_COOKIE: ${SESSION_SECURE_COOKIE:-false}
       SESSION_SAME_SITE: ${SESSION_SAME_SITE:-lax}
       SESSION_ENCRYPT: "false"
       SANCTUM_STATEFUL_DOMAINS: ${SANCTUM_STATEFUL_DOMAINS:-localhost,127.0.0.1}
+      # S11: must match the monolith and the public documents.
+      LEGAL_CONSENT_VERSION: ${LEGAL_CONSENT_VERSION:-2026-11-11}
       # Shared cache table so login/registration throttling survives across
       # PHP-FPM workers.
       CACHE_STORE: database

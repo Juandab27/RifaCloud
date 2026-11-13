@@ -484,6 +484,10 @@ try {
         phone                 = '0000000000'
         password              = $UserPassword
         password_confirmation = $UserPassword
+        privacy_consent       = $true
+        terms_consent         = $true
+        marketing_consent     = $false
+        consent_version       = if ($env:LEGAL_CONSENT_VERSION) { $env:LEGAL_CONSENT_VERSION } else { '2026-11-11' }
     } | ConvertTo-Json -Compress
     $registered = Invoke-Api -Method POST -Path '/api/register' -Body $registerPayload -Jar $UserJar -XsrfToken $userToken
     $registeredJson = Get-Json $registered.Body

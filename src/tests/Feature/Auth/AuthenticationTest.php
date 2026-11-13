@@ -20,6 +20,10 @@ class AuthenticationTest extends TestCase
             'phone' => '3001234567',
             'password' => 'secret-password',
             'password_confirmation' => 'secret-password',
+            'privacy_consent' => true,
+            'terms_consent' => true,
+            'marketing_consent' => false,
+            'consent_version' => config('rifacloud.legal.consent_version'),
         ]);
 
         $response->assertCreated()
@@ -56,6 +60,10 @@ class AuthenticationTest extends TestCase
             'phone' => '3001234567',
             'password' => 'secret-password',
             'password_confirmation' => 'secret-password',
+            'privacy_consent' => true,
+            'terms_consent' => true,
+            'marketing_consent' => false,
+            'consent_version' => config('rifacloud.legal.consent_version'),
         ])->assertUnprocessable()->assertJsonValidationErrors('email');
     }
 

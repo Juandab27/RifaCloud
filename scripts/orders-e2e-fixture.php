@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use Illuminate\Contracts\Console\Kernel;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 
 /**
  * Temporary fixtures for the S3 end-to-end check against the development
@@ -267,6 +268,11 @@ try {
 
             foreach (array_filter([$userId, $adminId]) as $id) {
                 DB::table('sessions')->where('user_id', $id)->delete();
+
+                if (Schema::hasTable('user_consents')) {
+                    DB::table('user_consents')->where('user_id', $id)->delete();
+                }
+
                 DB::table('users')->where('id', $id)->delete();
             }
         });

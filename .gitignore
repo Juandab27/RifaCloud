@@ -58,3 +58,6 @@ Thumbs.db
 /frontend/playwright-report/
 /frontend/blob-report/
 /frontend/.playwright/
+
+# --- Local demo credentials and generated test data (never versioned) ---
+/docs/testing/.local/

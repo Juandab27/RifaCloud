@@ -156,6 +156,26 @@ button.number.selected:hover:not(:disabled) {
 }
 
 /* --- Panel de pago ------------------------------------------------------- */
+.checkout-context {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: var(--sp-2);
+  margin: 0 0 var(--sp-4);
+  color: var(--text-2);
+  font-size: var(--fs-sm);
+  line-height: var(--lh-snug);
+}
+
+.checkout-context .badge {
+  flex: none;
+  margin-top: 1px;
+}
+
+.checkout-context span {
+  flex: 1 1 18rem;
+}
+
 .payment-actions {
   display: flex;
   flex-wrap: wrap;

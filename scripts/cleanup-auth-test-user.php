@@ -13,6 +13,7 @@ declare(strict_types=1);
 
 use Illuminate\Contracts\Console\Kernel;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 
 require '/var/www/vendor/autoload.php';
 
@@ -43,6 +44,13 @@ if ($user === null) {
 }
 
 DB::table('sessions')->where('user_id', $user->id)->delete();
+
+// S11 consent evidence uses restrictOnDelete. Test cleanup must remove its own
+// rows explicitly; production deletion requires a retention decision instead.
+if (Schema::hasTable('user_consents')) {
+    DB::table('user_consents')->where('user_id', $user->id)->delete();
+}
+
 DB::table('users')->where('id', $user->id)->delete();
 
-echo "cleanup: deleted user {$user->id} ({$email}) and its sessions\n";
+echo "cleanup: deleted user {$user->id} ({$email}), its sessions and consent evidence\n";

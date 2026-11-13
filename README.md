@@ -83,6 +83,22 @@ sesión ADMIN en el servicio; Nginx devuelve un 503 JSON controlado si el
 servicio está caído. La interfaz muestra «No disponible» en ese caso y nunca
 inventa un cero. No se cargan órdenes ni números completos en React.
 
+## Pruebas manuales
+
+El entorno de pruebas funcionales vive en `rifacloud_test` y no toca la base
+principal. Incluye usuarios demo, rifas en todos los estados, órdenes pagadas,
+pendientes, expiradas, rechazadas y en revisión.
+
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts/prepare-demo-environment.ps1
+powershell -ExecutionPolicy Bypass -File scripts/verify-demo-environment.ps1
+powershell -ExecutionPolicy Bypass -File scripts/cleanup-demo-environment.ps1
+```
+
+Las credenciales ficticias se generan en `docs/testing/.local/test-users.json`
+(ignorado por Git). La guía completa y el procedimiento de Mercado Pago
+sandbox están en [`docs/testing/`](docs/testing/README.md).
+
 ## Despliegue en AWS EC2
 
 La preparación reproducible (Compose de producción, HTTPS con ALB/ACM o Nginx
@@ -202,6 +218,26 @@ Recrea el stack sobre `rifacloud_test` con fixtures aislados y verifica por
 Nginx: 401 anónimo, 403 USER, 200 ADMIN con los cuatro valores exactos y 503
 controlado al detener cada servicio propietario. Restaura el stack normal en
 `finally`; no toca la base `rifacloud` ni ejecuta migraciones.
+
+## Privacidad y documentos legales (S11)
+
+- El registro exige aceptar la Política de Tratamiento de Datos Personales y
+  los Términos y Condiciones del prototipo. El consentimiento promocional es
+  opcional y separado.
+- La aceptación se registra en `user_consents` con tipo, versión del documento
+  (`2026-11-11`), fecha y usuario.
+- Las páginas públicas son `/privacidad`, `/terminos` y
+  `/alcance-regulatorio`; el pie de página y la aclaración contextual del
+  checkout explican que es un prototipo académico sin autorización de
+  Coljuegos.
+- Los borradores y el inventario de datos están en
+  [`docs/legal/`](docs/legal/README.md). **No son asesoría jurídica** y
+  contienen marcadores pendientes.
+- La migración aditiva `2026_11_11_000011_create_user_consents_table.php` y el
+  permiso de `user_consents` para `rifacloud_auth` se aplicaron a `rifacloud`
+  el 2026-11-12 con autorización explícita. Un registro temporal verificó las
+  filas `PRIVACY`, `TERMS` y `MARKETING` y luego se eliminó; la base quedó sin
+  datos de prueba.
 
 ## Comandos útiles
 

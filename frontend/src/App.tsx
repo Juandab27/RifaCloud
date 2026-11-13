@@ -7,8 +7,11 @@ import LoginPage from './pages/LoginPage'
 import NotFoundPage from './pages/NotFoundPage'
 import OrderDetailPage from './pages/OrderDetailPage'
 import OrdersPage from './pages/OrdersPage'
+import PrivacyPage from './pages/PrivacyPage'
 import RaffleDetailPage from './pages/RaffleDetailPage'
 import RegisterPage from './pages/RegisterPage'
+import RegulatoryScopePage from './pages/RegulatoryScopePage'
+import TermsPage from './pages/TermsPage'
 import AdminDashboardPage from './pages/admin/AdminDashboardPage'
 import AdminRaffleFormPage from './pages/admin/AdminRaffleFormPage'
 import AdminRafflesPage from './pages/admin/AdminRafflesPage'
@@ -22,6 +25,9 @@ export default function App() {
         <Route path="raffles/:raffleId" element={<RaffleDetailPage />} />
         <Route path="login" element={<LoginPage />} />
         <Route path="register" element={<RegisterPage />} />
+        <Route path="privacidad" element={<PrivacyPage />} />
+        <Route path="terminos" element={<TermsPage />} />
+        <Route path="alcance-regulatorio" element={<RegulatoryScopePage />} />
 
         <Route element={<RequireAuth />}>
           <Route path="orders" element={<OrdersPage />} />

@@ -2,7 +2,7 @@
 
 **Project:** RifaCloud  
 **Purpose:** Instructions for OpenCode agents working on this project  
-**Last Updated:** 2026-11-06  
+**Last Updated:** 2026-11-12  
 
 ## Core Principles
 
@@ -86,7 +86,7 @@
 - **Deployment:** Single AWS EC2 with Docker Compose
 - **Stack:** React + TypeScript, Nginx, PHP/Laravel components, MySQL
 - **Architecture target:** four business microservices (`auth`, `raffles`, `orders`, `payments`) behind Nginx, extracted incrementally from the modular monolith (ADR-001)
-- **Current state:** monolith + `auth-service` (S1) + `raffles-service` catalog (S0) and administration (S2) + `orders-service` orders, reservations and expiry (S3) + `payments-service` payments, Mercado Pago and webhooks (S4) + S6 browser continuity + S7 purchase history ("Mis compras") + S9.1 critical audit fixes (scheduled reconcile, scheduler supervision, FR-014 results, admin orders/incidents, retryable notifications, registration throttle) + S10.1 AWS deployment preparation + S10.2 functional/UX polish (derived raffle states, payment recovery, result presentation, browser tests) + S10.3 admin dashboard (published raffles, paid orders, sold numbers, pending incidents); S5 minimal is closed (two additive migrations and four per-service MySQL users applied and verified)
+- **Current state:** monolith + `auth-service` (S1) + `raffles-service` catalog (S0) and administration (S2) + `orders-service` orders, reservations and expiry (S3) + `payments-service` payments, Mercado Pago and webhooks (S4) + S6 browser continuity + S7 purchase history ("Mis compras") + S9.1 critical audit fixes (scheduled reconcile, scheduler supervision, FR-014 results, admin orders/incidents, retryable notifications, registration throttle) + S10.1 AWS deployment preparation + S10.2 functional/UX polish (derived raffle states, payment recovery, result presentation, browser tests) + S10.3 admin dashboard (published raffles, paid orders, sold numbers, pending incidents) + S11 privacy/transparency (public privacy/terms/regulatory pages, contextual checkout clarification, footer legal links, versioned informed consent in `user_consents`); S5 minimal is closed (two additive migrations and four per-service MySQL users applied and verified). The S11 additive migration and the `user_consents` grant for `auth-service` were applied to `rifacloud` on 2026-11-12 with explicit authorization, and a controlled registration/cleanup verified the three consent rows. The legal drafts in `docs/legal/` are not legal advice and do not authorize real raffles
 - **Payments:** Mercado Pago Checkout Pro (sandbox), primary and only provider attempted; owned by `payments-service` since S4
 - **S5 minimal applied:** both additive migrations are applied; each service uses its own MySQL user, and the monolith keeps the shared user plus the rollback routes. Pending for the full data separation: webhook secret/public URL, per-domain databases, outbox/compensation and removal of the rollback path. S9.1 added `raffle_results` and `notifications`: both migrations and the `raffle_results` grant are applied and verified on `rifacloud_test` and `rifacloud`; notification delivery currently uses the log mailer. S10.1 added the AWS EC2 deployment overlay, environment template, database bootstrap/backup/restore scripts and runbook under `deploy/aws/`; no AWS resource was created
 - **No HA:** Single instance only

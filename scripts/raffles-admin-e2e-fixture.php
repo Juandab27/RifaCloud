@@ -173,6 +173,13 @@ if ($action === 'cleanup') {
         }
 
         $counts['sessions'] = DB::table('sessions')->whereIn('user_id', $userIds)->delete();
+
+        // S11 consent evidence is restricted on delete. The fixture removes
+        // only its own temporary evidence before deleting the user.
+        if (Schema::hasTable('user_consents')) {
+            $counts['user_consents'] = DB::table('user_consents')->whereIn('user_id', $userIds)->delete();
+        }
+
         $counts['users'] = DB::table('users')->whereIn('id', $userIds)->delete();
 
         return $counts;

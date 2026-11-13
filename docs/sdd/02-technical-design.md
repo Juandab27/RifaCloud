@@ -2,8 +2,8 @@
 
 **Project:** RifaCloud  
 **Status:** Approved (architecture evolution)  
-**Version:** 2.2  
-**Last Updated:** 2026-11-06  
+**Version:** 2.15  
+**Last Updated:** 2026-11-12  
 **Supersedes:** v1.2 (modular monolith as final architecture)  
 **Decision record:** `08-adr-001-four-service-architecture.md`
 
@@ -31,7 +31,7 @@ the target state as already implemented.
 
 | Service | Owns | Must not own |
 |---|---|---|
-| `auth-service` | Users, credentials, sessions, roles, authorization decisions | Raffles, numbers, orders, payments |
+| `auth-service` | Users, credentials, sessions, roles, authorization decisions, consent evidence (`user_consents`) | Raffles, numbers, orders, payments |
 | `raffles-service` | Raffle catalog, raffle administration, raffle metadata and configuration | Reservations, number ownership, orders, payments |
 | `orders-service` | Number availability, reservations, orders, order items, expiry, atomic allocation | Payment provider integration, credentials, raffle content |
 | `payments-service` | Mercado Pago integration, checkout preferences, verification, webhooks, reconciliation, idempotency | Order creation, number allocation, raffle content |
@@ -70,7 +70,7 @@ service container.
 |---|---|---|
 | Frontend | React + TypeScript | SPA for users and admins |
 | Web Server | Nginx | Static build, routing, controlled degradation |
-| `auth-service` | PHP 8.4 + Laravel components | Users, sessions, roles |
+| `auth-service` | PHP 8.4 + Laravel components | Users, sessions, roles, consent evidence |
 | `raffles-service` | PHP 8.4 (standalone catalog + admin) | Public catalog and raffle administration; number generation |
 | `orders-service` | PHP 8.4 + Laravel components | Reservations, orders, atomic allocation |
 | `payments-service` | PHP 8.4 + Laravel components | Mercado Pago, webhooks, reconciliation |
@@ -85,7 +85,7 @@ service container.
 ```text
 Internet -> Nginx
              |-- /api/(register|login|logout|me), /sanctum/csrf-cookie
-             |     `-- auth-service :9000 (users, sessions, roles; shared schema)
+             |     `-- auth-service :9000 (users, sessions, roles, consent; shared schema)
              |-- GET /api/raffles*, /api/admin/raffles*
              |     `-- raffles-service :80 (catalog read + admin writes; shared schema)
              |-- POST /api/orders, GET /api/orders/{id}
@@ -626,6 +626,13 @@ the provider and reuses the same idempotent command.
 | **S5 (closed for the minimal scope, 2026-11-07)** | Per-service MySQL users and the two additive migrations; per-domain databases, outbox/sagas and rollback removal deferred | S1-S4 stable; explicit authorization; preflight green | Migrations applied separately; 4 least-privilege users validated (positive/negative/locking); services recreated one at a time; auth/catalog/reservations/payments/scheduler/isolation verified; 190/190 monolith + 33/33 orders E2E | Revert Compose to the shared user, `DROP USER`, `migrate:rollback` by path (webhook events would be lost); rollback routes retained |
 | **S6 (done)** | Browser continuity: session revalidation, CSRF retry, route preservation, checkout return verification, expiry polling, single reservation-duration source | S1-S4 stable; S5 preparation | 42/42 S6 E2E, 12/12 auth integration, 190/190 monolith, frontend typecheck/build; 401/409/419/503 keep the session state; expiry matrix and idempotency verified | Frontend-only revert; backend changes are backward compatible |
 | **S7 (done)** | Purchase confirmation and "Mis compras": owner-scoped order history with numbers/status, detail dates, status-specific number labels | S3 orders service + S6 session | 123/123 orders integration (26 list checks), 44/44 S7 E2E on `rifacloud_test`, 190/190 monolith, frontend typecheck/build; ownership 404/empty and 401/503 verified | Remove the frontend page/route and the `GET /api/orders` handler; existing detail/create behavior unchanged |
+| **S11 (done, 2026-11-12)** | Privacy/transparency: public privacy/terms/regulatory pages, footer legal links, contextual checkout clarification, versioned informed consent in `user_consents`, separate optional marketing consent | S1 auth-service; additive migration; explicit authorization for the main schema | 4/4 consent tests, 6/6 Playwright legal/checkout tests, 19/19 auth-service integration; migration + grant applied to `rifacloud`; controlled registration verified 3 rows and cleanup left no test data | Delete the public pages/footer/checkout clarification and the consent columns/table; registrations without consent are rejected by design |
+
+**S11 note:** the additive `user_consents` migration and the `auth-service`
+grant were applied to `rifacloud` on 2026-11-12 with explicit authorization.
+A temporary registration through the API produced `PRIVACY`=1, `TERMS`=1 and
+`MARKETING`=0 with version `2026-11-11`; the user, sessions and consent rows
+were then deleted. See `docs/legal/` and Q-21 to Q-26.
 
 **Why auth first:** it has the smallest transactional surface (users and
 sessions), and the monolith already stores sessions in the shared MySQL
@@ -803,3 +810,5 @@ internal-only, fail-closed payments) remain unchanged.
 | 2.11 | 2026-11-07 | S10.1 deployment preparation: production Compose overlay, secret-free env template, ALB/ACM and direct-Nginx TLS strategies, DB bootstrap with encrypted pre-migration backup and least-privilege grants, encrypted S3 backup/restore procedures, healthchecks, Security Group/cost/runbook documentation. Local validations passed; no AWS resource created and no main migration altered. |
 | 2.12 | 2026-11-07 | S10.2 functional/UX polish: public raffle state derived from backend status plus `starts_at`/`ends_at` (upcoming, available, closed, finished) reusing the S8 StatusPill; reservation controls disabled outside the sale window while all server checks remain; rejected/expired payment recovery card with a link back to the raffle; result card with winner, publication date and evidence. 16 unit checks and 12/12 browser tests (intercepted API, simulated gateway), all critical regressions green. No backend contract, schema, payment rule or main data changed. |
 | 2.13 | 2026-11-07 | S10.3 admin dashboard: read-only aggregates `GET /api/admin/raffles/metrics` (PUBLISHED raffles), `GET /api/admin/orders/metrics` (PAID orders and SOLD numbers) and `GET /api/admin/payments/incidents/metrics` (UNKNOWN + REFUND_REQUIRED payments), each authenticated as ADMIN in its owning service. Nginx exposes exact routes with a controlled JSON 503; `/admin/dashboard` shows partial availability without inventing zeros. 28/28 E2E on `rifacloud_test`, 20/20 Playwright, 129/129 orders integration, 77/77 payments integration, 42/42 S6, 44/44 S7, 39/39 payments E2E, 12/12 auth and 193/193 monolith. No migration or main-data change. |
+| 2.14 | 2026-11-11 | S11 privacy/transparency: `auth-service` adds the auth-owned `user_consents` evidence table (type, document version, decision, timestamp, source) and versioned registration consent; public privacy/terms/regulatory pages, footer legal links and a contextual checkout clarification (simulated gateway vs Mercado Pago sandbox). Additive migration verified in `rifacloud_test`; main schema application was still pending at that point. No reservation, payment or raffle rule changed. |
+| 2.15 | 2026-11-12 | S11 closed on the main schema with explicit authorization: migration `2026_11_11_000011` applied to `rifacloud`, `user_consents` grant added to `rifacloud_auth`, and a controlled API registration verified `PRIVACY`/`TERMS` accepted and `MARKETING` declined with version `2026-11-11`; test user, sessions and consent rows were deleted. Auth 12/12, Playwright 26/26, TypeScript clean. |

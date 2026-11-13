@@ -2,8 +2,8 @@
 
 **Project:** RifaCloud  
 **Status:** Approved (architecture evolution)  
-**Version:** 1.4  
-**Last Updated:** 2026-11-06  
+**Version:** 1.8  
+**Last Updated:** 2026-11-12  
 
 ## 1. Design Principles
 
@@ -24,6 +24,7 @@ API/command or an explicitly approved read-only grant.
 | Entity / table | Owner | Write rule | Transitional access |
 |---|---|---|---|
 | `users`, `sessions`, `password_reset_tokens` | `auth-service` | Only auth-service writes | Other services read sessions for validation; users via API or read grant |
+| `user_consents` | `auth-service` | Only auth-service writes | No other service needs access; evidence is exposed only through a future owner-scoped rights flow |
 | `raffles` | `raffles-service` | Only raffles-service writes | Orders/payments read-only |
 | `raffle_numbers` | `orders-service` (status) / `raffles-service` (creation) | `raffles-service` inserts the initial range for a raffle and removes it with a deleted DRAFT raffle; `orders-service` alone performs reservation, sale and release status transitions (S4) | Shared schema: reservations/sales stay in orders; raffles-service reads for counts; payments-service reads status |
 | `orders`, `order_items` | `orders-service` | Only orders-service writes | payments-service reads order state |
@@ -63,6 +64,7 @@ in sections 4-5 remain mandatory.
 ## 2. Entity Relationship Overview
 
 ```
+users (1)──< user_consents
 users (1)──< orders (1)──< order_items >──(1) raffle_numbers
                 │                            │
                 │                            │
@@ -92,6 +94,36 @@ User accounts with role-based access.
 | remember_token | VARCHAR(100) | NULL | Remember token |
 | created_at | TIMESTAMP | NULL | Created timestamp |
 | updated_at | TIMESTAMP | NULL | Updated timestamp |
+
+### user_consents
+
+S11 proof of informed consent. One row per user, consent type and document
+version. The unique key makes consent recording idempotent. `restrictOnDelete`
+prevents deleting a user while evidence exists: account deletion must first
+decide what evidence is retained under legal/contractual obligations.
+
+| Field | Type | Constraints | Description |
+|---|---|---|---|
+| id | BIGINT UNSIGNED | PK, AUTO_INCREMENT | Primary key |
+| user_id | BIGINT UNSIGNED | FK(users.id), NOT NULL, RESTRICT | User who accepted |
+| type | VARCHAR(32) | NOT NULL | `PRIVACY`, `TERMS` or `MARKETING` |
+| document_version | VARCHAR(64) | NOT NULL | Exact public document version accepted |
+| accepted | BOOLEAN | NOT NULL | Decision; required types are always true |
+| accepted_at | TIMESTAMP | NOT NULL | Decision timestamp |
+| source | VARCHAR(32) | NOT NULL, DEFAULT 'REGISTRATION' | Collection channel |
+| created_at | TIMESTAMP | NULL | Created timestamp |
+| updated_at | TIMESTAMP | NULL | Updated timestamp |
+
+**Constraints:**
+- `UNIQUE(user_id, type, document_version)`
+- Index on `(type, document_version)`
+- No IP address or user agent is stored, to minimize personal data.
+
+**Status:** additive migration `2026_11_11_000011_create_user_consents_table.php`
+is applied to `rifacloud_test` and to the main `rifacloud` schema (2026-11-12,
+explicit authorization). The `rifacloud_auth` user has SELECT/INSERT/UPDATE/
+DELETE on the table. A controlled API registration verified the three rows and
+was cleaned up; no test data remains.
 
 ### raffles
 Raffle campaigns.
@@ -323,3 +355,5 @@ COMMIT;
 | 1.4 | 2026-11-06 | S2 clarification: `raffle_numbers` creation/removal by `raffles-service`, status transitions by `orders-service`; S5 creation-handoff contract required before partitioning |
 | 1.5 | 2026-11-06 | S3 clarification: `orders-service` performs reservation and expiry updates and owns `orders`/`order_items` writes; the monolith payment flow still performs the sale/order-status write until S4 replaces it with an idempotent command |
 | 1.6 | 2026-11-06 | S4: `payments-service` is the only writer of `payments`/`payment_webhook_events`; `orders-service` performs every sale/release/order-status transition through the signed payment-result command. Cross-service atomicity is a convergent saga (order/number first, payment row second); the payment row is locked but never written by orders-service |
+| 1.7 | 2026-11-11 | S11: added `user_consents` (auth-owned consent evidence: type, document version, decision, timestamp, source, user). Additive migration implemented and verified in `rifacloud_test`; not applied to the main schema. Business entities and reservation/payment rules unchanged |
+| 1.8 | 2026-11-12 | S11 closed: `user_consents` migration applied to `rifacloud` with explicit authorization; `rifacloud_auth` grant verified; controlled registration confirmed PRIVACY/TERMS/MARKETING rows and was cleaned up. Business entities and rules unchanged |

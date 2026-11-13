@@ -1,6 +1,6 @@
 -- RifaCloud production grants (main schema only).
 --
--- Apply after the 13 migrations with:
+-- Apply after all migrations with:
 --   deploy/aws/bootstrap-db.sh
 --
 -- Passwords are created by bootstrap-db.sh from the root .env. This file
@@ -9,11 +9,12 @@
 -- Shared monolith/rollback user. Retained until the rollback path is retired.
 GRANT ALL PRIVILEGES ON `rifacloud`.* TO 'rifacloud'@'%';
 
--- auth-service: users, sessions and cache. No business data.
+-- auth-service: users, sessions, cache and consent evidence. No business data.
 GRANT SELECT, INSERT, UPDATE, DELETE ON `rifacloud`.`users` TO 'rifacloud_auth'@'%';
 GRANT SELECT, INSERT, UPDATE, DELETE ON `rifacloud`.`sessions` TO 'rifacloud_auth'@'%';
 GRANT SELECT, INSERT, UPDATE, DELETE ON `rifacloud`.`cache` TO 'rifacloud_auth'@'%';
 GRANT SELECT, INSERT, UPDATE, DELETE ON `rifacloud`.`cache_locks` TO 'rifacloud_auth'@'%';
+GRANT SELECT, INSERT, UPDATE, DELETE ON `rifacloud`.`user_consents` TO 'rifacloud_auth'@'%';
 
 -- raffles-service: raffle administration, number creation and results.
 -- It reads users/sessions only for the shared admin session.

@@ -78,6 +78,25 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Legal documents and informed consent (S11)
+    |--------------------------------------------------------------------------
+    |
+    | The version identifies the exact privacy policy and prototype terms the
+    | user accepted at registration. Any substantive change to those public
+    | documents must bump this value; the API rejects stale versions instead of
+    | recording evidence for a document the user did not see.
+    |
+    | This is an academic prototype: the documents are drafts and do not
+    | represent legal advice or an authorization to operate real raffles.
+    |
+    */
+
+    'legal' => [
+        'consent_version' => env('LEGAL_CONSENT_VERSION', '2026-11-11'),
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
     | Admin bootstrap
     |--------------------------------------------------------------------------
     |

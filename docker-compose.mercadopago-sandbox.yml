@@ -1,0 +1,48 @@
+# RifaCloud — Mercado Pago sandbox with a temporary public HTTPS URL.
+#
+# Use ONLY together with docker-compose.e2e.yml (rifacloud_test):
+#
+#   $env:SANDBOX_PUBLIC_URL       = 'https://YOUR-TUNNEL-HOST'
+#   $env:SANDBOX_SESSION_DOMAIN   = 'YOUR-TUNNEL-HOST'
+#   $env:MERCADOPAGO_ACCESS_TOKEN = '...'
+#   $env:MERCADOPAGO_WEBHOOK_SECRET = '...'
+#   $env:MERCADOPAGO_WEBHOOK_URL  = 'https://YOUR-TUNNEL-HOST/api/webhooks/mercadopago'
+#   $env:MERCADOPAGO_BACK_URL     = 'https://YOUR-TUNNEL-HOST'
+#
+#   docker compose -f docker-compose.yml -f docker-compose.e2e.yml \
+#                  -f docker-compose.mercadopago-sandbox.yml up -d --force-recreate \
+#                  app auth-service raffles-service orders-service payments-service nginx scheduler
+#
+# This file contains no secrets. The token and webhook secret come from the
+# operator environment and are never committed. MERCADOPAGO_PUBLIC_KEY is not
+# used by the current Checkout Pro redirect and can remain empty.
+#
+# Never use this overlay in production.
+
+services:
+  app:
+    environment:
+      APP_URL: ${SANDBOX_PUBLIC_URL:?Set SANDBOX_PUBLIC_URL}
+      SESSION_DOMAIN: ${SANDBOX_SESSION_DOMAIN:?Set SANDBOX_SESSION_DOMAIN}
+      SANCTUM_STATEFUL_DOMAINS: ${SANDBOX_SESSION_DOMAIN:?Set SANDBOX_SESSION_DOMAIN}
+      SESSION_SECURE_COOKIE: "true"
+      PAYMENT_GATEWAY: mercadopago
+      MERCADOPAGO_SANDBOX: "true"
+
+  auth-service:
+    environment:
+      APP_URL: ${SANDBOX_PUBLIC_URL:?Set SANDBOX_PUBLIC_URL}
+      SESSION_DOMAIN: ${SANDBOX_SESSION_DOMAIN:?Set SANDBOX_SESSION_DOMAIN}
+      SANCTUM_STATEFUL_DOMAINS: ${SANDBOX_SESSION_DOMAIN:?Set SANDBOX_SESSION_DOMAIN}
+      SESSION_SECURE_COOKIE: "true"
+
+  payments-service:
+    environment:
+      PAYMENT_GATEWAY: mercadopago
+      MERCADOPAGO_ACCESS_TOKEN: ${MERCADOPAGO_ACCESS_TOKEN:?Set the sandbox seller access token}
+      MERCADOPAGO_WEBHOOK_SECRET: ${MERCADOPAGO_WEBHOOK_SECRET:?Set the sandbox webhook secret}
+      MERCADOPAGO_WEBHOOK_URL: ${MERCADOPAGO_WEBHOOK_URL:?Set the public HTTPS webhook URL}
+      MERCADOPAGO_BACK_URL: ${MERCADOPAGO_BACK_URL:?Set the public HTTPS base URL}
+      MERCADOPAGO_SANDBOX: "true"
+      MERCADOPAGO_BASE_URL: ${MERCADOPAGO_BASE_URL:-https://api.mercadopago.com}
+      MERCADOPAGO_TIMEOUT: ${MERCADOPAGO_TIMEOUT:-10}

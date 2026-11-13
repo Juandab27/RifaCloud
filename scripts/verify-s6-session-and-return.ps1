@@ -237,6 +237,10 @@ try {
         phone = '3000000000'
         password = $Password
         password_confirmation = $Password
+        privacy_consent = $true
+        terms_consent = $true
+        marketing_consent = $false
+        consent_version = if ($env:LEGAL_CONSENT_VERSION) { $env:LEGAL_CONSENT_VERSION } else { '2026-11-11' }
     }
     Add-Result 'Registration returns 201' '201' "$($register.Status)" ($register.Status -eq 201)
 

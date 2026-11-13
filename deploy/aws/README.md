@@ -177,7 +177,7 @@ El script:
 - espera MySQL healthy;
 - exige `CONFIRM_MIGRATE=yes`;
 - si ya hay tablas, exige un respaldo cifrado previo;
-- aplica las migraciones con `migrate --force` (13 en un esquema nuevo);
+- aplica las migraciones con `migrate --force` (14 en un esquema nuevo);
 - crea/actualiza los cuatro usuarios de servicio desde `.env`;
 - aplica `deploy/aws/grants-production.sql`;
 - opcionalmente ejecuta `AdminUserSeeder` con `SEED_ADMIN=yes`.
@@ -343,5 +343,7 @@ No se ha creado ningún recurso.
 - Los documentos SDD/AGENTS se han desbloqueado en `.gitignore`, pero **no se
   han commiteado ni pusheado**: para recuperarlos desde GitHub hace falta un
   commit/push autorizado.
-- La aplicación main ya tiene 13 migraciones y los grants; no se requieren
-  migraciones adicionales para esta fase.
+- La aplicación main tiene 14 migraciones aplicadas; la migración S11
+  `2026_11_11_000011_create_user_consents_table` y el grant de `user_consents`
+  para `rifacloud_auth` se aplicaron y verificaron el 2026-11-12 con autorización
+  explícita.

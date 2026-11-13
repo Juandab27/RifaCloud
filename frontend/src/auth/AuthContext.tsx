@@ -17,6 +17,10 @@ interface RegisterPayload {
   phone: string
   password: string
   password_confirmation: string
+  privacy_consent: boolean
+  terms_consent: boolean
+  marketing_consent: boolean
+  consent_version: string
 }
 
 type SessionState = 'checking' | 'authenticated' | 'anonymous' | 'unavailable'

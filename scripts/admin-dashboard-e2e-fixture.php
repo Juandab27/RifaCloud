@@ -77,6 +77,11 @@ function cleanupFixture(array $raffleIds, array $userIds): void
 
     if ($userIds !== []) {
         DB::table('sessions')->whereIn('user_id', $userIds)->delete();
+
+        if (Schema::hasTable('user_consents')) {
+            DB::table('user_consents')->whereIn('user_id', $userIds)->delete();
+        }
+
         DB::table('users')->whereIn('id', $userIds)->delete();
     }
 }

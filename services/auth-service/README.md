@@ -6,11 +6,11 @@ Independent authentication service for RifaCloud (stage S1 of ADR-001).
 
 | Owns | Must not own |
 |---|---|
-| Users, credentials, sessions, roles, authorization decisions | Raffles, numbers, orders, payments |
+| Users, credentials, sessions, roles, authorization decisions, consent evidence (`user_consents`) | Raffles, numbers, orders, payments |
 
 It shares the MySQL instance and schema with the monolith **during the
-transition**, but it is the only writer of `users`. It never writes raffles,
-numbers, orders or payments.
+transition**, but it is the only writer of `users` and `user_consents`. It never
+writes raffles, numbers, orders or payments.
 
 ## Public contract (through Nginx)
 
@@ -25,6 +25,25 @@ numbers, orders or payments.
 
 Responses preserve the monolith envelopes exactly, so the React client and
 existing protected routes do not change.
+
+### S11 registration consent
+
+`POST /api/register` also requires:
+
+| Field | Rule |
+|---|---|
+| `privacy_consent` | Required, accepted |
+| `terms_consent` | Required, accepted |
+| `consent_version` | Required, must equal `config('rifacloud.legal.consent_version')` |
+| `marketing_consent` | Optional boolean; separate from the required boxes |
+
+The service writes one `user_consents` row per type (`PRIVACY`, `TERMS`,
+`MARKETING`) with the document version, decision, timestamp and user. It does
+not store IP address or user agent in the evidence table. The additive
+`user_consents` migration and the grant from `scripts/mysql-s11-grants.sql` are
+applied to `rifacloud` and `rifacloud_test` (2026-11-12). If the table were
+missing, registration would still succeed but the evidence would not persist and
+a warning would be logged.
 
 ## Session compatibility (transition constraint)
 
