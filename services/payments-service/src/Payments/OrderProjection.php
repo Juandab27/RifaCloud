@@ -10,7 +10,7 @@ use PDO;
 
 /**
  * Read-only projection used to build the exact OrderResource contract React
- * already consumes (`data` wrapper, ISO-8601, cents, simulated flags).
+ * already consumes (`data` wrapper, ISO-8601, COP amounts, simulated flags).
  *
  * The service reads `orders`, `raffle_numbers` and `order_items` (owned by
  * orders-service) only to render the response; it never writes them.

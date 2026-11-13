@@ -11,7 +11,7 @@ use DateTimeZone;
  * Exact port of App\Modules\Orders\Http\Resources\OrderResource.
  *
  * The JSON shape is part of the React contract: `data` wrapper, ISO-8601
- * timestamps, prices in cents and the `simulated_payments` / `simulated`
+ * timestamps, prices in COP and the `simulated_payments` / `simulated`
  * flags derived from PAYMENT_GATEWAY. The collection variant keeps the same
  * order object and adds a Laravel-style `meta` block.
  */

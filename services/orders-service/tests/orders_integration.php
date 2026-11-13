@@ -484,7 +484,7 @@ try {
     $orderId = (int) ($created['payload']['data']['id'] ?? 0);
     check($orderId > 0, 'The response contains the new order id');
     check(($created['payload']['data']['status'] ?? '') === 'PENDING_PAYMENT', 'New orders start as PENDING_PAYMENT');
-    check((int) ($created['payload']['data']['total_amount'] ?? 0) === 4500, 'total_amount is price * count in cents');
+    check((int) ($created['payload']['data']['total_amount'] ?? 0) === 4500, 'total_amount is price * count in COP');
     check((int) ($created['payload']['data']['raffle']['id'] ?? 0) === $publishedId, 'The resource includes the raffle');
     check(count($created['payload']['data']['numbers'] ?? []) === 3, 'The resource includes the three reserved numbers');
     check(($created['payload']['data']['simulated_payments'] ?? true) === false, 'simulated_payments follows PAYMENT_GATEWAY');
@@ -511,7 +511,7 @@ try {
     );
     check(
         (int) $pdo->query('SELECT COUNT(*) FROM order_items WHERE order_id = '.(int) $orderId." AND price_at_purchase = 1500")->fetchColumn() === 3,
-        'order_items keep price_at_purchase in cents',
+        'order_items keep price_at_purchase in COP',
     );
 
     $again = createOrder($app, $ownerCookies, $publishedId, [2, 3]);
@@ -863,7 +863,7 @@ try {
     $paymentPayload = $withPayment['payload']['data']['payments'][0] ?? [];
     check(($paymentPayload['provider'] ?? '') === 'MERCADOPAGO', 'The payment provider is preserved');
     check(($paymentPayload['status'] ?? '') === 'APPROVED', 'The payment status is preserved');
-    check(($paymentPayload['amount'] ?? 0) === 1500, 'The payment amount is preserved in cents');
+    check(($paymentPayload['amount'] ?? 0) === 1500, 'The payment amount is preserved in COP');
     check(($paymentPayload['currency'] ?? '') === 'COP', 'The payment currency is preserved');
     check(($paymentPayload['simulated'] ?? false) === true, 'response_data.simulated is preserved');
 

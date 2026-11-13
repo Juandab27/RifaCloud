@@ -73,7 +73,7 @@ class QueueNotifications extends Command
                 'Orden: '.$order->order_number,
                 'Rifa: '.$order->raffle_title,
                 'Numeros: '.($numbers === '' ? 'sin numeros' : $numbers),
-                'Total: $'.number_format(((int) $order->total_amount) / 100, 0, ',', '.'),
+                'Total: $'.number_format((int) $order->total_amount, 0, ',', '.'),
                 'Pagada: '.$order->paid_at,
                 '',
                 'Conserva este correo como comprobante. Puedes consultar el detalle en Mis compras.',

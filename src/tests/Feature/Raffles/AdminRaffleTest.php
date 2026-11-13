@@ -62,7 +62,7 @@ class AdminRaffleTest extends TestCase
             ->assertJsonValidationErrors('max_number');
     }
 
-    public function test_price_per_number_is_stored_in_cents(): void
+    public function test_price_per_number_is_stored_in_cop(): void
     {
         $this->actingAs(User::factory()->admin()->create())
             ->postJson('/api/admin/raffles', $this->payload(['price_per_number' => 5000]))

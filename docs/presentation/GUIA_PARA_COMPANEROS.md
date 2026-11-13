@@ -61,7 +61,7 @@ forma transitoria**.
 | **Healthcheck** | Chequeo automático de si un contenedor está sano | `/health`, `mysqladmin ping`, heartbeat |
 | **CSRF** | Protección contra peticiones falsas desde otro sitio | Cookie XSRF + token; 419 si falla |
 | **Sesión** | Identidad temporal guardada en el servidor | Tabla `sessions`, cookie HttpOnly |
-| **Centavos** | Guardar dinero como entero para evitar decimales | `price_per_number`, `total_amount` en enteros |
+| **Pesos COP** | Guardar dinero como entero en pesos colombianos para evitar decimales | `price_per_number`, `total_amount` en enteros COP |
 
 ### 2.1 “Microservicio” no siempre significa “base separada”
 

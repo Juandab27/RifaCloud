@@ -65,7 +65,7 @@ Una transacción MySQL:
 3. `SELECT ... FROM raffle_numbers ... ORDER BY number FOR UPDATE`.
 4. `UPDATE raffle_numbers SET status='RESERVED', ... WHERE id IN (...) AND status='AVAILABLE'`
    con comprobación de filas afectadas.
-5. `INSERT INTO order_items` con `price_at_purchase` en centavos.
+5. `INSERT INTO order_items` con `price_at_purchase` en pesos COP.
 6. `COMMIT`.
 
 Reintentos acotados solo para deadlock (1213), lock wait timeout (1205), SQLSTATE

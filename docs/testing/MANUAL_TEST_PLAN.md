@@ -159,7 +159,7 @@ el escenario inicial.
 ## 9. Limpieza
 
 ```powershell
-# Elimina fixtures y restaura el stack normal sobre rifacloud
+# Elimina fixtures; restaura el stack normal solo si rifacloud ya está migrado a COP
 powershell -ExecutionPolicy Bypass -File scripts/cleanup-demo-environment.ps1
 
 # Opcional: elimina también los usuarios demo si no tienen órdenes

@@ -230,7 +230,7 @@ sequenceDiagram
     else Todos disponibles
         OS->>DB: UPDATE raffle_numbers SET RESERVED ... WHERE status='AVAILABLE'
         OS->>DB: verifica filas afectadas
-        OS->>DB: INSERT order_items (precio en centavos)
+        OS->>DB: INSERT order_items (precio en pesos COP)
         OS->>DB: COMMIT
         OS-->>FE: 201 {data: order}
     end

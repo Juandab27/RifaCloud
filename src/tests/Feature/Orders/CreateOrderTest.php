@@ -78,6 +78,25 @@ class CreateOrderTest extends TestCase
         }
     }
 
+    public function test_two_numbers_of_one_thousand_total_two_thousand_cop(): void
+    {
+        $user = User::factory()->create();
+        $raffle = $this->createRaffle(pricePerNumber: 1000);
+
+        $this->actingAs($user)
+            ->postJson('/api/orders', [
+                'raffle_id' => $raffle->id,
+                'numbers' => [1, 2],
+            ])
+            ->assertCreated()
+            ->assertJsonPath('data.total_amount', 2000);
+
+        $order = Order::query()->firstOrFail();
+
+        $this->assertSame(2000, $order->total_amount);
+        $this->assertSame(1000, (int) $order->items()->firstOrFail()->price_at_purchase);
+    }
+
     public function test_reservation_duration_is_configurable(): void
     {
         config(['rifacloud.reservation_minutes' => 5]);

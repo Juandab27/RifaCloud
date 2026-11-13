@@ -370,7 +370,7 @@ Puntos arquitectónicos:
 - Las escrituras cruzan dominios solo por comandos aprobados o por las rutas de
   rollback del monolito.
 - MySQL **no publica puertos** al host: solo es accesible desde la red Docker.
-- Los valores monetarios se guardan en **centavos**.
+- Los valores monetarios se guardan en **pesos colombianos enteros (COP)**.
 
 ### 7.2 Usuarios y permisos
 

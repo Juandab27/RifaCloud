@@ -203,7 +203,7 @@ try {
     $paymentId = if ($null -ne $checkoutJson) { $checkoutJson.data.payments[0].id } else { 0 }
     Add-Result 'Checkout keeps the order PENDING_PAYMENT' 'PENDING_PAYMENT' "$($checkoutJson.data.status)" ($checkoutJson.data.status -eq 'PENDING_PAYMENT')
     Add-Result 'Checkout creates a PENDING payment' 'PENDING' "$($checkoutJson.data.payments[0].status)" ($checkoutJson.data.payments[0].status -eq 'PENDING')
-    Add-Result 'Checkout total is in cents' '3000' "$($checkoutJson.data.total_amount)" ($checkoutJson.data.total_amount -eq 3000)
+    Add-Result 'Checkout total is in COP' '3000' "$($checkoutJson.data.total_amount)" ($checkoutJson.data.total_amount -eq 3000)
     Add-Result 'Checkout reports simulated payments' 'true' "$($checkoutJson.data.simulated_payments)" ($checkoutJson.data.simulated_payments -eq $true)
 
     $resume = Invoke-Api -Method 'POST' -Path "/api/orders/$orderId/payments" `

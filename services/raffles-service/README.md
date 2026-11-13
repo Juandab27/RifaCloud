@@ -36,7 +36,7 @@ público de rifas, la disponibilidad de números y la administración de rifas.
 
 El JSON conserva la forma del `RaffleResource` y del paginador de Laravel:
 `data`, `links`, `meta`, `numbers_count`, `reservation_minutes`,
-`max_numbers_per_order`, fechas ISO-8601, precios en centavos y conteos
+`max_numbers_per_order`, fechas ISO-8601, precios en pesos COP y conteos
 `available` / `reserved` / `sold`. Los errores conservan `message` + `errors`
 (422), `401`, `403`, `404`, `405` y `419`.
 

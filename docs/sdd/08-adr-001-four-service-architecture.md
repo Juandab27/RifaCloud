@@ -106,7 +106,7 @@ This ADR changes only the architecture target. It does **not** change:
 - The 10-minute reservation rule.
 - No auto-release on uncertain payment.
 - Manual result publication.
-- Monetary values in cents.
+- Monetary values in COP (integers).
 - MySQL internal-only.
 - Fail-closed behavior when the database is unavailable.
 

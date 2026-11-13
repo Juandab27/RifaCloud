@@ -45,6 +45,8 @@ powershell -ExecutionPolicy Bypass -File scripts/cleanup-demo-environment.ps1
 usuarios, comprueba catálogo, historial, aislamiento y métricas del dashboard.
 
 `cleanup-demo-environment.ps1` elimina las rifas `[DEMO]`, las órdenes
-`DEMO-` y las sesiones demo de `rifacloud_test`, y restaura el stack normal
-sobre `rifacloud`. Usa `-PurgeUsers` si además quieres eliminar los usuarios
-demo que ya no tengan órdenes.
+`DEMO-` y las sesiones demo de `rifacloud_test`. Restaura el stack normal
+sobre `rifacloud` solo cuando la migración de COP ya está aplicada; si
+`rifacloud` sigue en centavos, conserva el entorno de pruebas para no ejecutar
+código nuevo contra datos viejos. Usa `-PurgeUsers` si además quieres eliminar
+los usuarios demo que ya no tengan órdenes.

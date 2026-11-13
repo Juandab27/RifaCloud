@@ -152,7 +152,7 @@ try {
         check($published['numbers_count'] === 5, 'numbers_count is projected');
         check($published['reservation_minutes'] === 10, 'reservation_minutes matches the contract');
         check($published['max_numbers_per_order'] === 50, 'max_numbers_per_order matches the contract');
-        check($published['price_per_number'] === 5000, 'price_per_number is an integer in cents');
+        check($published['price_per_number'] === 5000, 'price_per_number is an integer in COP');
     }
 
     check($repository->findPublished($publishedId) !== null, 'published raffle detail is available');

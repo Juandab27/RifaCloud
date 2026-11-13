@@ -5,9 +5,15 @@ import { api, apiErrorMessage } from '../../api/client'
 import Alert from '../../components/ui/Alert'
 import Button from '../../components/ui/Button'
 import Card from '../../components/ui/Card'
+import DateTimeField from '../../components/ui/DateTimeField'
 import Field from '../../components/ui/Field'
 import PageHeader from '../../components/ui/PageHeader'
 import Skeleton from '../../components/ui/Skeleton'
+import {
+  formatCop,
+  toBogotaDateTimeInput,
+  toUtcIsoFromBogotaInput,
+} from '../../lib/format'
 import type { Raffle, RafflePayload } from '../../types'
 
 function createEmptyForm() {
@@ -20,10 +26,6 @@ function createEmptyForm() {
     starts_at: '',
     ends_at: '',
   }
-}
-
-function toDateTimeLocal(value: string | null): string {
-  return value ? value.slice(0, 16) : ''
 }
 
 /** Errores 422 por campo; solo presentación, no altera la validación. */
@@ -88,8 +90,8 @@ export default function AdminRaffleFormPage() {
           price_per_number: String(loaded.price_per_number),
           min_number: String(loaded.min_number),
           max_number: String(loaded.max_number),
-          starts_at: toDateTimeLocal(loaded.starts_at),
-          ends_at: toDateTimeLocal(loaded.ends_at),
+          starts_at: toBogotaDateTimeInput(loaded.starts_at),
+          ends_at: toBogotaDateTimeInput(loaded.ends_at),
         })
         setError(null)
         setFieldErrors({})
@@ -128,16 +130,31 @@ export default function AdminRaffleFormPage() {
     event.preventDefault()
     setError(null)
     setFieldErrors({})
+
+    const priceCop = Number(form.price_per_number)
+
+    if (!Number.isInteger(priceCop) || priceCop < 1) {
+      setFieldErrors({ price_per_number: 'Ingresa un precio entero en pesos colombianos.' })
+
+      return
+    }
+
+    if (form.starts_at !== '' && form.ends_at !== '' && form.ends_at <= form.starts_at) {
+      setFieldErrors({ ends_at: 'La fecha de cierre debe ser posterior a la de inicio.' })
+
+      return
+    }
+
     setSubmitting(true)
 
     const payload: RafflePayload = {
       title: form.title,
       description: form.description === '' ? null : form.description,
-      price_per_number: Number(form.price_per_number),
+      price_per_number: priceCop,
       min_number: Number(form.min_number),
       max_number: Number(form.max_number),
-      starts_at: form.starts_at === '' ? null : form.starts_at,
-      ends_at: form.ends_at === '' ? null : form.ends_at,
+      starts_at: toUtcIsoFromBogotaInput(form.starts_at),
+      ends_at: toUtcIsoFromBogotaInput(form.ends_at),
     }
 
     try {
@@ -181,6 +198,9 @@ export default function AdminRaffleFormPage() {
   }
 
   const readOnly = isEditing && raffle?.status !== 'DRAFT'
+  const priceCop = Number(form.price_per_number)
+  const pricePreview =
+    Number.isInteger(priceCop) && priceCop > 0 ? formatCop(priceCop) : null
 
   return (
     <section>
@@ -194,7 +214,7 @@ export default function AdminRaffleFormPage() {
         description={
           isEditing
             ? 'Solo las rifas en borrador se pueden editar. Si cambias el rango, los números se regeneran.'
-            : 'Los números del rango se generan automáticamente al crear la rifa. El precio se guarda en centavos.'
+            : 'Los números del rango se generan automáticamente al crear la rifa. El precio se ingresa en pesos colombianos (COP).'
         }
       />
 
@@ -234,13 +254,20 @@ export default function AdminRaffleFormPage() {
 
             <div className="form-row">
               <Field
-                label="Precio por número (centavos)"
+                label="Precio por número (COP)"
                 required
                 error={fieldErrors.price_per_number}
+                hint={
+                  pricePreview
+                    ? `Se mostrará como ${pricePreview}.`
+                    : 'Ingresa el valor en pesos colombianos.'
+                }
               >
                 <input
                   type="number"
                   min={1}
+                  step={1}
+                  inputMode="numeric"
                   value={form.price_per_number}
                   onChange={(event) => update('price_per_number', event.target.value)}
                   required
@@ -276,27 +303,34 @@ export default function AdminRaffleFormPage() {
             <legend>Calendario</legend>
 
             <div className="form-row">
-              <Field label="Inicio (opcional)" error={fieldErrors.starts_at}>
-                <input
-                  type="datetime-local"
+              <Field
+                label="Inicio (opcional)"
+                error={fieldErrors.starts_at}
+                hint="Hora de Colombia (America/Bogota)."
+              >
+                <DateTimeField
                   value={form.starts_at}
-                  onChange={(event) => update('starts_at', event.target.value)}
+                  onChange={(value) => update('starts_at', value)}
                   disabled={readOnly || submitting}
                 />
               </Field>
 
-              <Field label="Fin (opcional)" error={fieldErrors.ends_at}>
-                <input
-                  type="datetime-local"
+              <Field
+                label="Fin (opcional)"
+                error={fieldErrors.ends_at}
+                hint="Hora de Colombia (America/Bogota)."
+              >
+                <DateTimeField
                   value={form.ends_at}
-                  onChange={(event) => update('ends_at', event.target.value)}
+                  onChange={(value) => update('ends_at', value)}
                   disabled={readOnly || submitting}
                 />
               </Field>
             </div>
 
             <p className="ui-field-hint">
-              Si dejas ambas fechas vacías, la rifa no restringe la venta por calendario.
+              Si dejas ambas fechas vacías, la rifa no restringe la venta por calendario. La
+              fecha de cierre debe ser posterior a la de inicio.
             </p>
           </fieldset>
 

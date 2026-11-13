@@ -258,7 +258,7 @@ número de ventas de la orden.
 ## 9. Limpieza
 
 ```powershell
-# Volver al gateway simulado y al stack normal
+# Volver al gateway simulado; el cleanup restaura el stack normal solo si rifacloud ya está migrado a COP
 docker compose -f docker-compose.yml -f docker-compose.e2e.yml up -d --force-recreate payments-service app auth-service nginx
 powershell -ExecutionPolicy Bypass -File scripts/cleanup-demo-environment.ps1
 ```

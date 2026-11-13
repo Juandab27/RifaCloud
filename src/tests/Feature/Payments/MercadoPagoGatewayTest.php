@@ -60,7 +60,7 @@ class MercadoPagoGatewayTest extends TestCase
                 && $request['external_reference'] === 'MP-ORDER-7'
                 && $request['items'][0]['title'] === 'Rifa: Rifa de prueba'
                 && $request['items'][0]['quantity'] === 1
-                && (float) $request['items'][0]['unit_price'] === 20.0
+                && (float) $request['items'][0]['unit_price'] === 2000.0
                 && $request['items'][0]['currency_id'] === 'COP'
                 && $request['back_urls']['success'] === 'https://rifacloud.test/orders/7?pago=retorno'
                 && $request['notification_url'] === 'https://rifacloud.test/api/webhooks/mercadopago'
@@ -165,18 +165,18 @@ class MercadoPagoGatewayTest extends TestCase
         $this->gateway()->verifyPayment('MP-ORDER-7');
     }
 
-    public function test_verification_searches_by_external_reference_and_converts_amounts_to_cents(): void
+    public function test_verification_searches_by_external_reference_and_uses_amounts_in_cop(): void
     {
         Http::fake([
             'https://api.mercadopago.test/v1/payments/search*' => Http::response([
-                'results' => [$this->paymentResult(['transaction_amount' => 20.55])],
+                'results' => [$this->paymentResult(['transaction_amount' => 2000])],
             ]),
         ]);
 
         $status = $this->gateway()->verifyPayment('MP-ORDER-7');
 
         $this->assertSame(PaymentState::APPROVED, $status->status);
-        $this->assertSame(2055, $status->amount);
+        $this->assertSame(2000, $status->amount);
         $this->assertSame('COP', $status->currency);
         $this->assertSame('MP-ORDER-7', $status->externalId);
         $this->assertSame('123456', $status->raw['mp_payment_id']);
@@ -188,6 +188,19 @@ class MercadoPagoGatewayTest extends TestCase
                 && str_contains($request->url(), 'external_reference=MP-ORDER-7')
                 && $request->hasHeader('Authorization', 'Bearer test-access-token');
         });
+    }
+
+    public function test_verification_rejects_fractional_provider_amounts(): void
+    {
+        Http::fake([
+            'https://api.mercadopago.test/v1/payments/search*' => Http::response([
+                'results' => [$this->paymentResult(['transaction_amount' => 20.55])],
+            ]),
+        ]);
+
+        $this->expectException(PaymentGatewayException::class);
+
+        $this->gateway()->verifyPayment('MP-ORDER-7');
     }
 
     public function test_verification_ignores_payments_from_another_external_reference(): void
@@ -688,7 +701,7 @@ class MercadoPagoGatewayTest extends TestCase
             'id' => 123456,
             'status' => 'approved',
             'status_detail' => 'accredited',
-            'transaction_amount' => 20.0,
+            'transaction_amount' => 2000,
             'currency_id' => 'COP',
             'external_reference' => 'MP-ORDER-7',
             'payment_method_id' => 'visa',

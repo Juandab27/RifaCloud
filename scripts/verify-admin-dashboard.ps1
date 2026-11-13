@@ -12,7 +12,8 @@
       3. ADMIN metrics -> 200 with the exact published/paid/sold/incident counts.
       4. A stopped owner service returns a controlled JSON 503 for its metric
          while the other two metrics keep working.
-      5. The normal stack is restored in `finally`.
+      5. The normal stack is restored in `finally` only when `rifacloud` already
+         stores COP; otherwise the test stack is kept to avoid mixing units.
 
     The main `rifacloud` database is never touched and no migration is run.
 
@@ -73,6 +74,22 @@ function Wait-ServiceHealthy {
     }
 
     return $false
+}
+
+function Test-MainMoneyMigrationApplied {
+    $envMap = @{}
+    Get-Content (Join-Path $RepoRoot '.env') | Where-Object { $_ -match '^[A-Z0-9_]+=' } | ForEach-Object {
+        $key, $value = $_ -split '=', 2
+        $envMap[$key] = $value
+    }
+
+    if (-not $envMap.ContainsKey('DB_ROOT_PASSWORD')) {
+        return $false
+    }
+
+    $result = & docker compose @Compose exec -T -e "MYSQL_PWD=$($envMap['DB_ROOT_PASSWORD'])" mysql mysql -uroot -N -e "SELECT COUNT(*) FROM rifacloud.migrations WHERE migration='2026_11_13_000012_convert_monetary_values_to_cop';" 2>$null
+
+    return ((($result | Out-String).Trim()) -eq '1')
 }
 
 function Invoke-Api {
@@ -405,17 +422,23 @@ try {
     Remove-Item $AdminJar -Force -ErrorAction SilentlyContinue
     Remove-Item $UserJar -Force -ErrorAction SilentlyContinue
 
-    Write-Host 'Restoring the normal stack...' -ForegroundColor Cyan
-    & docker compose up -d --force-recreate app scheduler auth-service raffles-service orders-service payments-service nginx *> $null
+    if (-not (Test-MainMoneyMigrationApplied)) {
+        Write-Host 'The normal stack is not restored: rifacloud still stores cents.' -ForegroundColor Yellow
+        Write-Host 'Apply 2026_11_13_000012_convert_monetary_values_to_cop to rifacloud first.' -ForegroundColor Yellow
+        Write-Host 'The test stack remains available on rifacloud_test.' -ForegroundColor Yellow
+    } else {
+        Write-Host 'Restoring the normal stack...' -ForegroundColor Cyan
+        & docker compose up -d --force-recreate app scheduler auth-service raffles-service orders-service payments-service nginx *> $null
 
-    foreach ($container in @(
-        'rifacloud-auth-service',
-        'rifacloud-raffles-service',
-        'rifacloud-orders-service',
-        'rifacloud-payments-service',
-        'rifacloud-scheduler'
-    )) {
-        Wait-ServiceHealthy $container $StartTimeoutSeconds | Out-Null
+        foreach ($container in @(
+            'rifacloud-auth-service',
+            'rifacloud-raffles-service',
+            'rifacloud-orders-service',
+            'rifacloud-payments-service',
+            'rifacloud-scheduler'
+        )) {
+            Wait-ServiceHealthy $container $StartTimeoutSeconds | Out-Null
+        }
     }
 }
 

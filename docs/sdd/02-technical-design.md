@@ -173,7 +173,7 @@ Implemented and verified in the fourth increment (S3, `orders-service`):
   `Sec-Fetch-Site` plus `X-XSRF-TOKEN`/`X-CSRF-TOKEN`/`_token`, `419` on
   mismatch), matching Sanctum.
 - The `OrderResource` JSON contract is byte-compatible: `data` wrapper,
-  ISO-8601 timestamps, prices in cents, `simulated_payments`/`simulated` from
+  ISO-8601 timestamps, prices in COP, `simulated_payments`/`simulated` from
   `PAYMENT_GATEWAY`, numbers and the read-only `payments` projection.
 - Reservation expiry moved into the service. `POST
   /internal/orders/expire-reservations` is signed with
@@ -786,7 +786,7 @@ instance. Microservices and Kubernetes were explicitly out of scope, and the
 monolith was the final architecture. That decision was valid for the original
 MVP and remains in the project history. ADR-001 supersedes it only for the
 approved four-service evolution; all other v1.2 decisions (Mercado Pago as the
-only provider attempted, 10-minute reservations, cents, manual results, MySQL
+only provider attempted, 10-minute reservations, COP amounts, manual results, MySQL
 internal-only, fail-closed payments) remain unchanged.
 
 ## 14. Change Log

@@ -10,7 +10,7 @@ import ErrorState from '../components/ui/ErrorState'
 import Icon from '../components/ui/Icon'
 import PageHeader from '../components/ui/PageHeader'
 import PageSkeleton from '../components/ui/PageSkeleton'
-import { formatCents, formatDate, formatRaffleNumber } from '../lib/format'
+import { formatCop, formatDate, formatRaffleNumber } from '../lib/format'
 import { getRafflePublicState } from '../lib/raffle'
 import { useNow } from '../lib/useNow'
 import type { PaginatedResponse, Raffle } from '../types'
@@ -105,8 +105,8 @@ export default function CatalogPage() {
 
                 <dl className="raffle-card-meta">
                   <div>
-                    <dt>Precio por número</dt>
-                    <dd className="raffle-price">{formatCents(raffle.price_per_number)}</dd>
+                    <dt>Precio por número (COP)</dt>
+                    <dd className="raffle-price">{formatCop(raffle.price_per_number)}</dd>
                   </div>
                   <div>
                     <dt>Números</dt>

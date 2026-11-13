@@ -747,7 +747,7 @@ class MercadoPagoWebhookTest extends TestCase
             'id' => 123456,
             'status' => $status,
             'status_detail' => $status === 'approved' ? 'accredited' : $status,
-            'transaction_amount' => $order->total_amount / 100,
+            'transaction_amount' => $order->total_amount,
             'currency_id' => 'COP',
             'external_reference' => 'MP-ORDER-'.$order->id,
             'payment_method_id' => 'visa',

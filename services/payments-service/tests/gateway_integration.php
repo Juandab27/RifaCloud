@@ -151,7 +151,7 @@ try {
     check($request['headers']['Authorization'] === 'Bearer test-access-token', 'Checkout sends the bearer token');
     check($request['headers']['X-Idempotency-Key'] === 'MP-ORDER-7', 'Checkout uses the deterministic idempotency key');
     check($body['external_reference'] === 'MP-ORDER-7', 'The external reference is deterministic per order');
-    check((float) $body['items'][0]['unit_price'] === 45.0, 'The unit price converts cents to the provider unit');
+    check((float) $body['items'][0]['unit_price'] === 4500.0, 'The unit price is sent in COP without conversion');
     check($body['items'][0]['currency_id'] === 'COP', 'The checkout currency is COP');
     check($body['items'][0]['title'] === 'Rifa: Rifa demo', 'The item title uses the raffle title');
     check($body['back_urls']['success'] === 'https://rifacloud.test/orders/7?pago=retorno', 'The back URL preserves the React route');
@@ -168,7 +168,7 @@ try {
             [
                 'id' => 111,
                 'status' => 'pending',
-                'transaction_amount' => 45.0,
+                'transaction_amount' => 4500,
                 'currency_id' => 'COP',
                 'external_reference' => 'MP-ORDER-7',
                 'date_created' => '2026-10-25T00:00:00.000-04:00',
@@ -177,7 +177,7 @@ try {
                 'id' => 222,
                 'status' => 'approved',
                 'status_detail' => 'accredited',
-                'transaction_amount' => 45.0,
+                'transaction_amount' => 4500,
                 'currency_id' => 'COP',
                 'external_reference' => 'MP-ORDER-7',
                 'date_created' => '2026-10-25T00:00:02.000-04:00',
@@ -189,7 +189,7 @@ try {
 
     $status = $gateway($http)->verifyPayment('MP-ORDER-7');
     check($status->status === PaymentState::APPROVED, 'An approved result wins over a pending one');
-    check($status->amount === 4500, 'The amount is converted to cents');
+    check($status->amount === 4500, 'The amount is preserved in COP');
     check($status->currency === 'COP', 'The currency is preserved');
     check($status->raw['mp_payment_id'] === '222', 'The selected provider payment id is recorded');
     check($status->raw['mp_approved_payment_count'] === 1, 'The approved count is recorded');
@@ -257,7 +257,7 @@ try {
         'id' => '123456',
         'status' => 'approved',
         'status_detail' => 'accredited',
-        'transaction_amount' => 45.0,
+        'transaction_amount' => 4500,
         'currency_id' => 'COP',
         'external_reference' => 'MP-ORDER-7',
         'date_created' => '2026-10-25T00:00:00.000-04:00',
@@ -290,7 +290,7 @@ try {
         'id' => '123456',
         'status' => 'approved',
         'status_detail' => 'accredited',
-        'transaction_amount' => 45.0,
+        'transaction_amount' => 4500,
         'currency_id' => 'COP',
         'external_reference' => 'MP-ORDER-7',
         'date_created' => '2026-10-25T00:00:00.000-04:00',
@@ -361,7 +361,7 @@ try {
     $http->responses[] = jsonResponse([
         'id' => '777',
         'status' => 'approved',
-        'transaction_amount' => 45.0,
+        'transaction_amount' => 4500,
         'currency_id' => 'COP',
         'external_reference' => 'MP-ORDER-12',
         'date_created' => '2026-10-25T00:00:00.000-04:00',

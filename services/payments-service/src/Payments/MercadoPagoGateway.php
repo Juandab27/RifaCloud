@@ -54,7 +54,7 @@ final class MercadoPagoGateway implements PaymentGateway
                 'id' => (string) $order['id'],
                 'title' => $this->itemTitle($order),
                 'quantity' => 1,
-                'unit_price' => round($order['total_amount'] / 100, 2),
+                'unit_price' => $order['total_amount'],
                 'currency_id' => 'COP',
             ]],
             'external_reference' => $externalId,
@@ -645,7 +645,7 @@ final class MercadoPagoGateway implements PaymentGateway
     private function mapPayment(array $payment): PaymentStatus
     {
         $mpStatus = $this->normalizeStatus($payment['status'] ?? null);
-        $amount = (int) round(((float) ($payment['transaction_amount'] ?? 0)) * 100);
+        $amount = $this->providerAmountInCop($payment['transaction_amount'] ?? null);
         $currency = strtoupper($this->text($payment['currency_id'] ?? null) ?? '');
         $paymentId = $this->text($payment['id'] ?? null);
 
@@ -671,6 +671,23 @@ final class MercadoPagoGateway implements PaymentGateway
                 'mp_payment_ids' => $paymentId === null ? [] : [$paymentId],
             ],
         );
+    }
+
+    private function providerAmountInCop(mixed $value): int
+    {
+        if (is_int($value)) {
+            return $value;
+        }
+
+        if (is_float($value) && is_finite($value) && floor($value) === $value) {
+            return (int) $value;
+        }
+
+        if (is_string($value) && preg_match('/^[0-9]+$/', trim($value)) === 1) {
+            return (int) trim($value);
+        }
+
+        throw new PaymentGatewayException('Mercado Pago returned an invalid amount.');
     }
 
     private function boolOrNull(mixed $value): ?bool

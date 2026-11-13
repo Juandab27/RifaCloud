@@ -70,7 +70,7 @@
 - ✅ Use transactions and locks for concurrency
 - ✅ Queue emails asynchronously
 - ✅ Validate admin actions on backend
-- ✅ Store monetary values in cents
+- ✅ Store monetary values in COP (integer pesos)
 - ✅ Follow 10-minute reservation rule
 - ✅ Mark uncertain payments for review, don't auto-release
 - ✅ Keep catalog working if payment provider fails

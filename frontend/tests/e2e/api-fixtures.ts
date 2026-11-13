@@ -32,7 +32,7 @@ export const adminUser = {
 
 const baseRaffle = {
   description: 'Rifa de prueba para las comprobaciones de interfaz.',
-  price_per_number: 100000,
+  price_per_number: 1000,
   min_number: 1,
   max_number: 2000,
   total_numbers: 2000,
@@ -108,22 +108,22 @@ export const rejectedOrder = {
   id: 7,
   order_number: 'RC-0007',
   status: 'REJECTED',
-  total_amount: 200000,
+  total_amount: 2000,
   expires_at: null,
   paid_at: null,
   created_at: iso(-1 * HOUR),
   simulated_payments: true,
   raffle: { id: 2, title: 'Rifa disponible' },
   numbers: [
-    { id: 21, number: 10, status: 'AVAILABLE', price_at_purchase: 100000 },
-    { id: 22, number: 11, status: 'AVAILABLE', price_at_purchase: 100000 },
+    { id: 21, number: 10, status: 'AVAILABLE', price_at_purchase: 1000 },
+    { id: 22, number: 11, status: 'AVAILABLE', price_at_purchase: 1000 },
   ],
   payments: [
     {
       id: 70,
       provider: 'MERCADOPAGO',
       status: 'REJECTED',
-      amount: 200000,
+      amount: 2000,
       currency: 'COP',
       checkout_url: null,
       simulated: true,
@@ -138,8 +138,9 @@ export const expiredOrder = {
   id: 8,
   order_number: 'RC-0008',
   status: 'EXPIRED',
+  total_amount: 1000,
   numbers: [
-    { id: 23, number: 20, status: 'AVAILABLE', price_at_purchase: 100000 },
+    { id: 23, number: 20, status: 'AVAILABLE', price_at_purchase: 1000 },
   ],
   payments: [],
 }

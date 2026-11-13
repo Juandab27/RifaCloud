@@ -11,7 +11,7 @@ import Icon from '../components/ui/Icon'
 import PageHeader from '../components/ui/PageHeader'
 import PageSkeleton from '../components/ui/PageSkeleton'
 import StatusPill from '../components/ui/StatusPill'
-import { formatCents, formatDate } from '../lib/format'
+import { formatCop, formatDate } from '../lib/format'
 import {
   NUMBER_STATUS_LABELS,
   ORDER_STATUS_HINT,
@@ -196,7 +196,7 @@ export default function OrdersPage() {
             <dl className="facts">
               <div>
                 <dt>Total</dt>
-                <dd className="raffle-price">{formatCents(order.total_amount)}</dd>
+                <dd className="raffle-price">{formatCop(order.total_amount)}</dd>
               </div>
               <div>
                 <dt>Números</dt>

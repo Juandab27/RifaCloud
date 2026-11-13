@@ -254,7 +254,7 @@ docker compose down -v       # elimina también los datos locales
 
 - MySQL no publica puertos: solo es accesible desde la red interna de Docker
   (NFR-011 / AC-029).
-- Los valores monetarios se almacenan en **centavos** (NFR-013).
+- Los valores monetarios se almacenan en **pesos colombianos enteros (COP)** (NFR-013).
 - El correo local usa el mailer `log` (P1); Mailtrap se configura en P2.
 - El valor por defecto de `src/.env.example` usa el gateway simulado
   (`PAYMENT_GATEWAY=fake`); la interfaz lo marca como **SIMULADO** y no se

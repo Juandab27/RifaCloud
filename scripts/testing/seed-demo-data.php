@@ -206,7 +206,7 @@ try {
             $raffleId = (int) DB::table('raffles')->insertGetId([
                 'title' => '[DEMO] '.$title,
                 'description' => 'Datos de demostración para pruebas manuales. No usar en producción.',
-                'price_per_number' => 100000,
+                'price_per_number' => 1000,
                 'min_number' => 1,
                 'max_number' => $maxNumber,
                 'status' => $status,
@@ -253,7 +253,7 @@ try {
                 'user_id' => $userId,
                 'raffle_id' => $raffle['id'],
                 'order_number' => $orderNumber,
-                'total_amount' => 100000 * count($numbers),
+                'total_amount' => 1000 * count($numbers),
                 'status' => $status,
                 'expires_at' => $format($expiresAt),
                 'paid_at' => $paidAt === null ? null : $format($paidAt),
@@ -265,7 +265,7 @@ try {
                 DB::table('order_items')->insert([
                     'order_id' => $orderId,
                     'raffle_number_id' => $raffle['numbers'][$number],
-                    'price_at_purchase' => 100000,
+                    'price_at_purchase' => 1000,
                     'created_at' => now(),
                     'updated_at' => now(),
                 ]);
@@ -303,7 +303,7 @@ try {
                     'provider' => 'MERCADOPAGO',
                     'external_id' => $paymentExternalId,
                     'status' => $paymentStatus,
-                    'amount' => 100000 * count($numbers),
+                    'amount' => 1000 * count($numbers),
                     'currency' => 'COP',
                     'checkout_url' => null,
                     'verified_at' => now(),

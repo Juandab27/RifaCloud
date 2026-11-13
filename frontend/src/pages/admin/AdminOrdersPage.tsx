@@ -8,7 +8,7 @@ import EmptyState from '../../components/ui/EmptyState'
 import PageHeader from '../../components/ui/PageHeader'
 import Skeleton from '../../components/ui/Skeleton'
 import StatusPill from '../../components/ui/StatusPill'
-import { formatCents, formatDate } from '../../lib/format'
+import { formatCop, formatDate } from '../../lib/format'
 import {
   ORDER_STATUS_LABELS,
   PAYMENT_STATUS_LABELS,
@@ -246,7 +246,7 @@ export default function AdminOrdersPage() {
                       <span className="muted">{order.customer.email}</span>
                     </span>
                   </td>
-                  <td data-label="Total">{formatCents(order.total_amount)}</td>
+                  <td data-label="Total">{formatCop(order.total_amount)}</td>
                   <td data-label="Estado">
                     <StatusPill
                       status={order.status}
@@ -295,7 +295,7 @@ export default function AdminOrdersPage() {
                     </span>
                   </td>
                   <td data-label="Importe">
-                    {formatCents(incident.amount)} {incident.currency}
+                    {formatCop(incident.amount, incident.currency)}
                   </td>
                   <td data-label="Incidencia">
                     <StatusPill

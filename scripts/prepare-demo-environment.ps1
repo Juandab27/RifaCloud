@@ -173,12 +173,13 @@ try {
     Write-Host "  Números vendidos: $($summary.counts.sold_numbers)"
     Write-Host "  Incidencias pendientes: $($summary.counts.pending_incidents)"
     Write-Host ''
-    Write-Host 'Para restaurar el stack normal:' -ForegroundColor Cyan
+    Write-Host 'Para limpiar los fixtures del entorno de pruebas:' -ForegroundColor Cyan
     Write-Host '  powershell -ExecutionPolicy Bypass -File scripts/cleanup-demo-environment.ps1'
+    Write-Host 'El stack normal no se restaura hasta aplicar la migración de COP sobre rifacloud.' -ForegroundColor Yellow
 } catch {
     $errorMessage = $_.Exception.Message
     Write-Host "ERROR: $errorMessage" -ForegroundColor Red
-    Write-Host 'Restaurando el stack normal por seguridad...' -ForegroundColor Yellow
-    & docker compose up -d --force-recreate app scheduler auth-service raffles-service orders-service payments-service nginx *> $null
+    Write-Host 'Restaurando el stack de pruebas por seguridad...' -ForegroundColor Yellow
+    & docker compose @Compose up -d --force-recreate app scheduler auth-service raffles-service orders-service payments-service nginx *> $null
     exit 1
 }

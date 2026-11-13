@@ -13,7 +13,7 @@ import ErrorState from '../components/ui/ErrorState'
 import PageSkeleton from '../components/ui/PageSkeleton'
 import Spinner from '../components/ui/Spinner'
 import StatusPill from '../components/ui/StatusPill'
-import { formatCents, formatDate } from '../lib/format'
+import { formatCop, formatDate } from '../lib/format'
 import { CHECKOUT_SANDBOX_NOTICE, CHECKOUT_SIMULATED_NOTICE } from '../lib/legal'
 import {
   NUMBER_STATUS_LABELS,
@@ -407,7 +407,7 @@ export default function OrderDetailPage() {
         <dl className="facts">
           <div>
             <dt>Total</dt>
-            <dd className="raffle-price">{formatCents(order.total_amount)}</dd>
+            <dd className="raffle-price">{formatCop(order.total_amount)}</dd>
           </div>
           <div>
             <dt>Números</dt>
@@ -481,7 +481,7 @@ export default function OrderDetailPage() {
               <div>
                 <dt>Importe</dt>
                 <dd>
-                  {formatCents(latestPayment.amount)} {latestPayment.currency}
+                  {formatCop(latestPayment.amount, latestPayment.currency)}
                 </dd>
               </div>
               {latestPayment.verified_at && (

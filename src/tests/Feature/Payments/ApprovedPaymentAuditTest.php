@@ -174,7 +174,7 @@ class ApprovedPaymentAuditTest extends TestCase
             'id' => $providerId,
             'status' => 'approved',
             'status_detail' => 'accredited',
-            'transaction_amount' => $order->total_amount / 100,
+            'transaction_amount' => $order->total_amount,
             'currency_id' => 'COP',
             'external_reference' => 'MP-ORDER-'.$order->id,
             'date_created' => '2026-10-25T00:00:00.000-04:00',

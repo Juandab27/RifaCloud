@@ -89,6 +89,7 @@ reservas, pagos o resultados.
 - Solo elimina títulos `[DEMO]`, órdenes `DEMO-` y datos asociados.
 - No toca filas ajenas a esos prefijos.
 - `cleanup-demo-environment.ps1` elimina los fixtures y restaura el stack
-  normal. Los usuarios demo se conservan salvo `-PurgeUsers`.
+  normal solo si `rifacloud` ya está migrado a COP. Los usuarios demo se
+  conservan salvo `-PurgeUsers`.
 - Si un usuario demo creó una orden manual en una rifa no demo, la limpieza la
   conserva y no purga ese usuario; el script lo informa.

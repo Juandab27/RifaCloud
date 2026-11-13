@@ -9,7 +9,7 @@ import EmptyState from '../../components/ui/EmptyState'
 import PageHeader from '../../components/ui/PageHeader'
 import Skeleton from '../../components/ui/Skeleton'
 import StatusPill from '../../components/ui/StatusPill'
-import { formatCents } from '../../lib/format'
+import { formatCop } from '../../lib/format'
 import type { PaginatedResponse, Raffle, RaffleStatus } from '../../types'
 
 const statusLabels: Record<RaffleStatus, string> = {
@@ -238,7 +238,7 @@ export default function AdminRafflesPage() {
               <tr>
                 <th scope="col">Rifa</th>
                 <th scope="col">Estado</th>
-                <th scope="col">Precio</th>
+                <th scope="col">Precio (COP)</th>
                 <th scope="col">Rango</th>
                 <th scope="col">Números</th>
                 <th scope="col">Resultado</th>
@@ -257,7 +257,7 @@ export default function AdminRafflesPage() {
                       label={statusLabels[raffle.status]}
                     />
                   </td>
-                  <td data-label="Precio">{formatCents(raffle.price_per_number)}</td>
+                  <td data-label="Precio">{formatCop(raffle.price_per_number)}</td>
                   <td data-label="Rango">
                     {raffle.min_number} – {raffle.max_number}
                   </td>

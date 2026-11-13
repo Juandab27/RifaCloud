@@ -7,7 +7,7 @@
 
 ## 1. Design Principles
 
-- Use integers for all monetary values (cents)
+- Use integers for all monetary values (COP pesos)
 - Enforce uniqueness at DB level to prevent double-selling
 - Use transactions and row locks for concurrency
 - Minimize PII (name, email, phone only)
@@ -133,7 +133,7 @@ Raffle campaigns.
 | id | BIGINT UNSIGNED | PK, AUTO_INCREMENT | Primary key |
 | title | VARCHAR(255) | NOT NULL | Raffle title |
 | description | TEXT | NULL | Description |
-| price_per_number | INT UNSIGNED | NOT NULL | Price in cents |
+| price_per_number | INT UNSIGNED | NOT NULL | Price in COP |
 | min_number | INT UNSIGNED | NOT NULL | Range start |
 | max_number | INT UNSIGNED | NOT NULL | Range end |
 | status | ENUM('DRAFT','PUBLISHED','CLOSED','FINISHED') | NOT NULL, DEFAULT 'DRAFT' | Raffle status |
@@ -174,7 +174,7 @@ Customer orders.
 | user_id | BIGINT UNSIGNED | FK(users.id), NOT NULL | Customer |
 | raffle_id | BIGINT UNSIGNED | FK(raffles.id), NOT NULL | Raffle |
 | order_number | VARCHAR(50) | NOT NULL, UNIQUE | Human-readable order number |
-| total_amount | INT UNSIGNED | NOT NULL | Total in cents |
+| total_amount | INT UNSIGNED | NOT NULL | Total in COP |
 | status | ENUM('PENDING_PAYMENT','PAID','REJECTED','EXPIRED','PAYMENT_REVIEW','REQUIRES_REFUND') | NOT NULL, DEFAULT 'PENDING_PAYMENT' | Order status |
 | expires_at | TIMESTAMP | NULL | Order/reservation expiry |
 | paid_at | TIMESTAMP | NULL | When marked as paid |
@@ -192,7 +192,7 @@ Line items for orders.
 | id | BIGINT UNSIGNED | PK, AUTO_INCREMENT | Primary key |
 | order_id | BIGINT UNSIGNED | FK(orders.id), NOT NULL | Order reference |
 | raffle_number_id | BIGINT UNSIGNED | FK(raffle_numbers.id), NOT NULL | Number reference |
-| price_at_purchase | INT UNSIGNED | NOT NULL | Price snapshot in cents |
+| price_at_purchase | INT UNSIGNED | NOT NULL | Price snapshot in COP |
 | created_at | TIMESTAMP | NULL | Created timestamp |
 | updated_at | TIMESTAMP | NULL | Updated timestamp |
 
@@ -210,7 +210,7 @@ Payment records linked to orders.
 | provider | ENUM('MERCADOPAGO','PAYPAL') | NOT NULL | Payment provider (`PAYPAL` reserved, not used in MVP) |
 | external_id | VARCHAR(255) | NOT NULL | Provider's payment ID |
 | status | ENUM('PENDING','APPROVED','REJECTED','UNKNOWN','REFUND_REQUIRED') | NOT NULL, DEFAULT 'PENDING' | Payment status |
-| amount | INT UNSIGNED | NOT NULL | Amount in cents |
+| amount | INT UNSIGNED | NOT NULL | Amount in COP |
 | currency | VARCHAR(3) | NOT NULL, DEFAULT 'COP' | Currency |
 | checkout_url | TEXT | NULL | Checkout URL |
 | verified_at | TIMESTAMP | NULL | Last verification time |

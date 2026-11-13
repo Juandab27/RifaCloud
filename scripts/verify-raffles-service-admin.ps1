@@ -390,7 +390,7 @@ try {
     Add-Result 'PUT drafts updates the raffle' '200' "$($updated.Status)" ($updated.Status -eq 200)
 
     if ($null -ne $updatedJson) {
-        Add-Result 'Price update persists in cents' '7500' "$($updatedJson.data.price_per_number)" ([int]$updatedJson.data.price_per_number -eq 7500)
+        Add-Result 'Price update persists in COP' '7500' "$($updatedJson.data.price_per_number)" ([int]$updatedJson.data.price_per_number -eq 7500)
     }
 
     $badRange = Invoke-Api -Method POST -Path '/api/admin/raffles' -Body (@{

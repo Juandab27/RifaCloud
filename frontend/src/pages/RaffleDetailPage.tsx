@@ -12,7 +12,7 @@ import Card from '../components/ui/Card'
 import ErrorState from '../components/ui/ErrorState'
 import Icon from '../components/ui/Icon'
 import Skeleton from '../components/ui/Skeleton'
-import { formatCents, formatDate, formatRaffleNumber } from '../lib/format'
+import { formatCop, formatDate, formatRaffleNumber } from '../lib/format'
 import {
   canReserveRaffle,
   getRafflePublicState,
@@ -269,8 +269,8 @@ export default function RaffleDetailPage() {
 
           <dl className="facts raffle-facts">
             <div>
-              <dt>Precio por número</dt>
-              <dd className="raffle-price">{formatCents(raffle.price_per_number)}</dd>
+              <dt>Precio por número (COP)</dt>
+              <dd className="raffle-price">{formatCop(raffle.price_per_number)}</dd>
             </div>
             <div>
               <dt>Rango de números</dt>
@@ -454,7 +454,7 @@ export default function RaffleDetailPage() {
                       {selectedNumbers.length}{' '}
                       {selectedNumbers.length === 1 ? 'número' : 'números'}
                     </strong>{' '}
-                    <span className="muted">· Total {formatCents(totalAmount)}</span>
+                    <span className="muted">· Total {formatCop(totalAmount)}</span>
                   </p>
                   <p className="muted selection-detail">
                     {selectedNumbers.length === 0

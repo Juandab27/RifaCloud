@@ -176,7 +176,7 @@ Verified against `rifacloud_test` and the live Compose stack through Nginx:
   existence, foreign numbers); business conflicts 409
   (`RAFFLE_NOT_AVAILABLE`, `RAFFLE_NOT_STARTED`, `RAFFLE_ENDED`,
   `NUMBERS_UNAVAILABLE` with `unavailable_numbers`); 201 contract
-  (`data`, `PENDING_PAYMENT`, cents, raffle, numbers, `simulated_payments`,
+  (`data`, `PENDING_PAYMENT`, COP amounts, raffle, numbers, `simulated_payments`,
   empty payments); owner 200 and another user 404 without disclosing the order
   number; **real two-process concurrency yields exactly one 201 + one 409 and a
   single order**; expiry releases numbers, keeps `order_items`, is idempotent,
@@ -222,7 +222,7 @@ run, the real Compose stack through Nginx with the simulated gateway:
   PENDING; routing surface and health.
 - **38/38 Mercado Pago adapter checks**
   (`tests/gateway_integration.php`, offline transport): checkout payload,
-  deterministic external reference/idempotency key, cents→unit conversion,
+  deterministic external reference/idempotency key, COP amount,
   sandbox URL selection, status mapping, official HMAC manifest, authoritative
   re-fetch, no payer data persisted, 4xx/5xx/transport error mapping and the
   unconfirmed duplicate-approval search.

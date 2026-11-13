@@ -506,7 +506,7 @@ try {
     check($checkout['status'] === 201, 'Checkout returns 201');
     check(($checkout['payload']['data']['status'] ?? '') === 'PENDING_PAYMENT', 'Checkout does not mark the order paid');
     check(($checkout['payload']['data']['payments'][0]['status'] ?? '') === 'PENDING', 'The new payment is PENDING');
-    check(($checkout['payload']['data']['payments'][0]['amount'] ?? 0) === 1500, 'Payment amount is in cents');
+    check(($checkout['payload']['data']['payments'][0]['amount'] ?? 0) === 1500, 'Payment amount is in COP');
     check(($checkout['payload']['data']['payments'][0]['currency'] ?? '') === 'COP', 'Payment currency is COP');
     check((int) ($checkout['payload']['data']['payments'][0]['id'] ?? 0) > 0, 'The payment id is returned');
     check(

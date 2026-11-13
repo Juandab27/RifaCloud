@@ -6,13 +6,13 @@ function pendingOrder(simulated: boolean) {
     id: 9,
     order_number: 'RC-0009',
     status: 'PENDING_PAYMENT',
-    total_amount: 100000,
+    total_amount: 1000,
     expires_at: new Date(Date.now() + 10 * 60 * 1000).toISOString(),
     paid_at: null,
     created_at: new Date().toISOString(),
     simulated_payments: simulated,
     raffle: { id: 2, title: 'Rifa disponible' },
-    numbers: [{ id: 31, number: 30, status: 'RESERVED', price_at_purchase: 100000 }],
+    numbers: [{ id: 31, number: 30, status: 'RESERVED', price_at_purchase: 1000 }],
     payments: [],
   }
 }

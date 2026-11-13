@@ -87,7 +87,7 @@ The project is developed as a university assignment for Cloud Computing and must
 | NFR-010 | Secrets must be outside source code | Security | Must | Environment variables |
 | NFR-011 | DB must not be publicly exposed | Security | Must | Internal network only |
 | NFR-012 | Admin actions must be authorized on backend | Security | Must | Not just UI checks |
-| NFR-013 | All monetary values in cents (integers) | Data Integrity | Must | Avoid floating point |
+| NFR-013 | All monetary values in COP (integer pesos) | Data Integrity | Must | Avoid floating point and cents |
 | NFR-014 | Persist data for audit and reconciliation | Audit | Must | Payments, webhooks, orders |
 | NFR-015 | Minimize personal data collection | Privacy | Must | Only name, email, phone |
 | NFR-016 | Each extracted business service must start, stop and report health independently | Operability | Must | Own container and health check; no shared lifecycle |
@@ -126,7 +126,7 @@ The business decisions below remain approved and are not open for modification w
 | Refund incidents | Order `REQUIRES_REFUND` triggers an automatic email to the buyer; email failure never alters order/payment state |
 | Email | Queue-based, decoupled from purchase flow |
 | Concurrency | DB constraints + row locks to prevent double-selling |
-| Monetary values | Stored in cents (integers) |
+| Monetary values | Stored in integer COP (no cents) |
 | Legal | Blocks real public release only; placeholders acceptable for the university demo; S11 drafts are not legal advice |
 
 The architecture decision does not change any business rule above. The current

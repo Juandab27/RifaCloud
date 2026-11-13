@@ -42,6 +42,22 @@ function Wait-ServiceHealthy {
     return $false
 }
 
+function Test-MainMoneyMigrationApplied {
+    $envMap = @{}
+    Get-Content (Join-Path $RepoRoot '.env') | Where-Object { $_ -match '^[A-Z0-9_]+=' } | ForEach-Object {
+        $key, $value = $_ -split '=', 2
+        $envMap[$key] = $value
+    }
+
+    if (-not $envMap.ContainsKey('DB_ROOT_PASSWORD')) {
+        return $false
+    }
+
+    $result = & docker compose @TestCompose exec -T -e "MYSQL_PWD=$($envMap['DB_ROOT_PASSWORD'])" mysql mysql -uroot -N -e "SELECT COUNT(*) FROM rifacloud.migrations WHERE migration='2026_11_13_000012_convert_monetary_values_to_cop';" 2>$null
+
+    return ((($result | Out-String).Trim()) -eq '1')
+}
+
 try {
     Write-Host '== Limpiando fixtures de rifacloud_test ==' -ForegroundColor Cyan
     & docker compose @TestCompose up -d mysql 2>&1 | Out-Null
@@ -81,20 +97,26 @@ try {
     Write-Host "WARN  No se pudo limpiar el entorno de pruebas: $($_.Exception.Message)" -ForegroundColor Yellow
 } finally {
     if (-not $KeepTestStack) {
-        Write-Host '== Restaurando el stack normal sobre rifacloud ==' -ForegroundColor Cyan
-        & docker compose up -d --force-recreate app scheduler auth-service raffles-service orders-service payments-service nginx *> $null
+        if (-not (Test-MainMoneyMigrationApplied)) {
+            Write-Host 'No se restaura el stack normal: rifacloud sigue en centavos.' -ForegroundColor Yellow
+            Write-Host 'Aplica la migración 2026_11_13_000012_convert_monetary_values_to_cop sobre rifacloud antes de iniciar el stack normal.' -ForegroundColor Yellow
+            Write-Host 'El stack de pruebas permanece disponible sobre rifacloud_test.' -ForegroundColor Yellow
+        } else {
+            Write-Host '== Restaurando el stack normal sobre rifacloud ==' -ForegroundColor Cyan
+            & docker compose up -d --force-recreate app scheduler auth-service raffles-service orders-service payments-service nginx *> $null
 
-        foreach ($container in @(
-            'rifacloud-auth-service',
-            'rifacloud-raffles-service',
-            'rifacloud-orders-service',
-            'rifacloud-payments-service',
-            'rifacloud-scheduler'
-        )) {
-            Wait-ServiceHealthy $container | Out-Null
+            foreach ($container in @(
+                'rifacloud-auth-service',
+                'rifacloud-raffles-service',
+                'rifacloud-orders-service',
+                'rifacloud-payments-service',
+                'rifacloud-scheduler'
+            )) {
+                Wait-ServiceHealthy $container | Out-Null
+            }
+
+            Write-Host 'Stack normal restaurado.' -ForegroundColor Green
         }
-
-        Write-Host 'Stack normal restaurado.' -ForegroundColor Green
     } else {
         Write-Host 'Stack de pruebas conservado activo (-KeepTestStack).' -ForegroundColor Yellow
     }

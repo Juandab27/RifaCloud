@@ -388,7 +388,7 @@ try {
     ]), $adminCookies, $adminHeaders);
     check($updated['status'] === 200, 'PUT updates a DRAFT raffle');
     check(($updated['payload']['data']['title'] ?? '') === 'S2 updated raffle', 'The title update is persisted');
-    check((int) ($updated['payload']['data']['price_per_number'] ?? 0) === 7500, 'The price update is persisted in cents');
+    check((int) ($updated['payload']['data']['price_per_number'] ?? 0) === 7500, 'The price update is persisted in COP');
 
     $rangeUpdate = call($app, 'PUT', '/api/admin/raffles/'.$createdId, payload([
         'min_number' => 5,
