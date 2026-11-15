@@ -81,7 +81,7 @@ function Register-Body($Overrides) {
         privacy_consent = $true
         terms_consent = $true
         marketing_consent = $false
-        consent_version = '2026-11-14'
+        consent_version = '2026-11-15'
     }
 
     foreach ($key in $Overrides.Keys) { $payload[$key] = $Overrides[$key] }
@@ -107,7 +107,7 @@ try {
 
     $badPhone = Invoke-Api -Method POST -Path '/api/register' -Body (Register-Body @{ phone = '4001234567' }) -Jar $registerJar -Xsrf $xsrf
     Add-Result 'invalid mobile rejected' '422' "$($badPhone.Status)" ($badPhone.Status -eq 422)
-    Add-Result 'invalid mobile mentions Spanish error' 'true' "$($badPhone.Body -match 'celular colombiano')" ($badPhone.Body -match 'celular colombiano')
+    Add-Result 'invalid mobile mentions Spanish error' 'true' "$($badPhone.Body -match 'celular')" ($badPhone.Body -match 'celular')
 
     $badPassword = Invoke-Api -Method POST -Path '/api/register' -Body (Register-Body @{ password = 'abcdefg1'; password_confirmation = 'abcdefg1' }) -Jar $registerJar -Xsrf $xsrf
     $badPasswordJson = $null

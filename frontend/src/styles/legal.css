@@ -317,3 +317,42 @@
     font-size: var(--fs-lg);
   }
 }
+
+/* --- Contacto por correo: enlace mailto y copia accesible ---------------- */
+.contact-email {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--sp-2);
+}
+
+.contact-email__link {
+  color: inherit;
+  text-decoration: underline;
+  text-underline-offset: 0.18em;
+}
+
+.contact-email__link:hover {
+  color: var(--accent-hi);
+}
+
+.contact-email__copy {
+  padding: 0.12rem 0.55rem;
+  border: 1px solid var(--line-strong);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--text-2);
+  font-size: var(--fs-2xs);
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.contact-email__copy:hover {
+  border-color: var(--accent-line);
+  color: var(--accent-hi);
+}
+
+.contact-email__copy:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}

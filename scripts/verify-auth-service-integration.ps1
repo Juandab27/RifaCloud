@@ -171,7 +171,7 @@ try {
         privacy_consent       = $true
         terms_consent         = $true
         marketing_consent     = $false
-        consent_version       = if ($env:LEGAL_CONSENT_VERSION) { $env:LEGAL_CONSENT_VERSION } else { '2026-11-14' }
+        consent_version       = if ($env:LEGAL_CONSENT_VERSION) { $env:LEGAL_CONSENT_VERSION } else { '2026-11-15' }
     } | ConvertTo-Json -Compress
     Set-Content -NoNewline -Path $registerBody -Value $payload
     $register = Invoke-Api -Method POST -Path '/api/register' -BodyFile $registerBody -Token $token
@@ -206,7 +206,7 @@ try {
             Add-Result 'Terms consent recorded' 'TERMS' ($types -join ',') ($types -contains 'TERMS')
             Add-Result 'Marketing decision recorded separately' 'MARKETING' ($types -join ',') ($types -contains 'MARKETING')
 
-            $expectedVersion = if ($env:LEGAL_CONSENT_VERSION) { $env:LEGAL_CONSENT_VERSION } else { '2026-11-14' }
+            $expectedVersion = if ($env:LEGAL_CONSENT_VERSION) { $env:LEGAL_CONSENT_VERSION } else { '2026-11-15' }
             $versions = @($consent.rows | ForEach-Object { [string]$_.document_version } | Select-Object -Unique)
             Add-Result 'Consent document version' $expectedVersion ($versions -join ',') ($versions.Count -eq 1 -and $versions[0] -eq $expectedVersion)
 

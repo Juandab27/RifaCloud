@@ -599,7 +599,7 @@ raffles, orders, payments, results or COP amounts.
   malformed emails, valid email variants, duplicate email, legacy login and
   unchanged historical phone.
 - `auth-service` disposable integration: **19/19** checks, including
-  registration with the new policy, consent evidence at `2026-11-14`,
+  registration with the new policy, consent evidence at `2026-11-15`,
   `/api/me`, session compatibility with the monolith and logout.
 - Real HTTP validation on `rifacloud_test`: **15/15** checks for malformed
   email/phone/weak password, normalization of `+57 300 123 4567` to

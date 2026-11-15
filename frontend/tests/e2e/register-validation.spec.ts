@@ -97,14 +97,22 @@ test.describe('Validaciones del registro', () => {
     await page.goto('/register')
 
     await expect(page.locator('.phone-prefix')).toHaveText('+57')
-    await expect(page.getByText(/no enviamos SMS de verificación/i)).toBeVisible()
 
     const phone = page.getByLabel('Teléfono celular')
+    await phone.fill('4001234567')
+    await page.getByLabel('Nombre completo').fill('Persona de prueba')
+    await page.locator('input[autocomplete="new-password"]').first().fill('ClaveSegura1')
+    await page.locator('input[autocomplete="new-password"]').nth(1).fill('ClaveSegura1')
+    await acceptConsents(page)
+    await page.getByRole('button', { name: 'Registrarme' }).click()
+
+    await expect(page.getByText('Ingresa un número de celular válido.')).toBeVisible()
+    expect(register.wasCalled()).toBe(false)
+
     await phone.fill('+57 300 123 4567')
     await page.getByLabel('Correo electrónico').click()
     await expect(phone).toHaveValue('3001234567')
 
-    await page.getByLabel('Nombre completo').fill('Persona de prueba')
     await page.getByLabel('Correo electrónico').fill('persona@example')
     await page.locator('input[autocomplete="new-password"]').first().fill('ClaveSegura1')
     await page.locator('input[autocomplete="new-password"]').nth(1).fill('ClaveSegura1')

@@ -81,7 +81,7 @@ final class Config
 
     public static function legalConsentVersion(): string
     {
-        return self::rawString('LEGAL_CONSENT_VERSION', '2026-11-14');
+        return self::rawString('LEGAL_CONSENT_VERSION', '2026-11-15');
     }
 
     public static function internalSecret(): string

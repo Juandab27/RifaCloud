@@ -36,7 +36,7 @@ final class RaffleProposalService
         private readonly RaffleProposalRepository $repository,
         private readonly int $dailyLimit = self::DAILY_LIMIT,
         private readonly int $cooldownSeconds = self::COOLDOWN_SECONDS,
-        private readonly string $privacyVersion = '2026-11-14',
+        private readonly string $privacyVersion = '2026-11-15',
     ) {}
 
     /**

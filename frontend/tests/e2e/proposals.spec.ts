@@ -1,7 +1,7 @@
 import { expect, test, type Page, type Route } from '@playwright/test'
 import { adminUser, mockApi, user } from './api-fixtures'
 
-const ISO = '2026-11-14T15:00:00.000Z'
+const ISO = '2026-11-15T15:00:00.000Z'
 
 const pendingProposal = {
   id: 1,
@@ -15,7 +15,7 @@ const pendingProposal = {
     email: user.email,
     phone: '3001112233',
   },
-  privacy_version: '2026-11-14',
+  privacy_version: '2026-11-15',
   privacy_accepted_at: ISO,
   decision: null,
   created_at: ISO,

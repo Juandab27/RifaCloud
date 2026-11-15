@@ -100,7 +100,7 @@ services:
       DRAW_BATCH_LIMIT: ${DRAW_BATCH_LIMIT:-20}
       RAFFLES_INTERNAL_CLOCK_SKEW: ${RAFFLES_INTERNAL_CLOCK_SKEW:-60}
       # S13 proposals: server-side consent version and per-user throttle.
-      LEGAL_CONSENT_VERSION: ${LEGAL_CONSENT_VERSION:-2026-11-14}
+      LEGAL_CONSENT_VERSION: ${LEGAL_CONSENT_VERSION:-2026-11-15}
       PROPOSAL_DAILY_LIMIT: ${PROPOSAL_DAILY_LIMIT:-3}
       PROPOSAL_COOLDOWN_SECONDS: ${PROPOSAL_COOLDOWN_SECONDS:-30}
     depends_on:
@@ -218,7 +218,7 @@ services:
       SESSION_ENCRYPT: "false"
       SANCTUM_STATEFUL_DOMAINS: ${SANCTUM_STATEFUL_DOMAINS:-localhost,127.0.0.1}
       # S11: must match the monolith and the public documents.
-      LEGAL_CONSENT_VERSION: ${LEGAL_CONSENT_VERSION:-2026-11-14}
+      LEGAL_CONSENT_VERSION: ${LEGAL_CONSENT_VERSION:-2026-11-15}
       # Shared cache table so login/registration throttling survives across
       # PHP-FPM workers.
       CACHE_STORE: database

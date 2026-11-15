@@ -1,144 +1,62 @@
+import ContactEmail from '../components/ContactEmail'
 import LegalDocument from '../components/legal/LegalDocument'
 
 const TOC = [
-  { id: 'naturaleza', label: 'Naturaleza académica' },
+  { id: 'naturaleza', label: 'Naturaleza del proyecto' },
   { id: 'cuenta', label: 'Cuenta y registro' },
+  { id: 'uso', label: 'Uso permitido' },
   { id: 'rifas', label: 'Rifas de demostración' },
-  { id: 'pagos', label: 'Pagos de demostración y sandbox' },
-  { id: 'resultados', label: 'Resultados y transparencia' },
-  { id: 'uso', label: 'Uso aceptable' },
-  { id: 'disponibilidad', label: 'Disponibilidad y cambios' },
-  { id: 'responsabilidad', label: 'Responsabilidad' },
+  { id: 'pagos', label: 'Pagos de prueba' },
+  { id: 'resultados', label: 'Resultados' },
   { id: 'privacidad', label: 'Privacidad' },
-  { id: 'propiedad', label: 'Propiedad intelectual' },
-  { id: 'cambios', label: 'Modificaciones' },
-  { id: 'ley', label: 'Ley aplicable y contacto' },
+  { id: 'disponibilidad', label: 'Disponibilidad, cambios y contacto' },
 ]
 
 export default function TermsPage() {
   return (
     <LegalDocument
       eyebrow="Información legal"
-      title="Términos y Condiciones del prototipo"
-      description="Condiciones de uso del prototipo académico RifaCloud. No son los términos de una plataforma de rifas autorizada."
+      title="Términos y Condiciones"
+      description="Condiciones de uso del prototipo académico RifaCloud."
       toc={TOC}
     >
       <section id="naturaleza">
-        <h2>1. Naturaleza académica del servicio</h2>
+        <h2>1. Naturaleza del proyecto</h2>
         <p>
-          RifaCloud es un proyecto universitario de computación en la nube. Se
-          ofrece como demostración funcional para consultar un catálogo, simular
-          reservas y pagos y probar un panel administrativo. No es una empresa
-          constituida, no es un operador de juegos de suerte y azar y no cuenta
-          con autorización de Coljuegos para operar rifas reales.
+          RifaCloud es un proyecto académico universitario de computación en la
+          nube. Lo presenta el <strong>Equipo de RifaCloud</strong>, que no es una
+          empresa ni una persona jurídica constituida.
         </p>
         <p>
-          Las rifas publicadas en el prototipo son de demostración. No hay
-          premios reales, no se entregan bienes, no se recauda dinero y no se
-          celebran sorteos con efectos jurídicos. Cualquier parecido con una
-          operación comercial es únicamente funcional y visual.
-        </p>
-        <p>
-          El proyecto puede ser presentado en un contexto académico controlado.
-          No debe usarse para vender boletas, recibir dinero de terceros ni
-          promocionar rifas al público.
+          El proyecto no es un operador de juegos de suerte y azar, no cuenta con
+          autorización de Coljuegos y no opera rifas comerciales. Las rifas,
+          reservas, pagos y resultados que se muestran son demostrativos.
         </p>
       </section>
 
       <section id="cuenta">
         <h2>2. Cuenta y registro</h2>
-        <ul>
-          <li>Para comprar números de demostración debes crear una cuenta y autenticarte.</li>
-          <li>Debes proporcionar información veraz y mantenerla actualizada.</li>
-          <li>Eres responsable de la confidencialidad de tu contraseña y de la actividad de tu cuenta.</li>
-          <li>No debes crear cuentas para suplantar a otra persona ni compartir credenciales.</li>
-          <li>El registro exige aceptar la Política de Tratamiento de Datos Personales y estos términos.</li>
-          <li>El consentimiento para comunicaciones promocionales es opcional y separado.</li>
-        </ul>
         <p>
-          El prototipo no implementa todavía verificación de identidad,
-          recuperación de contraseña ni eliminación de cuenta desde la interfaz.
-          Esas limitaciones se documentan antes de cualquier uso real.
-        </p>
-      </section>
-
-      <section id="rifas">
-        <h2>3. Rifas de demostración</h2>
-        <p>
-          Las rifas de demostración tienen títulos, precios, rangos de números y
-          fechas ficticias o de prueba. La reserva de números durante diez
-          minutos y los estados de la orden existen para probar la lógica del
-          sistema, no para crear derechos sobre premios.
+          Para usar las funciones de compra de demostración debes crear una cuenta
+          y autenticarte. Debes proporcionar información veraz y mantener la
+          confidencialidad de tu contraseña.
         </p>
         <p>
-          No se garantiza que una rifa de demostración llegue a un sorteo, que se
-          publique un resultado ni que exista un premio. La administración puede
-          crear, modificar, cerrar o eliminar datos de prueba.
-        </p>
-        <p>
-          La normativa colombiana prohíbe ofrecer juegos de suerte y azar a
-          menores de edad. El prototipo no está dirigido a menores y no
-          sustituye la verificación de edad que exigiría una operación real.
-        </p>
-      </section>
-
-      <section id="pagos">
-        <h2>4. Pagos de demostración y sandbox</h2>
-        <p>
-          En el entorno local se usa el gateway simulado interno. En la
-          validación de integración se usa Mercado Pago Checkout Pro en modo
-          sandbox. Ninguna de esas modalidades cobra dinero real ni transfiere
-          fondos a RifaCloud.
-        </p>
-        <p>
-          No debes introducir datos de tarjetas reales ni credenciales
-          financieras verdaderas. Si el proveedor sandbox solicita datos de
-          prueba, utiliza únicamente los datos de prueba que él mismo indique.
-        </p>
-        <p>
-          La confirmación de un pago de prueba no crea una compra real, no
-          transfiere la propiedad de un número y no genera una obligación de
-          entrega de premio.
-        </p>
-      </section>
-
-      <section id="resultados">
-        <h2>5. Resultados y transparencia</h2>
-        <p>
-          En el prototipo, el administrador puede publicar manualmente el número
-          ganador y una descripción o enlace de evidencia. Si la rifa se configura
-          en modo automático, el sistema cierra la venta en la fecha indicada y,
-          en la fecha de sorteo programada, selecciona un número exclusivamente
-          entre los números vendidos con orden pagada y pago aprobado. El sorteo
-          automático usa aleatoriedad criptográficamente segura y registra
-          evidencia auditable, pero no es un generador de números aleatorios
-          certificado ni un sorteo con efectos jurídicos.
-        </p>
-        <p>
-          Cuando se publica un resultado, se muestra el número ganador y un nombre
-          enmascarado del comprador, por ejemplo «Juan P.». No se publican correo
-          electrónico, teléfono, documento de identidad, identificador de usuario
-          ni número interno de la orden.
-        </p>
-        <p>
-          Por lo anterior, los resultados solo tienen valor de demostración. No
-          deben presentarse como resultados oficiales ni usarse para reclamar un
-          premio. Una operación real exigiría reglas predeterminadas, mecanismo de
-          sorteo aprobado, evidencia verificable y supervisión de la autoridad
-          competente.
+          No está permitido suplantar a otra persona, compartir credenciales ni
+          crear cuentas con datos falsos. El registro exige aceptar la Política de
+          Tratamiento de Datos Personales y estos Términos.
         </p>
       </section>
 
       <section id="uso">
-        <h2>6. Uso aceptable</h2>
-        <p>No está permitido:</p>
+        <h2>3. Uso permitido</h2>
+        <p>El prototipo debe usarse únicamente con fines académicos y de prueba.</p>
         <ul>
-          <li>Usar el prototipo para operar, promocionar o cobrar rifas reales.</li>
-          <li>Intentar vulnerar la autenticación, la autorización, la base de datos o los servicios.</li>
-          <li>Automatizar ataques, extraer datos de otros usuarios o interferir con la disponibilidad.</li>
-          <li>Suplantar a otra persona o falsear la aceptación de los documentos legales.</li>
-          <li>Introducir datos personales de terceros sin su autorización.</li>
-          <li>Publicar contenido ilícito, engañoso o que afecte derechos de terceros.</li>
+          <li>No lo uses para vender boletas, recibir dinero de terceros o promocionar rifas reales.</li>
+          <li>No intentes vulnerar la autenticación, la autorización, la base de datos o los servicios.</li>
+          <li>No extraigas datos de otros usuarios ni interfieras con la disponibilidad del sitio.</li>
+          <li>No introduzcas datos personales de terceros sin su autorización.</li>
+          <li>No publiques contenido ilícito, engañoso o que afecte derechos de terceros.</li>
         </ul>
         <p>
           El incumplimiento puede llevar a la suspensión de la cuenta de prueba y,
@@ -146,88 +64,86 @@ export default function TermsPage() {
         </p>
       </section>
 
-      <section id="disponibilidad">
-        <h2>7. Disponibilidad y cambios</h2>
+      <section id="rifas">
+        <h2>4. Rifas de demostración</h2>
         <p>
-          El prototipo se ofrece “tal como está” y “según disponibilidad”. No
-          tiene acuerdo de nivel de servicio, soporte 24/7 ni garantía de
-          continuidad. Los servicios pueden detenerse para pruebas, actualizaciones
-          o corrección de errores.
+          Las rifas tienen títulos, precios, rangos de números y fechas de prueba.
+          La reserva de números y los estados de la orden permiten demostrar la
+          lógica del sistema; no crean derechos sobre premios ni obligaciones de
+          entrega.
         </p>
         <p>
-          Los datos de demostración pueden reiniciarse, modificarse o eliminarse.
-          No uses el prototipo como archivo personal o como comprobante de una
-          compra real.
+          No se garantiza que una rifa llegue a un sorteo, que se publique un
+          resultado o que exista un premio. La administración puede crear,
+          modificar, cerrar o eliminar datos de prueba.
+        </p>
+        <p>
+          El prototipo no está dirigido a menores de edad y no sustituye la
+          verificación de edad o identidad que exigiría una operación real.
         </p>
       </section>
 
-      <section id="responsabilidad">
-        <h2>8. Responsabilidad</h2>
+      <section id="pagos">
+        <h2>5. Pagos de prueba</h2>
         <p>
-          En la medida permitida por la ley, el equipo del proyecto no responde
-          por daños derivados del uso del prototipo como si fuera una plataforma
-          comercial, por la pérdida de datos de prueba o por la indisponibilidad
-          del entorno académico.
+          Los pagos se procesan con el gateway simulado interno o con Mercado Pago
+          Checkout Pro en modo sandbox. Ninguna de esas modalidades cobra dinero
+          real ni transfiere fondos al equipo del proyecto.
         </p>
         <p>
-          Nada en estos términos pretende limitar derechos irrenunciables del
-          consumidor ni excluir responsabilidades que la ley no permita excluir.
-          Como el prototipo no realiza ventas reales, no debe interpretarse como
-          una renuncia a derechos que correspondan en una operación futura.
+          No introduzcas datos de tarjetas reales ni credenciales financieras
+          verdaderas. Un pago aprobado en el entorno de prueba no constituye una
+          compra real ni genera una obligación de entrega de premio.
+        </p>
+      </section>
+
+      <section id="resultados">
+        <h2>6. Resultados</h2>
+        <p>
+          El administrador puede publicar un resultado manual o configurar un
+          sorteo automático entre números vendidos con orden pagada y pago
+          aprobado. El sistema registra evidencia y publica el número ganador con
+          un nombre enmascarado del comprador.
+        </p>
+        <p>
+          El resultado es únicamente demostrativo. No es un sorteo certificado ni
+          tiene efectos jurídicos, y no debe presentarse como resultado oficial ni
+          usarse para reclamar un premio.
         </p>
       </section>
 
       <section id="privacidad">
-        <h2>9. Privacidad</h2>
+        <h2>7. Privacidad</h2>
         <p>
           El tratamiento de datos personales se rige por la Política de
-          Tratamiento de Datos Personales y el aviso de privacidad publicados en
-          este sitio. El registro solicita una autorización informada y registra
-          su versión, fecha y usuario. El consentimiento promocional es separado.
+          Tratamiento de Datos Personales publicada en este sitio. El registro
+          solicita una autorización informada y registra la versión del documento,
+          la fecha y el usuario.
+        </p>
+        <p>
+          Para consultas sobre datos personales puedes escribir a{' '}
+          <ContactEmail />.
         </p>
       </section>
 
-      <section id="propiedad">
-        <h2>10. Propiedad intelectual</h2>
+      <section id="disponibilidad">
+        <h2>8. Disponibilidad, cambios y contacto</h2>
         <p>
-          El código, la interfaz y la documentación del prototipo pertenecen a
-          sus autores o a la institución según los acuerdos del proyecto. No se
-          concede una licencia para explotar comercialmente el software, las
-          marcas o los contenidos de terceros incluidos en la demostración.
+          El prototipo se ofrece “tal como está” y según disponibilidad. No tiene
+          acuerdo de nivel de servicio ni garantía de continuidad. Los datos de
+          demostración pueden modificarse o eliminarse durante las pruebas.
         </p>
         <p>
-          Los nombres de proveedores y productos se usan solo para identificar
-          integraciones técnicas y no implican patrocinio ni autorización.
-        </p>
-      </section>
-
-      <section id="cambios">
-        <h2>11. Modificaciones</h2>
-        <p>
-          Estos términos pueden cambiar mientras el proyecto evoluciona. La
-          versión vigente y su fecha se muestran en esta página. Los cambios
-          sustanciales se comunicarán antes de aplicarse y, cuando afecten el
-          consentimiento, exigirán una nueva aceptación.
-        </p>
-      </section>
-
-      <section id="ley">
-        <h2>12. Ley aplicable y contacto</h2>
-        <p>
-          Este documento se interpreta bajo la legislación colombiana, sin que
-          ello implique afirmar que el prototipo cumple todos los requisitos de
-          una operación comercial. Cualquier controversia real deberá resolverse
-          con la asesoría jurídica correspondiente y ante la autoridad competente.
+          Estos términos pueden actualizarse mientras el proyecto evoluciona. La
+          versión vigente y su fecha se muestran al inicio del documento. Los
+          cambios sustanciales que afecten el consentimiento requerirán una nueva
+          aceptación.
         </p>
         <p>
-          Responsable y canal de contacto:
-          <span className="legal-placeholder">[RESPONSABLE Y CANAL PENDIENTES]</span>.
-        </p>
-        <p>
-          Para asuntos de protección al consumidor, la autoridad competente es la
-          Superintendencia de Industria y Comercio. Para la vigilancia de juegos
-          de suerte y azar, la referencia es Coljuegos; este prototipo no afirma
-          tener su autorización.
+          Contacto del proyecto: <strong>Equipo de RifaCloud</strong>,{' '}
+          <ContactEmail />. Este documento se
+          interpreta bajo la legislación colombiana, sin afirmar que el prototipo
+          cumpla todos los requisitos de una operación comercial.
         </p>
       </section>
     </LegalDocument>

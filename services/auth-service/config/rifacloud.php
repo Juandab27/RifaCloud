@@ -14,7 +14,7 @@ return [
     */
 
     'legal' => [
-        'consent_version' => env('LEGAL_CONSENT_VERSION', '2026-11-14'),
+        'consent_version' => env('LEGAL_CONSENT_VERSION', '2026-11-15'),
     ],
 
 ];

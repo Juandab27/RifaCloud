@@ -2,8 +2,17 @@
 
 **Proyecto:** RifaCloud
 **Estado:** Borradores académicos para revisión jurídica humana
-**Versión de los documentos:** `2026-11-14`
-**Fecha de actualización del índice:** 2026-11-12
+**Versión de los borradores internos:** `2026-11-14`
+**Versión pública vigente:** `2026-11-15`
+**Fecha de actualización del índice:** 2026-11-15
+
+> **Nota de revisión pública**
+>
+> Los textos publicados en la aplicación se simplificaron y se ajustaron para
+> identificar al Equipo de RifaCloud y el correo `rifacloud27@gmail.com`. Los
+> borradores internos de esta carpeta conservan su versión histórica y siguen
+> siendo material de trabajo. Las cuestiones que aún requieren verificación
+> jurídica están en [09-revision-publica-2026-11-15.md](09-revision-publica-2026-11-15.md).
 
 > **Aviso importante**
 >

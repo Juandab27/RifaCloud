@@ -1,10 +1,11 @@
 import { Link } from 'react-router-dom'
-import { LEGAL_ROUTES, LEGAL_VERSION } from '../lib/legal'
+import ContactEmail from './ContactEmail'
+import { CONTACT_EMAIL, LEGAL_ROUTES } from '../lib/legal'
 
 /**
- * S11: persistent footer with the public legal documents. It is intentionally
- * visible on every route, including login and registration, and repeats that
- * this is an academic prototype without Coljuegos authorization.
+ * Persistent footer with the public legal documents and a discreet academic
+ * notice. The regulatory summary remains available at its previous route for
+ * compatibility but is no longer promoted here.
  */
 export default function SiteFooter() {
   return (
@@ -18,22 +19,20 @@ export default function SiteFooter() {
             <span>RifaCloud</span>
           </Link>
           <p className="site-footer-copy">
-            Prototipo académico de computación en la nube. No es un operador de
-            rifas autorizado y no realiza ventas reales.
+            Proyecto académico de computación en la nube. Las rifas y pagos son
+            demostrativos; no se realizan cobros reales ni operaciones
+            comerciales.
           </p>
         </div>
 
         <nav className="site-footer-nav" aria-label="Información legal">
           <Link to={LEGAL_ROUTES.privacy}>Privacidad</Link>
-          <Link to={`${LEGAL_ROUTES.privacy}#aviso`}>Aviso de privacidad</Link>
-          <Link to={`${LEGAL_ROUTES.privacy}#derechos`}>Derechos del titular</Link>
           <Link to={LEGAL_ROUTES.terms}>Términos</Link>
-          <Link to={LEGAL_ROUTES.regulatory}>Alcance regulatorio</Link>
+          <a href={`mailto:${CONTACT_EMAIL}`}>Contacto</a>
         </nav>
 
         <p className="site-footer-note">
-          Documentos preliminares, no asesoría jurídica. Versión {LEGAL_VERSION}.
-          RifaCloud no cuenta con autorización de Coljuegos.
+          Equipo de RifaCloud · <ContactEmail showCopy />
         </p>
       </div>
     </footer>

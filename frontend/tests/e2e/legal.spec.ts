@@ -29,11 +29,12 @@ async function anonymousSession(page: Parameters<typeof mockApi>[0]) {
   )
 }
 
-test('no hay franja global y el pie legal aparece en catálogo, login y detalle', async ({
+test('el pie público muestra privacidad, términos y contacto sin enlaces internos', async ({
   page,
 }) => {
   await mockApi(page)
   await anonymousSession(page)
+  await page.context().grantPermissions(['clipboard-read', 'clipboard-write'])
 
   await page.goto('/')
   await expect(page.getByRole('note')).toHaveCount(0)
@@ -41,25 +42,43 @@ test('no hay franja global y el pie legal aparece en catálogo, login y detalle'
   const footer = page.getByRole('contentinfo')
   await expect(footer.getByRole('link', { name: 'Privacidad', exact: true })).toBeVisible()
   await expect(footer.getByRole('link', { name: 'Términos', exact: true })).toBeVisible()
+
+  const contact = footer.getByRole('link', { name: 'Contacto', exact: true })
+  await expect(contact).toBeVisible()
+  await expect(contact).toHaveAttribute('href', 'mailto:rifacloud27@gmail.com')
+
+  const emailLink = footer.getByRole('link', { name: 'rifacloud27@gmail.com' })
+  await expect(emailLink).toBeVisible()
+  await expect(emailLink).toHaveAttribute('href', 'mailto:rifacloud27@gmail.com')
+
+  const copyButton = footer.getByRole('button', { name: 'Copiar dirección de contacto' })
+  await expect(copyButton).toBeVisible()
+  await copyButton.click()
+  await expect(footer.getByRole('status')).toContainText('Correo copiado al portapapeles.')
+  expect(await page.evaluate(() => navigator.clipboard.readText())).toBe(
+    'rifacloud27@gmail.com',
+  )
+
   await expect(
     footer.getByRole('link', { name: 'Alcance regulatorio', exact: true }),
-  ).toBeVisible()
-  await expect(footer).toContainText('no cuenta con autorización de Coljuegos')
+  ).toHaveCount(0)
+  await expect(footer).toContainText(/proyecto académico/i)
+  await expect(footer).toContainText('no se realizan cobros reales')
 
   await page.goto('/login')
   await expect(page.getByRole('heading', { level: 1, name: 'Ingresar' })).toBeVisible()
-  await expect(page.getByRole('note')).toHaveCount(0)
   await expect(page.getByRole('contentinfo')).toBeVisible()
 
   await page.goto('/raffles/2')
   await expect(
     page.getByRole('heading', { level: 1, name: 'Rifa disponible' }),
   ).toBeVisible()
-  await expect(page.getByRole('note')).toHaveCount(0)
   await expect(page.getByRole('contentinfo')).toBeVisible()
 })
 
-test('los documentos legales son públicos desde el pie', async ({ page }) => {
+test('las páginas legales públicas no muestran borradores ni marcadores internos', async ({
+  page,
+}) => {
   await mockApi(page)
   await anonymousSession(page)
   await page.goto('/')
@@ -71,25 +90,36 @@ test('los documentos legales son públicos desde el pie', async ({ page }) => {
   await expect(
     page.getByRole('heading', { level: 1, name: /Política de Tratamiento de Datos Personales/ }),
   ).toBeVisible()
-  await expect(page.getByRole('heading', { name: 'Aviso de privacidad resumido' })).toBeVisible()
-  await expect(page.getByText(/no asesoría jurídica/i).first()).toBeVisible()
+  await expect(page.getByText('Equipo de RifaCloud').first()).toBeVisible()
+  await expect(page.getByText('rifacloud27@gmail.com').first()).toBeVisible()
+  await expect(
+    page.locator('a[href="mailto:rifacloud27@gmail.com"]').first(),
+  ).toBeVisible()
+  await expect(page.getByText(/Borrador|Documento preliminar|PENDIENTE/)).toHaveCount(0)
 
   await footer.getByRole('link', { name: 'Términos', exact: true }).click()
   await expect(page).toHaveURL(/\/terminos$/)
   await expect(
-    page.getByRole('heading', { level: 1, name: /Términos y Condiciones del prototipo/ }),
+    page.getByRole('heading', { level: 1, name: 'Términos y Condiciones' }),
   ).toBeVisible()
-  await expect(page.getByText(/No hay premios reales/i)).toBeVisible()
+  await expect(page.getByText(/no opera rifas comerciales/i)).toBeVisible()
+  await expect(
+    page.locator('a[href="mailto:rifacloud27@gmail.com"]').first(),
+  ).toBeVisible()
+  await expect(page.getByText(/Borrador|Documento preliminar|PENDIENTE/)).toHaveCount(0)
 
-  await footer.getByRole('link', { name: 'Alcance regulatorio', exact: true }).click()
-  await expect(page).toHaveURL(/\/alcance-regulatorio$/)
+  // The old regulatory route remains reachable for compatibility but is not
+  // promoted in the footer.
+  await page.goto('/alcance-regulatorio')
   await expect(
     page.getByRole('heading', { level: 1, name: /Alcance regulatorio de las rifas en Colombia/ }),
   ).toBeVisible()
-  await expect(page.getByText(/No es un operador autorizado de juegos de suerte y azar/i)).toBeVisible()
+  await expect(page.getByText(/Borrador|Documento preliminar|PENDIENTE/)).toHaveCount(0)
 })
 
-test('el registro exige los consentimientos y separa el promocional', async ({ page }) => {
+test('el registro exige privacidad y términos y no pide consentimiento promocional', async ({
+  page,
+}) => {
   await mockApi(page)
   await anonymousSession(page)
 
@@ -110,17 +140,22 @@ test('el registro exige los consentimientos y separa el promocional', async ({ p
 
   await page.goto('/register')
 
-  const privacy = page.getByRole('checkbox', { name: /Política de Tratamiento de Datos Personales/ })
-  const terms = page.getByRole('checkbox', { name: /Términos y Condiciones del prototipo/ })
-  const marketing = page.getByRole('checkbox', { name: /novedades sobre RifaCloud/ })
+  const privacy = page.getByRole('checkbox', {
+    name: /Política de Tratamiento de Datos Personales/,
+  })
+  const terms = page.getByRole('checkbox', {
+    name: /Términos y Condiciones/,
+  })
 
   await expect(privacy).not.toBeChecked()
   await expect(terms).not.toBeChecked()
-  await expect(marketing).not.toBeChecked()
+  await expect(
+    page.getByRole('checkbox', { name: /novedades sobre RifaCloud/i }),
+  ).toHaveCount(0)
 
-  // Both required boxes are native-required, so the form cannot be submitted
-  // until the person accepts the two documents.
-  expect(await privacy.evaluate((element) => (element as HTMLInputElement).checkValidity())).toBe(false)
+  expect(
+    await privacy.evaluate((element) => (element as HTMLInputElement).checkValidity()),
+  ).toBe(false)
 
   await page.getByLabel('Nombre completo').fill('Persona de prueba')
   await page.getByLabel('Correo electrónico').fill('consent@example.invalid')
@@ -142,7 +177,7 @@ test('el registro exige los consentimientos y separa el promocional', async ({ p
     privacy_consent: true,
     terms_consent: true,
     marketing_consent: false,
-    consent_version: '2026-11-14',
+    consent_version: '2026-11-15',
   })
 })
 
@@ -204,5 +239,11 @@ test('las páginas legales se adaptan a móvil sin desbordar', async ({ page }) 
   )
 
   expect(overflow).toBe(false)
-  await expect(page.getByRole('contentinfo')).toContainText('no cuenta con autorización de Coljuegos')
+  await expect(page.getByRole('contentinfo')).toContainText(/proyecto académico/i)
+  await expect(
+    page.getByRole('contentinfo').getByRole('link', { name: 'rifacloud27@gmail.com' }),
+  ).toBeVisible()
+  await expect(
+    page.getByRole('contentinfo').getByRole('button', { name: 'Copiar dirección de contacto' }),
+  ).toBeVisible()
 })

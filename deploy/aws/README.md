@@ -316,7 +316,7 @@ No se debe ejecutar sobre `rifacloud` sin autorización explícita y respaldo.
 ```dotenv
 DRAW_BUFFER_MINUTES=30
 DRAW_BATCH_LIMIT=20
-LEGAL_CONSENT_VERSION=2026-11-14
+LEGAL_CONSENT_VERSION=2026-11-15
 ```
 
 `RAFFLES_SERVICE_URL=http://raffles-service`, `RAFFLES_INTERNAL_TIMEOUT=5`,

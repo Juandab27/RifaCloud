@@ -1,7 +1,6 @@
 import type { ReactNode } from 'react'
 import { LEGAL_UPDATED_AT, LEGAL_VERSION } from '../../lib/legal'
-import Alert from '../ui/Alert'
-import Badge from '../ui/Badge'
+import ContactEmail from '../ContactEmail'
 import PageHeader from '../ui/PageHeader'
 
 export interface LegalTocItem {
@@ -18,9 +17,10 @@ export interface LegalDocumentProps {
 }
 
 /**
- * S11: shared presentation for the public privacy, terms and regulatory
- * pages. The draft warning is intentionally visible on every document: these
- * texts are academic drafts, not legal advice and not an operating permit.
+ * Shared presentation for the public legal pages.
+ *
+ * The academic disclaimer is deliberately brief and visible, without internal
+ * development notes or draft markers.
  */
 export default function LegalDocument({
   eyebrow,
@@ -34,17 +34,14 @@ export default function LegalDocument({
       <PageHeader eyebrow={eyebrow} title={title} description={description} />
 
       <div className="legal-meta">
-        <Badge tone="warning">Borrador</Badge>
         <span>Versión {LEGAL_VERSION}</span>
         <span>Actualizado: {LEGAL_UPDATED_AT}</span>
       </div>
 
-      <Alert tone="warning" heading="Documento preliminar, no asesoría jurídica">
-        RifaCloud es un prototipo académico. No está autorizado por Coljuegos ni
-        opera rifas reales. Los textos entre corchetes son marcadores que deben
-        completarse y validarse con revisión jurídica humana antes de cualquier
-        publicación o uso comercial.
-      </Alert>
+      <p className="legal-footnote">
+        RifaCloud es un proyecto académico. Las rifas y pagos son demostrativos;
+        no se realizan cobros reales ni operaciones comerciales.
+      </p>
 
       <nav className="legal-toc" aria-label="Contenido del documento">
         <p className="legal-toc-title">Contenido</p>
@@ -60,8 +57,7 @@ export default function LegalDocument({
       <div className="legal-prose">{children}</div>
 
       <p className="legal-footnote">
-        Versión {LEGAL_VERSION}. Documento preliminar del prototipo RifaCloud.
-        No constituye asesoría jurídica ni autorización de operación.
+        Equipo de RifaCloud · <ContactEmail showCopy />
       </p>
     </article>
   )

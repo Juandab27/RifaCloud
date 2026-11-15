@@ -271,7 +271,7 @@ try {
 
     $sessions = new AdminSessionAuthenticator($servicePdo, $appKey, $cookieName, 120, 'sessions');
     $repository = new RaffleProposalRepository($servicePdo);
-    $service = new RaffleProposalService($repository, 10, 0, '2026-11-14');
+    $service = new RaffleProposalService($repository, 10, 0, '2026-11-15');
     $publicApp = new ProposalApplication(
         $service,
         new ProposalUserAuthenticator($servicePdo, $sessions),
@@ -362,7 +362,7 @@ try {
     check($stored['contact_name'] === 'S13 Proposer', 'contact name comes from users table');
     check($stored['contact_email'] === $prefix.'-user@example.invalid', 'contact email comes from users table');
     check($stored['contact_phone'] === '+573001112233', 'contact phone comes from users table');
-    check($stored['privacy_version'] === '2026-11-14', 'consent version is set by the server');
+    check($stored['privacy_version'] === '2026-11-15', 'consent version is set by the server');
     check($stored['privacy_accepted_at'] !== null, 'consent timestamp is recorded');
     check($stored['status'] === 'PENDING', 'a new proposal starts PENDING');
 
@@ -410,7 +410,7 @@ try {
     );
 
     // ---- Rate limiting (daily and cooldown) ----------------------------
-    $limitedService = new RaffleProposalService($repository, 2, 0, '2026-11-14');
+    $limitedService = new RaffleProposalService($repository, 2, 0, '2026-11-15');
     $limitedApp = new ProposalApplication(
         $limitedService,
         new ProposalUserAuthenticator($servicePdo, $sessions),
@@ -438,7 +438,7 @@ try {
     check($third['status'] === 429, 'daily limit returns 429');
     check(($third['headers']['Retry-After'] ?? '') !== '', 'daily limit returns Retry-After');
 
-    $cooldownService = new RaffleProposalService($repository, 10, 3600, '2026-11-14');
+    $cooldownService = new RaffleProposalService($repository, 10, 3600, '2026-11-15');
     $cooldownApp = new ProposalApplication(
         $cooldownService,
         new ProposalUserAuthenticator($servicePdo, $sessions),

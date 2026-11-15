@@ -1,19 +1,21 @@
 /**
- * S11: single source for the public legal document version and routes.
+ * Public legal documents: version, date, routes and contact.
  *
- * The backend refuses a registration whose `consent_version` does not match
- * the configured version. When the privacy policy or the prototype terms
- * change substantially, bump this value (and LEGAL_CONSENT_VERSION in the
- * backend environment) so consent evidence always points to the exact text
- * the person saw.
+ * The registration API validates `consent_version` against the configured
+ * version. When these public texts change substantially, update this value and
+ * keep LEGAL_CONSENT_VERSION in the backend environment aligned during the
+ * deployment window.
  */
-export const LEGAL_VERSION = '2026-11-14'
+export const LEGAL_VERSION = '2026-11-15'
 
-export const LEGAL_UPDATED_AT = '11 de noviembre de 2026'
+export const LEGAL_UPDATED_AT = '15 de noviembre de 2026'
+
+export const CONTACT_EMAIL = 'rifacloud27@gmail.com'
 
 export const LEGAL_ROUTES = {
   privacy: '/privacidad',
   terms: '/terminos',
+  /** Kept for compatibility with previously shared links; not promoted in the UI. */
   regulatory: '/alcance-regulatorio',
 } as const
 

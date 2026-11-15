@@ -32,7 +32,6 @@ export default function RegisterPage() {
   })
   const [privacyAccepted, setPrivacyAccepted] = useState(false)
   const [termsAccepted, setTermsAccepted] = useState(false)
-  const [marketingAccepted, setMarketingAccepted] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({})
   const [submitting, setSubmitting] = useState(false)
@@ -85,8 +84,7 @@ export default function RegisterPage() {
     }
 
     if (phone === null) {
-      nextErrors.phone =
-        'Ingresa un celular colombiano de 10 dígitos que empiece por 3 (por ejemplo, 300 123 4567).'
+      nextErrors.phone = 'Ingresa un número de celular válido.'
     }
 
     if (!isStrongPassword(form.password)) {
@@ -120,7 +118,9 @@ export default function RegisterPage() {
         phone: phone as string,
         privacy_consent: privacyAccepted,
         terms_consent: termsAccepted,
-        marketing_consent: marketingAccepted,
+        // No promotional checkbox is shown. Keep the API field explicit for
+        // compatibility with the current backend contract.
+        marketing_consent: false,
         consent_version: LEGAL_VERSION,
       })
       toast.success('Cuenta creada. Ya puedes reservar tus números.')
@@ -208,15 +208,9 @@ export default function RegisterPage() {
               autoComplete="tel-national"
               maxLength={30}
               placeholder="300 123 4567"
-              aria-describedby="register-phone-hint"
               aria-invalid={fieldErrors.phone ? true : undefined}
             />
           </div>
-
-          <p className="ui-field-hint" id="register-phone-hint">
-            Celular colombiano de 10 dígitos que empiece por 3. Solo validamos el
-            formato; no enviamos SMS de verificación.
-          </p>
 
           {fieldErrors.phone && (
             <p className="ui-field-error" role="alert">
@@ -289,16 +283,12 @@ export default function RegisterPage() {
             />
             <div>
               <label htmlFor="privacy-consent">
-                He leído y acepto la Política de Tratamiento de Datos Personales
-                y el aviso de privacidad. <span className="consent-required">Obligatorio.</span>
+                He leído y acepto la Política de Tratamiento de Datos Personales.
+                {' '}<span className="consent-required">Obligatorio.</span>
               </label>
               <p className="consent-links">
                 <Link to={LEGAL_ROUTES.privacy} target="_blank" rel="noreferrer">
                   Leer la política de privacidad
-                </Link>
-                <span aria-hidden="true"> · </span>
-                <Link to={`${LEGAL_ROUTES.privacy}#aviso`} target="_blank" rel="noreferrer">
-                  Leer el aviso de privacidad
                 </Link>
               </p>
             </div>
@@ -321,34 +311,10 @@ export default function RegisterPage() {
                 <Link to={LEGAL_ROUTES.terms} target="_blank" rel="noreferrer">
                   Leer los términos y condiciones
                 </Link>
-                <span aria-hidden="true"> · </span>
-                <Link to={LEGAL_ROUTES.regulatory} target="_blank" rel="noreferrer">
-                  Ver el alcance regulatorio
-                </Link>
               </p>
             </div>
           </div>
 
-          <div className="consent-item">
-            <input
-              id="marketing-consent"
-              type="checkbox"
-              checked={marketingAccepted}
-              onChange={(event) => setMarketingAccepted(event.target.checked)}
-            />
-            <div>
-              <label htmlFor="marketing-consent">
-                Autorizo el uso de mi correo para recibir información y
-                novedades sobre RifaCloud. <span className="muted">Opcional: no
-                condiciona el registro.</span>
-              </label>
-            </div>
-          </div>
-
-          <p className="consent-version">
-            Documentos versión {LEGAL_VERSION}. Tu aceptación se envía junto con
-            la versión de los documentos para dejar evidencia del consentimiento.
-          </p>
         </fieldset>
 
         <Button type="submit" block loading={submitting}>

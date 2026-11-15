@@ -9,7 +9,7 @@ const TOC = [
   { id: 'prohibiciones', label: 'Prohibiciones y límites' },
   { id: 'transparencia', label: 'Transparencia del sorteo' },
   { id: 'consumidor', label: 'Protección del consumidor' },
-  { id: 'brechas', label: 'Brechas del prototipo' },
+  { id: 'brechas', label: 'Condiciones para operar' },
   { id: 'conclusion', label: 'Conclusión' },
 ]
 
@@ -18,7 +18,7 @@ export default function RegulatoryScopePage() {
     <LegalDocument
       eyebrow="Información legal"
       title="Alcance regulatorio de las rifas en Colombia"
-      description="Resumen documental del régimen aplicable y de lo que RifaCloud todavía no cumple. No es un concepto jurídico ni una autorización."
+      description="Resumen documental del régimen aplicable a las rifas en Colombia. No es un concepto jurídico ni una autorización."
       toc={TOC}
     >
       <section id="estado">
@@ -32,7 +32,7 @@ export default function RegulatoryScopePage() {
           <li>No vende boletas reales ni recauda dinero real.</li>
           <li>No celebra sorteos con efectos jurídicos ni entrega premios.</li>
           <li>No usa un generador de números aleatorios certificado.</li>
-          <li>Publica resultados de demostración de forma manual.</li>
+          <li>Publica resultados de demostración, manuales o automáticos.</li>
         </ul>
         <p>
           Por lo tanto, ninguna página, rifa o pago del prototipo debe
@@ -226,8 +226,8 @@ export default function RegulatoryScopePage() {
           resultado no fue alterado y que el premio se entregó.
         </p>
         <p>
-          El prototipo solo permite que un administrador publique manualmente un
-          número ganador y una evidencia descriptiva. No hay GNA certificado, no
+          El prototipo permite publicar un resultado manual o ejecutar un sorteo
+          automático con evidencia descriptiva. No hay GNA certificado, no
           hay auditoría independiente, no hay acta de sorteo y no hay integración
           con una lotería. Por eso el resultado es únicamente demostrativo.
         </p>
@@ -252,14 +252,14 @@ export default function RegulatoryScopePage() {
       </section>
 
       <section id="brechas">
-        <h2>9. Brechas del prototipo frente a una operación real</h2>
+        <h2>9. Condiciones que exigiría una operación real</h2>
         <div className="legal-table-wrap">
           <table className="legal-table">
             <thead>
               <tr>
                 <th>Área</th>
                 <th>Estado actual</th>
-                <th>Requisito pendiente</th>
+                <th>Requisito para operar</th>
               </tr>
             </thead>
             <tbody>
@@ -305,7 +305,7 @@ export default function RegulatoryScopePage() {
               </tr>
               <tr>
                 <td>Datos personales</td>
-                <td>Borrador y consentimiento</td>
+                <td>Consentimiento informado</td>
                 <td>Responsable, contratos, RNBD si aplica, retención y seguridad verificada.</td>
               </tr>
             </tbody>

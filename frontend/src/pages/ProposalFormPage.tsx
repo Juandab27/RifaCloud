@@ -8,7 +8,7 @@ import Button from '../components/ui/Button'
 import Card from '../components/ui/Card'
 import Field from '../components/ui/Field'
 import PageHeader from '../components/ui/PageHeader'
-import { LEGAL_ROUTES, LEGAL_VERSION } from '../lib/legal'
+import { LEGAL_ROUTES } from '../lib/legal'
 import type { RaffleProposal } from '../types'
 
 const TITLE_MAX = 120
@@ -190,8 +190,8 @@ export default function ProposalFormPage() {
                 <Link to={LEGAL_ROUTES.privacy} target="_blank" rel="noreferrer">
                   aviso de privacidad
                 </Link>{' '}
-                (versión {LEGAL_VERSION}) para que la administración trate mis datos de
-                contacto con el fin de revisar esta propuesta.
+                para que la administración trate mis datos de contacto con el fin
+                de revisar esta propuesta.
               </label>
             </div>
           </fieldset>

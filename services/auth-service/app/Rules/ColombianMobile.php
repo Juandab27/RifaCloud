@@ -18,7 +18,7 @@ final class ColombianMobile implements ValidationRule
     public function validate(string $attribute, mixed $value, Closure $fail): void
     {
         if (self::normalize($value) === null) {
-            $fail('Ingresa un celular colombiano de 10 dígitos que empiece por 3 (por ejemplo, 300 123 4567).');
+            $fail('Ingresa un número de celular válido.');
         }
     }
 
