@@ -842,6 +842,26 @@ Detailed scenarios and acceptance criteria are in
   `/internal/` remains blocked and contact data never reaches the public
   catalog.
 
+### 12.3 S14 registration validation
+
+- Both `auth-service` (active registration route) and the monolith rollback
+  registration request apply the same rules through equivalent rule classes.
+- Password policy: minimum 8 characters, at least one ASCII uppercase letter and
+  one digit. Lowercase, special characters and long passwords remain valid; no
+  forced rotation or reset is applied to existing accounts.
+- Colombian mobile: accepts `3001234567`, `300 123 4567`, `+57 300 123 4567`,
+  `+573001234567` and `(300) 123-4567`. The server normalizes and stores the
+  10-digit national number (`3XXXXXXXXX`), which fits `users.phone VARCHAR(20)`.
+  Historical phone values are never rewritten. No SMS verification is claimed.
+- Email: RFC validation plus a dotted-domain/alphabetic-TLD requirement. Plus
+  tags, subdomains, uppercase and legitimate punctuation remain accepted;
+  uniqueness is unchanged.
+- The React form mirrors the rules, shows a fixed `+57` prefix, a live password
+  checklist and per-field Spanish errors. The server remains the authority and
+  returns field-level messages used by the form.
+- The proposal flow reads the normalized phone from the authenticated users row,
+  so its contact snapshot reflects the validated value.
+
 ## 13. Historical Architecture (v1.2, preserved)
 
 The previously approved architecture was a Laravel modular monolith deployed
@@ -879,3 +899,5 @@ internal-only, fail-closed payments) remain unchanged.
 | 2.16 | 2026-11-14 | S12 automatic sales closure/draw: opt-in `draw_mode`/`draw_at`, scheduler-to-raffles-service signed command, SOLD+PAID+APPROVED candidate snapshot, CSPRNG selection, audit fields, masked public winner, blockers and late-payment row-lock guard. Manual flow preserved; historical raffles remain MANUAL. |
 | 2.17 | 2026-11-15 | S12 activated on `rifacloud` with explicit authorization: new timestamped backup verified by gzip hash and a temporary-database restore, migration `2026_11_14_000013` applied, and only the three S12 `GRANT SELECT` statements added. Orders/payments/numbers/raffles/results hashes matched the pre-migration baseline; all five historical raffles remain `MANUAL`, the existing result remains `MANUAL`, and `raffles:process-due` ran with `drawn=0`. Normal eight-container stack rebuilt against `rifacloud`. |
 | 2.18 | 2026-11-15 | S13 raffle proposals implemented and validated on `rifacloud_test`: authenticated `POST /api/proposals` with session-derived contact snapshot and server-side consent version, MySQL-backed throttle, ADMIN list/detail/metrics and single-decision approve/reject with internal note. Public contract exposes no contact; approval creates no raffle. Migration and grants remain pending on `rifacloud`. |
+| 2.19 | 2026-11-15 | S14 registration validation: mirrored password policy (8+, uppercase, digit), Colombian mobile normalization to 10 digits starting with 3, and RFC+dotted-domain email validation in `auth-service` and the monolith rollback. React form adds fixed `+57`, live password checklist and per-field Spanish errors. No schema change; existing accounts and login preserved. |
+| 2.20 | 2026-11-15 | S13 activated on `rifacloud` with explicit authorization: new timestamped backup verified by hash and temporary restore, migration `2026_11_15_000014` applied (17 total), only the `raffle_proposals` grant added, test stack stopped without removing volumes, and the normal eight-container stack rebuilt with S13/S14 code. Controlled smoke checks passed; historical hashes unchanged and no automatic draw executed. |

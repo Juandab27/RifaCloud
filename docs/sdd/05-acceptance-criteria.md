@@ -575,11 +575,45 @@ payment was processed.
 - No orders, payments, draws, COP amounts, historical raffles or Mercado Pago
   behavior changed. No notification was sent. No AWS resource was created.
 
-**Pending:** authorization to apply the proposal migration and grant to
-`rifacloud`, then rebuild/restart the normal stack. Until then the normal stack
-must not be treated as proposal-enabled.
+**Activation (2026-11-15):** with explicit authorization, a new verified backup
+was restored in a temporary database, the proposal migration and its
+`raffle_proposals` grant were applied to `rifacloud`, and the normal stack was
+rebuilt and started. Controlled smoke checks validated registration, login,
+proposal submission, admin approval/rejection and the scheduler without changing
+raffles, orders, payments, results or COP amounts.
 
-## 13. Change Log
+## 13. S14 Registration Validation
+
+| ID | Requirement | Acceptance Criteria | Test Method |
+|---|---|---|---|
+| AC-S14-01 | NFR-024 | Registration rejects passwords shorter than 8 characters, without an uppercase letter or without a digit. Special characters and long passwords are accepted. The frontend shows a live checklist and blocks submission; the backend returns 422. | Unit/integration/E2E |
+| AC-S14-02 | NFR-024 | The form shows a fixed `+57` prefix. Accepted formats (`3001234567`, `300 123 4567`, `+57 300 123 4567`, `+573001234567`, `(300) 123-4567`) are normalized and stored as 10 digits starting with 3. Invalid mobiles return a Spanish 422 error. | Integration/E2E |
+| AC-S14-03 | NFR-024 | Malformed emails (`ana`, `ana@`, `ana@example`, spaces, double `@`, leading dot) are rejected in frontend and backend. Valid plus-tagged and subdomain addresses are accepted; uniqueness is unchanged. | Unit/integration/E2E |
+| AC-S14-04 | NFR-024 | Existing accounts with historical weak passwords or non-normalized phone values can still log in; their stored phone and password are not rewritten. | Integration |
+| AC-S14-05 | FR-018; NFR-023 | After register → login → propose, the proposal contact name/email/phone is taken from the authenticated account (including the normalized phone) and is not requested again. | HTTP integration |
+
+### S14 implementation evidence (2026-11-15)
+
+- Monolith `AuthenticationTest`: **16/16** tests, **96 assertions**, covering
+  weak passwords, password mismatch, valid/invalid Colombian formats,
+  malformed emails, valid email variants, duplicate email, legacy login and
+  unchanged historical phone.
+- `auth-service` disposable integration: **19/19** checks, including
+  registration with the new policy, consent evidence at `2026-11-14`,
+  `/api/me`, session compatibility with the monolith and logout.
+- Real HTTP validation on `rifacloud_test`: **15/15** checks for malformed
+  email/phone/weak password, normalization of `+57 300 123 4567` to
+  `3001234567`, login, register → login → propose, proposal contact from the
+  account, and existing demo account login.
+- Frontend unit checks: **45/45** registration rules plus **18/18**
+  raffle-state and **12/12** COP. TypeScript and production build pass.
+- Playwright: **39/39**, including **3/3** focused registration tests (dynamic
+  checklist, mismatch, `+57` normalization, malformed email, mobile layout).
+- No schema change, migration or seed was executed. `rifacloud` remains at 16
+  migrations, 14 users, 5 raffles, 25 orders and 16 payments, with no proposal
+  table. No orders, payments, raffles or draws were modified.
+
+## 14. Change Log
 
 | Version | Date | Change |
 |---|---|---|
@@ -604,3 +638,5 @@ must not be treated as proposal-enabled.
 | 1.18 | 2026-11-12 | S11 closed on main with explicit authorization: migration and `user_consents` grant applied, controlled API registration verified PRIVACY/TERMS/MARKETING rows at version `2026-11-11`, cleanup returned users to 8. Auth 12/12, Playwright 26/26, TypeScript clean. |
 | 1.19 | 2026-11-14 | S12 added AC-S12-01 to AC-S12-12 for opt-in automatic closure/draw, SOLD+PAID+APPROVED candidates, blockers, idempotency, late-payment cutoff, masked public winner, audit evidence and manual compatibility. Historical raffles remain manual. |
 | 1.20 | 2026-11-15 | S13 added AC-S13-01 to AC-S13-08 for authenticated proposal submission, server-derived contact snapshot, validation/consent, rate limiting, admin-only contact, approve/reject persistence, no raffle creation and responsive/redirect behavior. Validated on `rifacloud_test`; main migration pending. |
+| 1.21 | 2026-11-15 | S14 added AC-S14-01 to AC-S14-05 for mirrored password policy, Colombian mobile normalization, complete email validation, existing-account compatibility and register → login → propose contact reuse. No schema change; `rifacloud` untouched. |
+| 1.22 | 2026-11-15 | S13 activated on `rifacloud` with explicit authorization: backup + temporary restore, proposal migration and grant applied (17 migrations), test stack stopped without volumes, normal stack rebuilt with S13/S14 code, and controlled smoke checks for registration, login, proposals, admin moderation and scheduler. Historical hashes unchanged. |

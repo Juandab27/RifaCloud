@@ -430,8 +430,8 @@ No se ha creado ningún recurso.
 - Los documentos SDD/AGENTS se han desbloqueado en `.gitignore`, pero **no se
   han commiteado ni pusheado**: para recuperarlos desde GitHub hace falta un
   commit/push autorizado.
-- La aplicación main tiene 16 migraciones aplicadas (hasta S12). La migración
-  S13 `2026_11_15_000014_create_raffle_proposals_table` está implementada y
-  validada en `rifacloud_test`, pero **no aplicada a `rifacloud`**. El grant de
-  `raffle_proposals` para `rifacloud_raffles` también está pendiente hasta que se
-  autorice la migración.
+- La aplicación main tiene 17 migraciones aplicadas (hasta Propuestas). La
+  migración S13 `2026_11_15_000014_create_raffle_proposals_table` y el grant de
+  `raffle_proposals` para `rifacloud_raffles` se aplicaron el 2026-11-15 con
+  autorización explícita, tras un respaldo nuevo verificado y una restauración
+  temporal. Las rifas, órdenes, pagos, resultados y montos COP no cambiaron.

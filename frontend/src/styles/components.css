@@ -449,3 +449,45 @@ tr:last-child td {
     flex: 1 1 auto;
   }
 }
+
+/* --- Registro: teléfono con prefijo fijo y checklist de contraseña -------- */
+.phone-input {
+  display: flex;
+  align-items: stretch;
+}
+
+.phone-prefix {
+  display: inline-flex;
+  align-items: center;
+  padding: 0 var(--sp-3);
+  border: 1px solid var(--line-strong);
+  border-right: 0;
+  border-radius: var(--r-md) 0 0 var(--r-md);
+  background: var(--bg-3);
+  color: var(--text-2);
+  font-weight: 600;
+}
+
+.phone-input input {
+  border-radius: 0 var(--r-md) var(--r-md) 0;
+}
+
+.password-checklist {
+  display: grid;
+  gap: var(--sp-1);
+  margin: calc(var(--sp-2) * -1) 0 0;
+  padding: 0;
+  list-style: none;
+  color: var(--text-3);
+  font-size: var(--fs-sm);
+}
+
+.password-checklist li {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+}
+
+.password-checklist li.is-met {
+  color: var(--success-text);
+}

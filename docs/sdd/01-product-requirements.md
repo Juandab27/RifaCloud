@@ -101,6 +101,7 @@ The project is developed as a university assignment for Cloud Computing and must
 | NFR-021 | Automatic draw must be idempotent, concurrency-safe and audit-ready; it must never publish a winner while payments or reservations are uncertain | Integrity / Audit | Must | S12; row lock, unique result, CSPRNG, candidate hash and evidence |
 | NFR-022 | Public results must expose only the winning number and a masked winner name; email, phone, document, user id and order id must never be exposed publicly | Privacy | Must | S12 |
 | NFR-023 | Proposal identity and contact must be derived exclusively from the authenticated session; submissions must be rate-limited per user, contact data must be admin-only, and approving a proposal must never create a raffle, order, payment or notification | Security / Privacy | Must | S13 |
+| NFR-024 | Registration must enforce on frontend and backend an 8+ character password with an uppercase letter and a number, a Colombian mobile normalized to 10 digits starting with 3, and a complete email format with a dotted domain; existing accounts, historical phone values and login must remain unchanged | Security / Data quality | Must | S14; no SMS verification is implied |
 
 ## 6. Assumptions
 
@@ -155,3 +156,4 @@ is the approved target and is reached in stages (S3-S5 in
 | 1.7 | 2026-11-14 | S12: added FR-017 (opt-in automatic sales closure and draw), NFR-021 (draw idempotency/audit) and NFR-022 (masked public winner). Manual results remain supported; historical raffles are not auto-enabled |
 | 1.7 | 2026-11-12 | S11 closed on the main schema: `user_consents` migration and auth-service grant applied with explicit authorization; controlled registration verified and cleaned up. No requirement change |
 | 1.8 | 2026-11-15 | S13: added FR-018 (authenticated raffle proposals with server-side contact snapshot, throttling and admin moderation) and NFR-023 (identity from session, admin-only contact, approval creates no business record). Validated only on `rifacloud_test`; main migration pending |
+| 1.9 | 2026-11-15 | S14: added NFR-024 (registration password policy, Colombian mobile normalization and complete email format, mirrored in frontend and backend while preserving existing accounts and login). No schema change required |

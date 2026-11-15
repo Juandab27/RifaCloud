@@ -124,9 +124,9 @@ test('el registro exige los consentimientos y separa el promocional', async ({ p
 
   await page.getByLabel('Nombre completo').fill('Persona de prueba')
   await page.getByLabel('Correo electrónico').fill('consent@example.invalid')
-  await page.getByLabel('Teléfono').fill('3000000000')
-  await page.locator('input[autocomplete="new-password"]').first().fill('secret-password')
-  await page.locator('input[autocomplete="new-password"]').nth(1).fill('secret-password')
+  await page.getByLabel('Teléfono celular').fill('+57 300 000 0000')
+  await page.locator('input[autocomplete="new-password"]').first().fill('Secret123')
+  await page.locator('input[autocomplete="new-password"]').nth(1).fill('Secret123')
 
   await privacy.check()
   await terms.check()
@@ -138,6 +138,7 @@ test('el registro exige los consentimientos y separa el promocional', async ({ p
   expect(payload).toMatchObject({
     name: 'Persona de prueba',
     email: 'consent@example.invalid',
+    phone: '3000000000',
     privacy_consent: true,
     terms_consent: true,
     marketing_consent: false,
