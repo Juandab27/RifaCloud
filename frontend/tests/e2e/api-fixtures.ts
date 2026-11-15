@@ -36,6 +36,8 @@ const baseRaffle = {
   min_number: 1,
   max_number: 2000,
   total_numbers: 2000,
+  draw_mode: 'MANUAL',
+  draw_at: null,
   reservation_minutes: 10,
   max_numbers_per_order: 50,
   numbers_count: 2000,
@@ -80,13 +82,26 @@ export const finishedRaffle = {
   ends_at: iso(-10 * DAY),
   result: {
     winning_number: 1234,
+    public_winner_name: 'Ana P.',
+    source: 'MANUAL',
     published_at: iso(-1 * DAY),
     evidence_description: 'Acta del sorteo verificada por la administración.',
     evidence_url: 'https://example.invalid/acta-sorteo',
   },
 }
 
-export const raffles = [upcomingRaffle, openRaffle, closedRaffle, finishedRaffle]
+export const drawPendingRaffle = {
+  ...baseRaffle,
+  id: 5,
+  title: 'Rifa en sorteo',
+  status: 'CLOSED',
+  draw_mode: 'AUTOMATIC',
+  starts_at: iso(-5 * DAY),
+  ends_at: iso(-1 * DAY),
+  draw_at: iso(1 * DAY),
+}
+
+export const raffles = [upcomingRaffle, openRaffle, closedRaffle, finishedRaffle, drawPendingRaffle]
 
 const numbersPayload = {
   data: [
@@ -182,6 +197,7 @@ const detailById: Record<string, unknown> = {
   '2': openRaffle,
   '3': closedRaffle,
   '4': finishedRaffle,
+  '5': drawPendingRaffle,
 }
 
 const orderById: Record<string, unknown> = {

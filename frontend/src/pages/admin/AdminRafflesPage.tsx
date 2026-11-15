@@ -131,6 +131,9 @@ export default function AdminRafflesPage() {
             <Link className="button button-ghost" to="/admin/orders">
               Órdenes e incidencias
             </Link>
+            <Link className="button button-ghost" to="/admin/proposals">
+              Propuestas
+            </Link>
             <Link className="button" to="/admin/raffles/new">
               Nueva rifa
             </Link>

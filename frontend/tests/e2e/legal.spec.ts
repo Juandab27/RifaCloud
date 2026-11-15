@@ -141,7 +141,7 @@ test('el registro exige los consentimientos y separa el promocional', async ({ p
     privacy_consent: true,
     terms_consent: true,
     marketing_consent: false,
-    consent_version: '2026-11-11',
+    consent_version: '2026-11-14',
   })
 })
 

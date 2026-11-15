@@ -4,16 +4,24 @@ import type { RaffleStatus } from '../types'
  * Estado público de una rifa.
  *
  * El backend expone RaffleStatus (DRAFT/PUBLISHED/CLOSED/FINISHED), pero una
- * rifa PUBLISHED también puede estar fuera de su ventana de venta. Este estado
- * derivado es solo de presentación: el servidor sigue siendo la autoridad y
- * rechaza cualquier reserva fuera de la ventana.
+ * rifa PUBLISHED también puede estar fuera de su ventana de venta y una rifa
+ * CLOSED con sorteo automático está esperando la fecha del sorteo. Este estado
+ * derivado es solo de presentación: el servidor sigue siendo la autoridad.
  */
-export type RafflePublicState = 'DRAFT' | 'UPCOMING' | 'OPEN' | 'CLOSED' | 'FINISHED'
+export type RafflePublicState =
+  | 'DRAFT'
+  | 'UPCOMING'
+  | 'OPEN'
+  | 'DRAW_PENDING'
+  | 'CLOSED'
+  | 'FINISHED'
 
 export interface RaffleSchedule {
   status: RaffleStatus
+  draw_mode?: 'MANUAL' | 'AUTOMATIC' | null
   starts_at: string | null
   ends_at: string | null
+  draw_at?: string | null
 }
 
 function timestamp(value: string | null): number | null {
@@ -49,7 +57,9 @@ export function getRafflePublicState(
   }
 
   if (raffle.status === 'CLOSED') {
-    return 'CLOSED'
+    return raffle.draw_mode === 'AUTOMATIC' && raffle.draw_at
+      ? 'DRAW_PENDING'
+      : 'CLOSED'
   }
 
   const nowMs = now.getTime()
@@ -78,6 +88,7 @@ export const RAFFLE_STATE_LABELS: Record<RafflePublicState, string> = {
   DRAFT: 'Borrador',
   UPCOMING: 'Próximamente',
   OPEN: 'Disponible',
+  DRAW_PENDING: 'Sorteo pendiente',
   CLOSED: 'Cerrada',
   FINISHED: 'Finalizada',
 }
@@ -88,6 +99,7 @@ export const RAFFLE_STATE_TONES: Record<RafflePublicState, RaffleStateTone> = {
   DRAFT: 'warning',
   UPCOMING: 'info',
   OPEN: 'success',
+  DRAW_PENDING: 'info',
   CLOSED: 'neutral',
   FINISHED: 'neutral',
 }
@@ -102,6 +114,8 @@ export function raffleStateMessage(
       return 'La venta todavía no ha comenzado.'
     case 'OPEN':
       return 'La venta está abierta y puedes reservar números disponibles.'
+    case 'DRAW_PENDING':
+      return 'La venta terminó y el sorteo está programado para la fecha indicada.'
     case 'CLOSED':
       return raffle.status === 'CLOSED'
         ? 'La rifa fue cerrada por la administración.'

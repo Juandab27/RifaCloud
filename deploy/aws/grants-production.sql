@@ -21,8 +21,13 @@ GRANT SELECT, INSERT, UPDATE, DELETE ON `rifacloud`.`user_consents` TO 'rifaclou
 GRANT SELECT, INSERT, UPDATE, DELETE ON `rifacloud`.`raffles` TO 'rifacloud_raffles'@'%';
 GRANT SELECT, INSERT, UPDATE, DELETE ON `rifacloud`.`raffle_numbers` TO 'rifacloud_raffles'@'%';
 GRANT SELECT, INSERT, UPDATE, DELETE ON `rifacloud`.`raffle_results` TO 'rifacloud_raffles'@'%';
+-- S13 proposals: raffles-service is the sole writer of raffle_proposals.
+GRANT SELECT, INSERT, UPDATE, DELETE ON `rifacloud`.`raffle_proposals` TO 'rifacloud_raffles'@'%';
 GRANT SELECT ON `rifacloud`.`users` TO 'rifacloud_raffles'@'%';
 GRANT SELECT ON `rifacloud`.`sessions` TO 'rifacloud_raffles'@'%';
+-- S12 draw candidate snapshot: read-only, never write.
+GRANT SELECT ON `rifacloud`.`orders` TO 'rifacloud_raffles'@'%';
+GRANT SELECT ON `rifacloud`.`payments` TO 'rifacloud_raffles'@'%';
 
 -- orders-service: orders, items, reservations and expiry. Payments are read
 -- only; raffles can only refresh updated_at.
@@ -31,6 +36,7 @@ GRANT SELECT, INSERT, UPDATE, DELETE ON `rifacloud`.`order_items` TO 'rifacloud_
 GRANT SELECT, INSERT, UPDATE, DELETE ON `rifacloud`.`raffle_numbers` TO 'rifacloud_orders'@'%';
 GRANT SELECT, UPDATE (`updated_at`) ON `rifacloud`.`payments` TO 'rifacloud_orders'@'%';
 GRANT SELECT, UPDATE (`updated_at`) ON `rifacloud`.`raffles` TO 'rifacloud_orders'@'%';
+GRANT SELECT ON `rifacloud`.`raffle_results` TO 'rifacloud_orders'@'%';
 GRANT SELECT ON `rifacloud`.`users` TO 'rifacloud_orders'@'%';
 GRANT SELECT ON `rifacloud`.`sessions` TO 'rifacloud_orders'@'%';
 

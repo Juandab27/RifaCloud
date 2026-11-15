@@ -1,7 +1,7 @@
 # 05 — Alcance regulatorio de las rifas en Colombia
 
 **Proyecto:** RifaCloud
-**Versión:** 2026-11-11
+**Versión:** 2026-11-14
 **Estado:** Borrador documental para revisión jurídica humana
 **Normas principales:** Ley 643 de 2001 y Decreto 1486 de 2024
 

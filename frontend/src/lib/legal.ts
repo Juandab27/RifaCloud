@@ -7,7 +7,7 @@
  * backend environment) so consent evidence always points to the exact text
  * the person saw.
  */
-export const LEGAL_VERSION = '2026-11-11'
+export const LEGAL_VERSION = '2026-11-14'
 
 export const LEGAL_UPDATED_AT = '11 de noviembre de 2026'
 

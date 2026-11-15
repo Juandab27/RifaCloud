@@ -321,7 +321,7 @@ class CreateOrderTest extends TestCase
         $this->travelBack();
     }
 
-    public function test_order_is_allowed_exactly_at_the_window_boundaries(): void
+    public function test_order_is_allowed_at_start_and_rejected_at_end_boundary(): void
     {
         $this->travelTo(now()->startOfSecond());
 
@@ -345,9 +345,10 @@ class CreateOrderTest extends TestCase
                 'raffle_id' => $endsNow->id,
                 'numbers' => [1],
             ])
-            ->assertCreated();
+            ->assertStatus(409)
+            ->assertJsonPath('code', 'RAFFLE_ENDED');
 
-        $this->assertDatabaseCount('orders', 2);
+        $this->assertDatabaseCount('orders', 1);
 
         $this->travelBack();
     }

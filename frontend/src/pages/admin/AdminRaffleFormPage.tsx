@@ -23,8 +23,10 @@ function createEmptyForm() {
     price_per_number: '1000',
     min_number: '1',
     max_number: '100',
+    draw_mode: 'MANUAL',
     starts_at: '',
     ends_at: '',
+    draw_at: '',
   }
 }
 
@@ -90,8 +92,10 @@ export default function AdminRaffleFormPage() {
           price_per_number: String(loaded.price_per_number),
           min_number: String(loaded.min_number),
           max_number: String(loaded.max_number),
+          draw_mode: loaded.draw_mode ?? 'MANUAL',
           starts_at: toBogotaDateTimeInput(loaded.starts_at),
           ends_at: toBogotaDateTimeInput(loaded.ends_at),
+          draw_at: toBogotaDateTimeInput(loaded.draw_at),
         })
         setError(null)
         setFieldErrors({})
@@ -145,6 +149,22 @@ export default function AdminRaffleFormPage() {
       return
     }
 
+    if (form.draw_mode === 'AUTOMATIC') {
+      if (form.ends_at === '' || form.draw_at === '') {
+        setFieldErrors({ draw_at: 'El sorteo automático requiere cierre de ventas y fecha de sorteo.' })
+
+        return
+      }
+
+      const minimum = new Date(`${form.ends_at}:00-05:00`).getTime() + 30 * 60 * 1000
+
+      if (new Date(`${form.draw_at}:00-05:00`).getTime() < minimum) {
+        setFieldErrors({ draw_at: 'La fecha de sorteo debe ser al menos 30 minutos posterior al cierre de ventas.' })
+
+        return
+      }
+    }
+
     setSubmitting(true)
 
     const payload: RafflePayload = {
@@ -153,8 +173,10 @@ export default function AdminRaffleFormPage() {
       price_per_number: priceCop,
       min_number: Number(form.min_number),
       max_number: Number(form.max_number),
+      draw_mode: form.draw_mode as 'MANUAL' | 'AUTOMATIC',
       starts_at: toUtcIsoFromBogotaInput(form.starts_at),
       ends_at: toUtcIsoFromBogotaInput(form.ends_at),
+      draw_at: form.draw_mode === 'AUTOMATIC' ? toUtcIsoFromBogotaInput(form.draw_at) : null,
     }
 
     try {
@@ -300,7 +322,21 @@ export default function AdminRaffleFormPage() {
           </fieldset>
 
           <fieldset className="admin-form-section">
-            <legend>Calendario</legend>
+            <legend>Calendario y sorteo</legend>
+
+            <Field
+              label="Modo de resultado"
+              hint="Automático requiere fecha de sorteo y al menos 30 minutos después del cierre de ventas."
+            >
+              <select
+                value={form.draw_mode}
+                onChange={(event) => update('draw_mode', event.target.value)}
+                disabled={readOnly || submitting}
+              >
+                <option value="MANUAL">Manual (el administrador publica)</option>
+                <option value="AUTOMATIC">Automático (scheduler)</option>
+              </select>
+            </Field>
 
             <div className="form-row">
               <Field
@@ -316,7 +352,7 @@ export default function AdminRaffleFormPage() {
               </Field>
 
               <Field
-                label="Fin (opcional)"
+                label="Fin de ventas (opcional)"
                 error={fieldErrors.ends_at}
                 hint="Hora de Colombia (America/Bogota)."
               >
@@ -328,9 +364,24 @@ export default function AdminRaffleFormPage() {
               </Field>
             </div>
 
+            {form.draw_mode === 'AUTOMATIC' && (
+              <Field
+                label="Fecha del sorteo"
+                error={fieldErrors.draw_at}
+                hint="Hora de Colombia (America/Bogota). Mínimo 30 minutos después del cierre."
+              >
+                <DateTimeField
+                  value={form.draw_at}
+                  onChange={(value) => update('draw_at', value)}
+                  disabled={readOnly || submitting}
+                />
+              </Field>
+            )}
+
             <p className="ui-field-hint">
               Si dejas ambas fechas vacías, la rifa no restringe la venta por calendario. La
-              fecha de cierre debe ser posterior a la de inicio.
+              fecha de cierre debe ser posterior a la de inicio. Las rifas existentes permanecen
+              en modo manual.
             </p>
           </fieldset>
 

@@ -87,9 +87,9 @@ function Test-MainMoneyMigrationApplied {
         return $false
     }
 
-    $result = & docker compose @Compose exec -T -e "MYSQL_PWD=$($envMap['DB_ROOT_PASSWORD'])" mysql mysql -uroot -N -e "SELECT COUNT(*) FROM rifacloud.migrations WHERE migration='2026_11_13_000012_convert_monetary_values_to_cop';" 2>$null
+    $result = & docker compose @Compose exec -T -e "MYSQL_PWD=$($envMap['DB_ROOT_PASSWORD'])" mysql mysql -uroot -N -e "SELECT COUNT(*) FROM rifacloud.migrations WHERE migration IN ('2026_11_13_000012_convert_monetary_values_to_cop', '2026_11_14_000013_add_automatic_draw_fields');" 2>$null
 
-    return ((($result | Out-String).Trim()) -eq '1')
+    return ((($result | Out-String).Trim()) -eq '2')
 }
 
 function Invoke-Api {
@@ -423,8 +423,8 @@ try {
     Remove-Item $UserJar -Force -ErrorAction SilentlyContinue
 
     if (-not (Test-MainMoneyMigrationApplied)) {
-        Write-Host 'The normal stack is not restored: rifacloud still stores cents.' -ForegroundColor Yellow
-        Write-Host 'Apply 2026_11_13_000012_convert_monetary_values_to_cop to rifacloud first.' -ForegroundColor Yellow
+        Write-Host 'The normal stack is not restored: rifacloud is missing required migrations (COP/S12).' -ForegroundColor Yellow
+        Write-Host 'Apply 2026_11_13_000012_convert_monetary_values_to_cop and 2026_11_14_000013_add_automatic_draw_fields to rifacloud first.' -ForegroundColor Yellow
         Write-Host 'The test stack remains available on rifacloud_test.' -ForegroundColor Yellow
     } else {
         Write-Host 'Restoring the normal stack...' -ForegroundColor Cyan

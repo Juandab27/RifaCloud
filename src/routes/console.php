@@ -23,6 +23,12 @@ Schedule::command('payments:reconcile --limit=50')
     ->everyFiveMinutes()
     ->withoutOverlapping(10);
 
+// S12: close due automatic sales and draw eligible winners. The command is
+// idempotent and raffles-service owns the row lock and unique result.
+Schedule::command('raffles:process-due --limit=20')
+    ->everyMinute()
+    ->withoutOverlapping(5);
+
 // Queue purchase confirmations and payment/refund incidents, then deliver them
 // with retries. Both commands only touch the notifications table; a mail
 // failure never changes an order or a payment.

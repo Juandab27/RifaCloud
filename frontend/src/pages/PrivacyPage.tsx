@@ -174,6 +174,12 @@ export default function PrivacyPage() {
                 <td>Acciones del usuario autenticado</td>
               </tr>
               <tr>
+                <td>Resultados y sorteo</td>
+                <td>Número ganador, nombre enmascarado, fecha, evidencia y datos de auditoría del sorteo</td>
+                <td>Tabla <code>raffle_results</code></td>
+                <td>Publicación administrativa o sorteo automático configurado</td>
+              </tr>
+              <tr>
                 <td>Pagos de prueba</td>
                 <td>Identificador del proveedor, estado, monto, moneda, URL de checkout, respuesta sanitizada</td>
                 <td>Tabla <code>payments</code></td>
@@ -222,6 +228,7 @@ export default function PrivacyPage() {
           <li>Crear órdenes de demostración, reservar números y gestionar su vencimiento.</li>
           <li>Iniciar y verificar pagos del gateway simulado o del sandbox del proveedor, sin cobros reales.</li>
           <li>Enviar confirmaciones de compra y avisos de incidencias por correo.</li>
+          <li>Publicar el número ganador y un nombre enmascarado del comprador cuando se cierre una rifa, sin exponer datos de contacto ni identificadores internos.</li>
           <li>Prevenir fraude, abuso, accesos no autorizados y doble venta.</li>
           <li>Mantener trazabilidad y evidencia para auditoría, conciliación y atención de reclamaciones.</li>
           <li>Cumplir obligaciones legales que resulten aplicables.</li>
@@ -392,7 +399,7 @@ export default function PrivacyPage() {
       <section id="vigencia">
         <h2>12. Vigencia, versión y cambios</h2>
         <p>
-          Esta es la versión <strong>2026-11-11</strong> del borrador. Se publica
+          Esta es la versión <strong>2026-11-14</strong> del borrador. Se publica
           como versión de trabajo del prototipo, pero no sustituye una política
           definitiva. Los cambios sustanciales se comunicarán antes de
           implementarse y, si afectan la finalidad, exigirán una nueva

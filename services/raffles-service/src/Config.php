@@ -49,6 +49,50 @@ final class Config
         return self::int('RAFFLE_MAX_NUMBERS', 10000);
     }
 
+    public static function drawBufferMinutes(): int
+    {
+        // S12: the approved minimum is 30 minutes between sales end and draw.
+        return max(30, self::int('DRAW_BUFFER_MINUTES', 30));
+    }
+
+    public static function drawBatchLimit(): int
+    {
+        return min(100, self::int('DRAW_BATCH_LIMIT', 20));
+    }
+
+    public static function internalClockSkewSeconds(): int
+    {
+        return self::int('RAFFLES_INTERNAL_CLOCK_SKEW', 60);
+    }
+
+    /**
+     * Proposal throttling is per authenticated user and evaluated in MySQL;
+     * it survives container restarts and needs no shared cache.
+     */
+    public static function proposalDailyLimit(): int
+    {
+        return min(20, self::int('PROPOSAL_DAILY_LIMIT', 3));
+    }
+
+    public static function proposalCooldownSeconds(): int
+    {
+        return min(3600, self::nonNegativeInt('PROPOSAL_COOLDOWN_SECONDS', 30));
+    }
+
+    public static function legalConsentVersion(): string
+    {
+        return self::rawString('LEGAL_CONSENT_VERSION', '2026-11-14');
+    }
+
+    public static function internalSecret(): string
+    {
+        $appKey = self::appKey();
+
+        return $appKey === ''
+            ? ''
+            : hash_hmac('sha256', 'rifacloud-raffles-internal', $appKey);
+    }
+
     /**
      * APP_KEY is shared with the monolith and auth-service so the Laravel
      * session cookie can be decrypted during the transition (ADR-001 §5).
@@ -98,5 +142,20 @@ final class Config
         }
 
         return max(1, (int) $value);
+    }
+
+    /**
+     * Allows an explicit zero (for example, disabling the proposal cooldown
+     * in a controlled test) while never returning a negative value.
+     */
+    private static function nonNegativeInt(string $key, int $default): int
+    {
+        $value = getenv($key);
+
+        if ($value === false || $value === '') {
+            return max(0, $default);
+        }
+
+        return max(0, (int) $value);
     }
 }

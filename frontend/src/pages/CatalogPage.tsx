@@ -141,10 +141,20 @@ export default function CatalogPage() {
                   </p>
                 )}
 
+                {state === 'DRAW_PENDING' && raffle.draw_at && (
+                  <p className="raffle-card-closes">
+                    <Icon name="info" size={14} />
+                    Sorteo programado para el {formatDate(raffle.draw_at)}
+                  </p>
+                )}
+
                 {raffle.result && (
                   <p className="raffle-card-result">
                     <Icon name="ticket" size={14} />
                     Ganador: <strong>N.º {formatRaffleNumber(raffle.result.winning_number)}</strong>
+                    {raffle.result.public_winner_name && (
+                      <span className="muted"> · {raffle.result.public_winner_name}</span>
+                    )}
                     {raffle.result.published_at && (
                       <span className="muted"> · {formatDate(raffle.result.published_at)}</span>
                     )}

@@ -175,7 +175,7 @@ try {
     Write-Host ''
     Write-Host 'Para limpiar los fixtures del entorno de pruebas:' -ForegroundColor Cyan
     Write-Host '  powershell -ExecutionPolicy Bypass -File scripts/cleanup-demo-environment.ps1'
-    Write-Host 'El stack normal no se restaura hasta aplicar la migración de COP sobre rifacloud.' -ForegroundColor Yellow
+    Write-Host 'El stack normal no se restaura hasta aplicar las migraciones de COP y S12 sobre rifacloud.' -ForegroundColor Yellow
 } catch {
     $errorMessage = $_.Exception.Message
     Write-Host "ERROR: $errorMessage" -ForegroundColor Red

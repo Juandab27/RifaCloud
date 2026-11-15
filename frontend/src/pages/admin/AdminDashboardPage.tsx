@@ -160,6 +160,9 @@ export default function AdminDashboardPage() {
           <Link className="button button-ghost" to="/admin/orders">
             Órdenes e incidencias
           </Link>
+          <Link className="button button-ghost" to="/admin/proposals">
+            Propuestas
+          </Link>
           <Button
             variant="secondary"
             size="sm"

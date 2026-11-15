@@ -1,7 +1,7 @@
 # 06 — Derechos del titular: mecanismos y limitaciones
 
 **Proyecto:** RifaCloud
-**Versión:** 2026-11-11
+**Versión:** 2026-11-14
 **Estado:** Diagnóstico del prototipo y propuesta para revisión jurídica
 
 > Este documento describe lo que el prototipo permite hoy. No presenta como
@@ -120,7 +120,7 @@ solo prueba la decisión inicial.
 
 ### 4.5 Sin actualización de documentos para usuarios existentes
 
-La versión `2026-11-11` se exige en nuevos registros. Los usuarios creados antes
+La versión `2026-11-14` se exige en nuevos registros. Los usuarios creados antes
 de S11 no tienen filas en `user_consents` porque la tabla no existía; no se
 inventó un consentimiento retroactivo. Un re-consentimiento o backfill requiere
 decisión jurídica y un flujo de comunicación. Si los documentos cambian, los

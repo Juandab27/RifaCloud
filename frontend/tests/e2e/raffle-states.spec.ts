@@ -42,6 +42,16 @@ test.describe('Detalle de rifa: ventana de venta', () => {
     await expect(page.locator('button.number').first()).toBeDisabled()
     await expect(page.getByRole('link', { name: 'Ver otras rifas' })).toBeVisible()
   })
+
+  test('una rifa con sorteo automático pendiente no ofrece reservar', async ({ page }) => {
+    await mockApi(page)
+    await page.goto('/raffles/5')
+
+    await expect(page.locator('.raffle-hero .status')).toHaveText('Sorteo pendiente')
+    await expect(page.getByText('Sorteo programado para el')).toBeVisible()
+    await expect(page.getByRole('button', { name: /Reservar números/ })).toHaveCount(0)
+    await expect(page.locator('button.number').first()).toBeDisabled()
+  })
 })
 
 test.describe('Resultado oficial', () => {
@@ -52,6 +62,7 @@ test.describe('Resultado oficial', () => {
     const result = page.locator('.raffle-result')
     await expect(result.getByRole('heading', { name: 'Número ganador' })).toBeVisible()
     await expect(result.locator('.raffle-result-number')).toHaveText('1.234')
+    await expect(result).toContainText('Ana P.')
     await expect(result).toContainText('Fecha de publicación')
     await expect(result).toContainText('Acta del sorteo verificada por la administración.')
 

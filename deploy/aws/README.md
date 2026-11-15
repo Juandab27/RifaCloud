@@ -177,7 +177,7 @@ El script:
 - espera MySQL healthy;
 - exige `CONFIRM_MIGRATE=yes`;
 - si ya hay tablas, exige un respaldo cifrado previo;
-- aplica las migraciones con `migrate --force` (14 en un esquema nuevo);
+- aplica las migraciones con `migrate --force` (17 en un esquema nuevo);
 - crea/actualiza los cuatro usuarios de servicio desde `.env`;
 - aplica `deploy/aws/grants-production.sql`;
 - opcionalmente ejecuta `AdminUserSeeder` con `SEED_ADMIN=yes`.
@@ -306,6 +306,93 @@ El monolito conserva sus rutas de rollback; no se retiran en esta fase. Para
 volver atrás una ruta, se revierte el `location` de Nginx y se reconstruye
 Nginx. No se eliminan datos.
 
+## 11.1 S12 automatic draw activation (checklist)
+
+Esta secuencia es obligatoria antes de habilitar sorteos automáticos en AWS.
+No se debe ejecutar sobre `rifacloud` sin autorización explícita y respaldo.
+
+### Variables y secretos
+
+```dotenv
+DRAW_BUFFER_MINUTES=30
+DRAW_BATCH_LIMIT=20
+LEGAL_CONSENT_VERSION=2026-11-14
+```
+
+`RAFFLES_SERVICE_URL=http://raffles-service`, `RAFFLES_INTERNAL_TIMEOUT=5`,
+`ORDERS_SERVICE_URL` y `PAYMENTS_SERVICE_URL` se inyectan desde
+`docker-compose.prod.yml`; no son secretos y no se publican.
+
+### Secuencia
+
+1. Detener `app` y `scheduler`; mantener MySQL y el volumen EBS `mysql_data`.
+2. Ejecutar un respaldo cifrado (`deploy/aws/backup-db.sh`) y verificar que se
+   puede restaurar en una base temporal.
+3. Confirmar que no hay compras/pagos en curso y que `rifacloud` conserva los
+   conteos esperados.
+4. Aplicar únicamente `2026_11_14_000013_add_automatic_draw_fields.php`.
+5. Aplicar los grants nuevos:
+   - `rifacloud_raffles`: `SELECT` sobre `orders` y `payments`.
+   - `rifacloud_orders`: `SELECT` sobre `raffle_results`.
+6. Reconstruir imágenes y arrancar el stack de producción.
+7. Verificar `migrate:status` sin pendientes, los 8 contenedores healthy,
+   `/healthz`, `/internal/` 404 y el heartbeat del scheduler.
+8. Verificar que `raffles:process-due --limit=20` aparece en
+   `php artisan schedule:list`.
+9. Smoke test **solo en staging o con datos de prueba**: una rifa AUTOMATIC
+   vencida debe cerrar ventas, elegir solo SOLD+PAID+APPROVED y publicar número
+   más nombre enmascarado. Una rifa con pagos PENDING/UNKNOWN, reservas activas
+   o cero SOLD debe quedar `CLOSED` bloqueada y sin resultado.
+10. No habilitar sorteos automáticos en rifas históricas: `draw_mode` debe
+    seguir en `MANUAL` para todas las filas existentes.
+
+### Persistencia y TLS
+
+- El volumen `mysql_data` debe vivir en EBS persistente; los respaldos van a
+  S3 cifrado. No borrar el volumen en una actualización.
+- Usar ALB+ACM o Nginx TLS directo según la sección 6. `APP_URL`,
+  `SANCTUM_STATEFUL_DOMAINS`, `SESSION_DOMAIN` y `SESSION_SECURE_COOKIE` deben
+  coincidir con el dominio HTTPS.
+- El scheduler y raffles-service comparten `APP_KEY`; no rotar `APP_KEY` sin
+  invalidar sesiones y reiniciar ambos.
+
+### Pruebas de humo AWS
+
+```bash
+deploy/aws/verify-deployment.sh
+BASE_URL=https://YOUR_DOMAIN deploy/aws/verify-deployment.sh
+docker compose -f docker-compose.yml -f docker-compose.prod.yml \
+  exec -T scheduler php artisan schedule:list | grep raffles:process-due
+```
+
+La prueba de sorteo real debe hacerse con datos de staging, nunca con una rifa
+comercial ni con pagos reales.
+
+## 11.2 S13 raffle proposals activation
+
+The proposal feature is additive and does not alter raffles, orders, payments,
+draws or notifications. Apply it only after explicit authorization and a
+verified backup.
+
+1. Stop `app`, `scheduler`, `nginx` and the four business services; keep MySQL
+   and the EBS volume.
+2. Create and verify a new encrypted backup; restore it to a temporary database
+   and compare counts before touching the main schema.
+3. Apply only
+   `2026_11_15_000014_create_raffle_proposals_table.php` with `migrate --force`.
+4. Apply only:
+   `GRANT SELECT, INSERT, UPDATE, DELETE ON rifacloud.raffle_proposals
+   TO 'rifacloud_raffles'@'%'` (see `scripts/mysql-proposals-grants.sql`).
+5. Rebuild `raffles-service` and `nginx`, then start the eight containers.
+6. Verify unauthenticated `POST /api/proposals` returns 401, a USER cannot read
+   `/api/admin/proposals` (403), and anonymous admin requests return 401.
+7. With staging accounts only: submit one proposal and confirm the contact
+   snapshot matches the account, not the request body; approve it and confirm no
+   raffle, order, payment or notification is created.
+8. Confirm `rifacloud_test`-style rate limits (`PROPOSAL_DAILY_LIMIT`,
+   `PROPOSAL_COOLDOWN_SECONDS`) and `LEGAL_CONSENT_VERSION` in production.
+9. Do not commit user contact data to logs or public responses.
+
 ## 12. Costos aproximados (USD/mes, varían por región y fecha)
 
 | Concepto | Aproximado |
@@ -343,7 +430,8 @@ No se ha creado ningún recurso.
 - Los documentos SDD/AGENTS se han desbloqueado en `.gitignore`, pero **no se
   han commiteado ni pusheado**: para recuperarlos desde GitHub hace falta un
   commit/push autorizado.
-- La aplicación main tiene 14 migraciones aplicadas; la migración S11
-  `2026_11_11_000011_create_user_consents_table` y el grant de `user_consents`
-  para `rifacloud_auth` se aplicaron y verificaron el 2026-11-12 con autorización
-  explícita.
+- La aplicación main tiene 16 migraciones aplicadas (hasta S12). La migración
+  S13 `2026_11_15_000014_create_raffle_proposals_table` está implementada y
+  validada en `rifacloud_test`, pero **no aplicada a `rifacloud`**. El grant de
+  `raffle_proposals` para `rifacloud_raffles` también está pendiente hasta que se
+  autorice la migración.

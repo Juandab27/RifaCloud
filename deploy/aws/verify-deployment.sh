@@ -74,6 +74,13 @@ else
     FAIL=1
 fi
 
+if "${COMPOSE[@]}" exec -T scheduler php artisan schedule:list 2>/dev/null | grep -q 'raffles:process-due'; then
+    echo "PASS  automatic draw scheduled"
+else
+    echo "FAIL  raffles:process-due is not scheduled"
+    FAIL=1
+fi
+
 echo
 if [[ "$FAIL" -eq 0 ]]; then
     echo "Deployment verification passed."

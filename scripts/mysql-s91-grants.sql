@@ -9,8 +9,12 @@
 -- it requires no new per-service grant.
 
 GRANT SELECT, INSERT, UPDATE, DELETE ON `rifacloud`.`raffle_results` TO 'rifacloud_raffles'@'%';
+GRANT SELECT ON `rifacloud`.`orders` TO 'rifacloud_raffles'@'%';
+GRANT SELECT ON `rifacloud`.`payments` TO 'rifacloud_raffles'@'%';
 
 -- Test schema used by the E2E suites.
 GRANT SELECT, INSERT, UPDATE, DELETE ON `rifacloud_test`.`raffle_results` TO 'rifacloud_raffles'@'%';
+GRANT SELECT ON `rifacloud_test`.`orders` TO 'rifacloud_raffles'@'%';
+GRANT SELECT ON `rifacloud_test`.`payments` TO 'rifacloud_raffles'@'%';
 
 FLUSH PRIVILEGES;

@@ -63,6 +63,25 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | raffles-service (S12 automatic draw)
+    |--------------------------------------------------------------------------
+    |
+    | The scheduler delegates the automatic close/draw to raffles-service. The
+    | service owns the raffle row lock and the unique result. The buffer is the
+    | approved minimum between sales end and draw.
+    |
+    */
+
+    'raffles_service_url' => env('RAFFLES_SERVICE_URL', 'http://raffles-service'),
+
+    'raffles_internal_timeout' => max(1, (int) env('RAFFLES_INTERNAL_TIMEOUT', 5)),
+
+    'draw_buffer_minutes' => max(30, (int) env('DRAW_BUFFER_MINUTES', 30)),
+
+    'draw_batch_limit' => min(100, max(1, (int) env('DRAW_BATCH_LIMIT', 20))),
+
+    /*
+    |--------------------------------------------------------------------------
     | payments-service (S4)
     |--------------------------------------------------------------------------
     |
@@ -92,7 +111,7 @@ return [
     */
 
     'legal' => [
-        'consent_version' => env('LEGAL_CONSENT_VERSION', '2026-11-11'),
+        'consent_version' => env('LEGAL_CONSENT_VERSION', '2026-11-14'),
     ],
 
     /*

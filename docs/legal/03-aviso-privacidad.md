@@ -1,7 +1,7 @@
 # 03 — Aviso de Privacidad (borrador)
 
 **Proyecto:** RifaCloud
-**Versión:** 2026-11-11
+**Versión:** 2026-11-14
 **Estado:** Borrador para revisión jurídica humana
 **Documento completo:** Política de Tratamiento de Datos Personales, versión
 2026-11-11
@@ -25,6 +25,7 @@ RifaCloud trata tu nombre, correo electrónico y teléfono para:
 - autenticarte y mantener tu sesión;
 - gestionar reservas, órdenes y pagos de demostración;
 - enviarte confirmaciones e incidencias por correo;
+- publicar el número ganador y un nombre enmascarado del comprador cuando se cierre una rifa, sin exponer correo, teléfono, documento ni identificadores internos;
 - prevenir fraude, abuso y accesos no autorizados;
 - mantener trazabilidad y evidencia para auditoría y reclamaciones;
 - cumplir obligaciones legales aplicables.
@@ -57,13 +58,13 @@ El canal de atención aún no está habilitado:
 
 ## 5. Dónde consultar la política completa
 
-La Política de Tratamiento de Datos Personales, versión 2026-11-11, está
+La Política de Tratamiento de Datos Personales, versión 2026-11-14, está
 publicada en la ruta `/privacidad` del prototipo y en
 `docs/legal/02-politica-tratamiento-datos-personales.md` del repositorio.
 
 ## 6. Vigencia
 
-Este aviso corresponde a la versión 2026-11-11 y es un borrador. Antes de una
+Este aviso corresponde a la versión 2026-11-14 y es un borrador. Antes de una
 operación real debe completarse, revisarse jurídicamente y publicarse una
 versión definitiva con el Responsable, el canal de atención y los encargados
 debidamente identificados.

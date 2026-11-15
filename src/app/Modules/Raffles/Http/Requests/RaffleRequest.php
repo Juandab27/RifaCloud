@@ -3,6 +3,7 @@
 namespace App\Modules\Raffles\Http\Requests;
 
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
 use Illuminate\Validation\Validator;
 
 class RaffleRequest extends FormRequest
@@ -24,8 +25,10 @@ class RaffleRequest extends FormRequest
             'price_per_number' => ['required', 'integer', 'min:1', 'max:4294967295'],
             'min_number' => ['required', 'integer', 'min:1', 'max:4294967295'],
             'max_number' => ['required', 'integer', 'min:1', 'max:4294967295', 'gte:min_number'],
+            'draw_mode' => ['sometimes', 'string', Rule::in(['MANUAL', 'AUTOMATIC'])],
             'starts_at' => ['nullable', 'date'],
             'ends_at' => ['nullable', 'date', 'after_or_equal:starts_at'],
+            'draw_at' => ['nullable', 'date'],
         ];
     }
 
@@ -47,6 +50,24 @@ class RaffleRequest extends FormRequest
                         'max_number',
                         "The number range cannot exceed {$limit} numbers.",
                     );
+                }
+
+                if ((string) $this->input('draw_mode', 'MANUAL') === 'AUTOMATIC') {
+                    $endsAt = $this->input('ends_at');
+                    $drawAt = $this->input('draw_at');
+                    $buffer = max(30, (int) config('rifacloud.draw_buffer_minutes'));
+
+                    if ($endsAt === null || $drawAt === null) {
+                        $validator->errors()->add(
+                            'draw_at',
+                            'Automatic draws require a sales end and a draw date.',
+                        );
+                    } elseif (strtotime((string) $drawAt) < strtotime((string) $endsAt) + ($buffer * 60)) {
+                        $validator->errors()->add(
+                            'draw_at',
+                            "The draw date must be at least {$buffer} minutes after sales end.",
+                        );
+                    }
                 }
             },
         ];

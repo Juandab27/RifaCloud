@@ -105,16 +105,26 @@ export default function TermsPage() {
       <section id="resultados">
         <h2>5. Resultados y transparencia</h2>
         <p>
-          En el prototipo, un administrador publica manualmente el número
-          ganador y una descripción o enlace de evidencia. No existe un generador
-          de números aleatorios certificado, un sorteo público auditado ni una
-          integración con una lotería autorizada.
+          En el prototipo, el administrador puede publicar manualmente el número
+          ganador y una descripción o enlace de evidencia. Si la rifa se configura
+          en modo automático, el sistema cierra la venta en la fecha indicada y,
+          en la fecha de sorteo programada, selecciona un número exclusivamente
+          entre los números vendidos con orden pagada y pago aprobado. El sorteo
+          automático usa aleatoriedad criptográficamente segura y registra
+          evidencia auditable, pero no es un generador de números aleatorios
+          certificado ni un sorteo con efectos jurídicos.
+        </p>
+        <p>
+          Cuando se publica un resultado, se muestra el número ganador y un nombre
+          enmascarado del comprador, por ejemplo «Juan P.». No se publican correo
+          electrónico, teléfono, documento de identidad, identificador de usuario
+          ni número interno de la orden.
         </p>
         <p>
           Por lo anterior, los resultados solo tienen valor de demostración. No
           deben presentarse como resultados oficiales ni usarse para reclamar un
-          premio. Una operación real exigiría reglas predeterminadas, mecanismo
-          de sorteo aprobado, evidencia verificable y supervisión de la autoridad
+          premio. Una operación real exigiría reglas predeterminadas, mecanismo de
+          sorteo aprobado, evidencia verificable y supervisión de la autoridad
           competente.
         </p>
       </section>

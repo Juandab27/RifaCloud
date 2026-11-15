@@ -21,8 +21,10 @@ class Raffle extends Model
         'min_number',
         'max_number',
         'status',
+        'draw_mode',
         'starts_at',
         'ends_at',
+        'draw_at',
         'created_by',
     ];
 
@@ -36,8 +38,10 @@ class Raffle extends Model
             'min_number' => 'integer',
             'max_number' => 'integer',
             'status' => RaffleStatus::class,
+            'draw_mode' => 'string',
             'starts_at' => 'datetime',
             'ends_at' => 'datetime',
+            'draw_at' => 'datetime',
         ];
     }
 

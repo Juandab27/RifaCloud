@@ -33,8 +33,11 @@ GRANT SELECT, INSERT, UPDATE, DELETE ON rifacloud.cache_locks TO 'rifacloud_auth
 CREATE USER IF NOT EXISTS 'rifacloud_raffles'@'%' IDENTIFIED BY '<RAFFLES_DB_PASSWORD>';
 GRANT SELECT, INSERT, UPDATE, DELETE ON rifacloud.raffles TO 'rifacloud_raffles'@'%';
 GRANT SELECT, INSERT, UPDATE, DELETE ON rifacloud.raffle_numbers TO 'rifacloud_raffles'@'%';
+GRANT SELECT, INSERT, UPDATE, DELETE ON rifacloud.raffle_proposals TO 'rifacloud_raffles'@'%';
 GRANT SELECT ON rifacloud.users TO 'rifacloud_raffles'@'%';
 GRANT SELECT ON rifacloud.sessions TO 'rifacloud_raffles'@'%';
+GRANT SELECT ON rifacloud.orders TO 'rifacloud_raffles'@'%';
+GRANT SELECT ON rifacloud.payments TO 'rifacloud_raffles'@'%';
 
 -- ---------------------------------------------------------------------------
 -- orders-service: ordenes, items, reserva/venta/liberacion de numeros.
@@ -45,6 +48,7 @@ GRANT SELECT, INSERT, UPDATE, DELETE ON rifacloud.order_items TO 'rifacloud_orde
 GRANT SELECT, INSERT, UPDATE, DELETE ON rifacloud.raffle_numbers TO 'rifacloud_orders'@'%';
 GRANT SELECT ON rifacloud.raffles TO 'rifacloud_orders'@'%';
 GRANT SELECT ON rifacloud.payments TO 'rifacloud_orders'@'%';
+GRANT SELECT ON rifacloud.raffle_results TO 'rifacloud_orders'@'%';
 GRANT SELECT ON rifacloud.users TO 'rifacloud_orders'@'%';
 GRANT SELECT ON rifacloud.sessions TO 'rifacloud_orders'@'%';
 -- Necesario para SELECT ... FOR UPDATE sobre raffles/payments (MySQL 8.4).

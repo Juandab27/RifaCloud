@@ -8,11 +8,13 @@ import NotFoundPage from './pages/NotFoundPage'
 import OrderDetailPage from './pages/OrderDetailPage'
 import OrdersPage from './pages/OrdersPage'
 import PrivacyPage from './pages/PrivacyPage'
+import ProposalFormPage from './pages/ProposalFormPage'
 import RaffleDetailPage from './pages/RaffleDetailPage'
 import RegisterPage from './pages/RegisterPage'
 import RegulatoryScopePage from './pages/RegulatoryScopePage'
 import TermsPage from './pages/TermsPage'
 import AdminDashboardPage from './pages/admin/AdminDashboardPage'
+import AdminProposalsPage from './pages/admin/AdminProposalsPage'
 import AdminRaffleFormPage from './pages/admin/AdminRaffleFormPage'
 import AdminRafflesPage from './pages/admin/AdminRafflesPage'
 import AdminOrdersPage from './pages/admin/AdminOrdersPage'
@@ -32,11 +34,13 @@ export default function App() {
         <Route element={<RequireAuth />}>
           <Route path="orders" element={<OrdersPage />} />
           <Route path="orders/:orderId" element={<OrderDetailPage />} />
+          <Route path="proposals/new" element={<ProposalFormPage />} />
         </Route>
 
         <Route element={<AdminRoute />}>
           <Route path="admin/dashboard" element={<AdminDashboardPage />} />
           <Route path="admin/raffles" element={<AdminRafflesPage />} />
+          <Route path="admin/proposals" element={<AdminProposalsPage />} />
           <Route path="admin/orders" element={<AdminOrdersPage />} />
           <Route path="admin/raffles/new" element={<AdminRaffleFormPage />} />
           <Route path="admin/raffles/:raffleId/edit" element={<AdminRaffleFormPage />} />

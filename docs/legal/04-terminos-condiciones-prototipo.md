@@ -1,7 +1,7 @@
 # 04 — Términos y Condiciones del prototipo (borrador)
 
 **Proyecto:** RifaCloud
-**Versión:** 2026-11-11
+**Versión:** 2026-11-14
 **Estado:** Borrador para revisión jurídica humana
 **Ámbito:** prototipo académico; no plataforma comercial autorizada
 
@@ -85,10 +85,19 @@ premio.
 
 ## 7. Resultados y transparencia
 
-El administrador publica manualmente el número ganador y una evidencia
-descriptiva o un enlace. No existe un Generador de Números Aleatorios (GNA)
-certificado, un acta de sorteo auditada ni una integración con una lotería
-autorizada.
+El administrador puede publicar manualmente el número ganador y una evidencia
+descriptiva o un enlace. Si la rifa se configura en modo automático, el sistema
+cierra la venta en la fecha indicada y, en la fecha de sorteo programada,
+selecciona un número exclusivamente entre los números vendidos con orden pagada
+y pago aprobado. El sorteo automático usa aleatoriedad criptográficamente segura
+y registra evidencia auditable, pero no es un Generador de Números Aleatorios
+(GNA) certificado, no cuenta con acta de sorteo auditada ni con integración con
+una lotería autorizada.
+
+Cuando se publica un resultado se muestra el número ganador y un nombre
+enmascarado del comprador (por ejemplo, «Juan P.»). No se publican correo
+electrónico, teléfono, documento de identidad, identificador de usuario ni
+número interno de la orden.
 
 Los resultados solo tienen valor de demostración. No deben presentarse como
 oficiales ni usarse para reclamar un premio. Una operación real exigiría reglas

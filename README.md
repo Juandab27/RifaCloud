@@ -225,7 +225,7 @@ controlado al detener cada servicio propietario. Restaura el stack normal en
   los Términos y Condiciones del prototipo. El consentimiento promocional es
   opcional y separado.
 - La aceptación se registra en `user_consents` con tipo, versión del documento
-  (`2026-11-11`), fecha y usuario.
+  (`2026-11-14`), fecha y usuario.
 - Las páginas públicas son `/privacidad`, `/terminos` y
   `/alcance-regulatorio`; el pie de página y la aclaración contextual del
   checkout explican que es un prototipo académico sin autorización de

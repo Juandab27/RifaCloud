@@ -9,6 +9,8 @@ use App\Modules\Payments\Contracts\PaymentGateway;
 use App\Modules\Payments\Contracts\PaymentsReconciliationClient;
 use App\Modules\Payments\Gateways\FakePaymentGateway;
 use App\Modules\Payments\Gateways\MercadoPagoGateway;
+use App\Modules\Raffles\Clients\InternalRafflesClient;
+use App\Modules\Raffles\Contracts\RaffleDrawClient;
 use Illuminate\Support\ServiceProvider;
 use InvalidArgumentException;
 use RuntimeException;
@@ -51,6 +53,14 @@ class AppServiceProvider extends ServiceProvider
                 (string) config('rifacloud.payments_service_url'),
                 (string) config('app.key'),
                 (int) config('rifacloud.payments_internal_timeout'),
+            );
+        });
+
+        $this->app->bind(RaffleDrawClient::class, function (): RaffleDrawClient {
+            return new InternalRafflesClient(
+                (string) config('rifacloud.raffles_service_url'),
+                (string) config('app.key'),
+                (int) config('rifacloud.raffles_internal_timeout'),
             );
         });
     }

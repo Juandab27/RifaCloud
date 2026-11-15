@@ -34,8 +34,21 @@ const now = new Date('2026-11-07T12:00:00.000Z')
 check(getRafflePublicState(raffle(), now), 'OPEN', 'sin fechas está disponible')
 check(canReserveRaffle('OPEN'), true, 'solo OPEN permite reservar')
 check(canReserveRaffle('UPCOMING'), false, 'UPCOMING no permite reservar')
+check(canReserveRaffle('DRAW_PENDING'), false, 'DRAW_PENDING no permite reservar')
 check(canReserveRaffle('CLOSED'), false, 'CLOSED no permite reservar')
 check(canReserveRaffle('FINISHED'), false, 'FINISHED no permite reservar')
+
+check(
+  getRafflePublicState({
+    status: 'CLOSED',
+    draw_mode: 'AUTOMATIC',
+    starts_at: null,
+    ends_at: null,
+    draw_at: '2026-11-20T15:00:00.000Z',
+  }, now),
+  'DRAW_PENDING',
+  'una rifa CLOSED automática muestra sorteo pendiente',
+)
 
 // Antes del inicio: próximamente.
 check(

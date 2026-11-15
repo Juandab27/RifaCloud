@@ -131,7 +131,7 @@ class OrderReservationService
             throw OrderConflictException::raffleNotStarted();
         }
 
-        if ($raffle->ends_at !== null && $raffle->ends_at->lessThan($now)) {
+        if ($raffle->ends_at !== null && $raffle->ends_at->lessThanOrEqualTo($now)) {
             throw OrderConflictException::raffleEnded();
         }
     }

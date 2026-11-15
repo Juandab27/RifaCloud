@@ -147,6 +147,9 @@ export default function AdminOrdersPage() {
             <Link className="button button-ghost" to="/admin/raffles">
               Administrar rifas
             </Link>
+            <Link className="button button-ghost" to="/admin/proposals">
+              Propuestas
+            </Link>
           </div>
         }
       />

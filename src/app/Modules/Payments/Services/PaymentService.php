@@ -19,6 +19,8 @@ use App\Modules\Payments\Exceptions\PaymentGatewayTimeoutException;
 use App\Modules\Payments\Exceptions\PaymentNotFoundException;
 use App\Modules\Payments\Models\Payment;
 use App\Modules\Payments\Models\PaymentWebhookEvent;
+use App\Modules\Raffles\Enums\RaffleStatus;
+use App\Modules\Raffles\Models\Raffle;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Database\QueryException;
@@ -701,7 +703,10 @@ class PaymentService
 
         // A REJECTED order is terminal for sales, but a late provider approval
         // must still be recorded as a refund incident instead of being lost.
-        $lateApproval = $reservationExpired || $currentOrderStatus === OrderStatus::REJECTED;
+        $afterDraw = $this->isAfterDrawCutoff($order);
+        $lateApproval = $reservationExpired
+            || $currentOrderStatus === OrderStatus::REJECTED
+            || ($afterDraw && $currentOrderStatus !== OrderStatus::PAID);
 
         if ($targetPaymentStatus === PaymentState::PENDING) {
             $this->assertPaymentTransition($currentPaymentStatus, PaymentState::PENDING);
@@ -772,14 +777,14 @@ class PaymentService
                 ]);
             } elseif ($lateApproval) {
                 // The provider approved after the order was no longer payable
-                // (expired reservation or rejected attempt). Record the
-                // approval durably and require a manual refund. Never reassign
-                // released numbers.
+                // (expired reservation, rejected attempt or completed draw).
+                // Record the approval durably and require a manual refund.
                 $targetPaymentStatus = PaymentState::REFUND_REQUIRED;
                 $targetOrderStatus = OrderStatus::REQUIRES_REFUND;
                 $evidence = [
                     'provider_approved' => true,
                     'late_approval' => true,
+                    'after_draw' => $afterDraw,
                 ];
 
                 Log::warning('Payment approved after the order stopped being payable; manual refund required.', [
@@ -880,6 +885,33 @@ class PaymentService
                 ...$evidence,
             ],
         ])->save();
+    }
+
+    /**
+     * @param  Collection<int, RaffleNumber>  $numbers
+     */
+    private function isAfterDrawCutoff(Order $order): bool
+    {
+        $raffle = Raffle::query()
+            ->whereKey($order->raffle_id)
+            ->lockForUpdate()
+            ->first();
+
+        if ($raffle === null) {
+            return false;
+        }
+
+        if ($raffle->status === RaffleStatus::FINISHED) {
+            return true;
+        }
+
+        if (DB::table('raffle_results')->where('raffle_id', $raffle->id)->exists()) {
+            return true;
+        }
+
+        return ($raffle->draw_mode ?? 'MANUAL') === 'AUTOMATIC'
+            && $raffle->draw_at !== null
+            && ! $raffle->draw_at->isFuture();
     }
 
     /**

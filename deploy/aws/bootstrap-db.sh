@@ -152,7 +152,7 @@ echo "Verifying migrations and grants..."
 "${COMPOSE[@]}" run --rm app php artisan migrate:status
 "${COMPOSE[@]}" exec -T mysql sh -c '
     MYSQL_PWD="$MYSQL_ROOT_PASSWORD" mysql -uroot -N -e \
-    "SHOW GRANTS FOR '\''rifacloud_raffles'\''@'\''%'\'';" | grep -E "raffles|raffle_numbers|raffle_results|sessions|users"
+    "SHOW GRANTS FOR '\''rifacloud_raffles'\''@'\''%'\'';" | grep -E "raffles|raffle_numbers|raffle_results|raffle_proposals|orders|payments|sessions|users"
 '
 
 echo "Database bootstrap completed. No schema was dropped and no volume was removed."

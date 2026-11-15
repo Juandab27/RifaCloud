@@ -31,8 +31,10 @@ final class RaffleAdminRepository
         'price_per_number',
         'min_number',
         'max_number',
+        'draw_mode',
         'starts_at',
         'ends_at',
+        'draw_at',
     ];
 
     public function __construct(
@@ -106,7 +108,9 @@ final class RaffleAdminRepository
         $statement = $this->pdo->prepare(
             <<<'SQL'
                 SELECT id, title, description, price_per_number, min_number, max_number,
-                       status, starts_at, ends_at, created_at, updated_at
+                       status, draw_mode, starts_at, ends_at, draw_at,
+                       draw_blocked_reason, draw_attempted_at, draw_attempts,
+                       created_at, updated_at
                 FROM raffles
                 WHERE id = :id
                 LIMIT 1
@@ -130,10 +134,12 @@ final class RaffleAdminRepository
             <<<'SQL'
                 INSERT INTO raffles
                     (title, description, price_per_number, min_number, max_number,
-                     status, starts_at, ends_at, created_by, created_at, updated_at)
+                     status, draw_mode, starts_at, ends_at, draw_at,
+                     created_by, created_at, updated_at)
                 VALUES
                     (:title, :description, :price_per_number, :min_number, :max_number,
-                     'DRAFT', :starts_at, :ends_at, :created_by, :created_at, :updated_at)
+                     'DRAFT', :draw_mode, :starts_at, :ends_at, :draw_at,
+                     :created_by, :created_at, :updated_at)
             SQL,
         );
 
@@ -143,8 +149,10 @@ final class RaffleAdminRepository
             ':price_per_number' => (int) $data['price_per_number'],
             ':min_number' => (int) $data['min_number'],
             ':max_number' => (int) $data['max_number'],
+            ':draw_mode' => $data['draw_mode'] ?? 'MANUAL',
             ':starts_at' => $data['starts_at'] ?? null,
             ':ends_at' => $data['ends_at'] ?? null,
+            ':draw_at' => $data['draw_at'] ?? null,
             ':created_by' => $adminId,
             ':created_at' => $now,
             ':updated_at' => $now,
@@ -214,7 +222,8 @@ final class RaffleAdminRepository
         }
 
         $statement = $this->pdo->prepare(
-            'SELECT raffle_id, winning_number, published_at, evidence_description, evidence_url
+            'SELECT raffle_id, winning_number, published_source, public_winner_name,
+                    published_at, evidence_description, evidence_url
              FROM raffle_results
              WHERE raffle_id = :raffle_id
              LIMIT 1',
@@ -251,6 +260,10 @@ final class RaffleAdminRepository
         int $publishedBy,
         string $evidenceDescription,
         ?string $evidenceUrl,
+        string $publishedSource = 'MANUAL',
+        ?int $winnerOrderId = null,
+        ?int $winnerUserId = null,
+        ?string $publicWinnerName = null,
     ): void {
         $now = gmdate('Y-m-d H:i:s');
 
@@ -258,12 +271,14 @@ final class RaffleAdminRepository
             <<<'SQL'
                 INSERT INTO raffle_results
                     (raffle_id, winning_number, winning_raffle_number_id,
-                     published_by, published_at, evidence_description, evidence_url,
-                     created_at, updated_at)
+                     published_by, published_source, published_at,
+                     winner_order_id, winner_user_id, public_winner_name,
+                     evidence_description, evidence_url, created_at, updated_at)
                 VALUES
                     (:raffle_id, :winning_number, :winning_raffle_number_id,
-                     :published_by, :published_at, :evidence_description, :evidence_url,
-                     :created_at, :updated_at)
+                     :published_by, :published_source, :published_at,
+                     :winner_order_id, :winner_user_id, :public_winner_name,
+                     :evidence_description, :evidence_url, :created_at, :updated_at)
             SQL,
         );
         $statement->execute([
@@ -271,12 +286,55 @@ final class RaffleAdminRepository
             ':winning_number' => $winningNumber,
             ':winning_raffle_number_id' => $winningRaffleNumberId,
             ':published_by' => $publishedBy,
+            ':published_source' => $publishedSource,
             ':published_at' => $now,
+            ':winner_order_id' => $winnerOrderId,
+            ':winner_user_id' => $winnerUserId,
+            ':public_winner_name' => $publicWinnerName,
             ':evidence_description' => $evidenceDescription,
             ':evidence_url' => $evidenceUrl,
             ':created_at' => $now,
             ':updated_at' => $now,
         ]);
+    }
+
+    /**
+     * Owner of a SOLD number, used to snapshot a masked public name.
+     *
+     * @return array{order_id: int, user_id: int, name: string}|null
+     */
+    public function findSoldNumberOwner(int $raffleId, int $number): ?array
+    {
+        $statement = $this->pdo->prepare(
+            <<<'SQL'
+                SELECT o.id AS order_id, o.user_id, u.name
+                FROM raffle_numbers n
+                JOIN orders o ON o.id = n.order_id AND o.raffle_id = n.raffle_id
+                JOIN payments p ON p.order_id = o.id
+                JOIN users u ON u.id = o.user_id
+                WHERE n.raffle_id = :raffle_id
+                  AND n.number = :number
+                  AND n.status = 'SOLD'
+                  AND o.status = 'PAID'
+                  AND p.status = 'APPROVED'
+                LIMIT 1
+            SQL,
+        );
+        $statement->execute([
+            ':raffle_id' => $raffleId,
+            ':number' => $number,
+        ]);
+        $row = $statement->fetch();
+
+        if ($row === false) {
+            return null;
+        }
+
+        return [
+            'order_id' => (int) $row['order_id'],
+            'user_id' => (int) $row['user_id'],
+            'name' => (string) $row['name'],
+        ];
     }
 
     public function delete(int $raffleId): void
@@ -354,8 +412,13 @@ final class RaffleAdminRepository
                 r.min_number,
                 r.max_number,
                 r.status,
+                r.draw_mode,
                 r.starts_at,
                 r.ends_at,
+                r.draw_at,
+                r.draw_blocked_reason,
+                r.draw_attempted_at,
+                r.draw_attempts,
                 r.created_at,
                 r.updated_at,
                 (SELECT COUNT(*) FROM raffle_numbers rn WHERE rn.raffle_id = r.id) AS numbers_count
@@ -391,7 +454,8 @@ final class RaffleAdminRepository
         $ids = array_map(static fn (array $row): int => (int) $row['id'], $rows);
         $placeholders = implode(',', array_fill(0, count($ids), '?'));
         $statement = $this->pdo->prepare(
-            'SELECT raffle_id, winning_number, published_at, evidence_description, evidence_url
+            'SELECT raffle_id, winning_number, published_source, public_winner_name,
+                    published_at, evidence_description, evidence_url
              FROM raffle_results
              WHERE raffle_id IN ('.$placeholders.')',
         );

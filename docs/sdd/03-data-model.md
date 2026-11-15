@@ -137,13 +137,18 @@ Raffle campaigns.
 | min_number | INT UNSIGNED | NOT NULL | Range start |
 | max_number | INT UNSIGNED | NOT NULL | Range end |
 | status | ENUM('DRAFT','PUBLISHED','CLOSED','FINISHED') | NOT NULL, DEFAULT 'DRAFT' | Raffle status |
+| draw_mode | ENUM('MANUAL','AUTOMATIC') | NOT NULL, DEFAULT 'MANUAL' | Result mode; existing raffles stay manual |
 | starts_at | TIMESTAMP | NULL | Optional start date |
-| ends_at | TIMESTAMP | NULL | Optional end date |
+| ends_at | TIMESTAMP | NULL | Sales end date |
+| draw_at | TIMESTAMP | NULL | Scheduled draw date/time (UTC) |
+| draw_blocked_reason | VARCHAR(100) | NULL | Last automatic-draw blocker |
+| draw_attempted_at | TIMESTAMP | NULL | Last automatic-draw attempt |
+| draw_attempts | INT UNSIGNED | NOT NULL, DEFAULT 0 | Automatic-draw attempts |
 | created_by | BIGINT UNSIGNED | FK(users.id) | Admin creator |
 | created_at | TIMESTAMP | NULL | Created timestamp |
 | updated_at | TIMESTAMP | NULL | Updated timestamp |
 
-**Indexes:** `status`, `created_by`
+**Indexes:** `status`, `created_by`, `(draw_mode, draw_at, status)`
 
 ### raffle_numbers
 Individual numbers for each raffle. One row per number.
@@ -263,7 +268,7 @@ Email notification queue/tracking.
 **Indexes:** `status`, `order_id`, `type`
 
 ### raffle_results
-Published results by admin.
+Published results, manual or automatic. One immutable result per raffle.
 
 | Field | Type | Constraints | Description |
 |---|---|---|---|
@@ -271,16 +276,60 @@ Published results by admin.
 | raffle_id | BIGINT UNSIGNED | FK(raffles.id), NOT NULL, UNIQUE | Raffle (one result per raffle) |
 | winning_number | INT UNSIGNED | NOT NULL | Winning number |
 | winning_raffle_number_id | BIGINT UNSIGNED | FK(raffle_numbers.id), NULL | Reference to winning number |
-| published_by | BIGINT UNSIGNED | FK(users.id), NOT NULL | Admin who published |
+| published_by | BIGINT UNSIGNED | FK(users.id), NULL | Admin who published; null for automatic draws |
+| published_source | ENUM('MANUAL','AUTOMATIC') | NOT NULL, DEFAULT 'MANUAL' | Result origin |
 | published_at | TIMESTAMP | NOT NULL | Publication date/time |
+| winner_order_id | BIGINT UNSIGNED | FK(orders.id), NULL | Winning order (internal) |
+| winner_user_id | BIGINT UNSIGNED | FK(users.id), NULL | Winning buyer (internal) |
+| public_winner_name | VARCHAR(120) | NULL | Masked name safe for public display |
+| candidate_count | INT UNSIGNED | NULL | Number of eligible candidates |
+| candidate_hash | CHAR(64) | NULL | SHA-256 of the canonical candidate snapshot |
+| selected_index | INT UNSIGNED | NULL | CSPRNG-selected zero-based index |
+| random_method | VARCHAR(50) | NULL | Randomness method/version |
+| draw_evidence | JSON | NULL | Auditable evidence; never exposed publicly |
+| draw_version | VARCHAR(20) | NULL | Draw algorithm version |
 | evidence_description | TEXT | NULL | Description of evidence |
 | evidence_url | VARCHAR(500) | NULL | Optional evidence URL |
 | created_at | TIMESTAMP | NULL | Created timestamp |
 | updated_at | TIMESTAMP | NULL | Updated timestamp |
 
 **Constraints:**
-- Must validate winning number belongs to raffle
-- Only published by ADMIN role
+- Must validate winning number belongs to the raffle and is `SOLD`.
+- Automatic draws require the winning order to be `PAID` and its payment `APPROVED`.
+- Public APIs expose only `winning_number`, `public_winner_name`, `published_at`, `published_source`, `evidence_description` and `evidence_url`.
+- `draw_evidence`, `winner_order_id`, `winner_user_id` are internal/admin-only.
+- Manual results keep `published_source='MANUAL'` and `published_by` set.
+- Automatic results keep `published_source='AUTOMATIC'` and `published_by` null.
+
+### raffle_proposals
+User-submitted raffle ideas with a server-side contact snapshot and ADMIN moderation.
+
+| Field | Type | Constraints | Description |
+|---|---|---|---|
+| id | BIGINT UNSIGNED | PK, AUTO_INCREMENT | Primary key |
+| user_id | BIGINT UNSIGNED | FK(users.id), NOT NULL, ON DELETE CASCADE | Authenticated proposer |
+| title | VARCHAR(120) | NOT NULL | Proposal title |
+| description | TEXT | NOT NULL | Proposal description |
+| contact_name | VARCHAR(255) | NOT NULL | Snapshot of `users.name` at submission |
+| contact_email | VARCHAR(255) | NOT NULL | Snapshot of `users.email` at submission |
+| contact_phone | VARCHAR(32) | NOT NULL | Snapshot of `users.phone` at submission |
+| privacy_version | VARCHAR(20) | NOT NULL | Consent version set by the server |
+| privacy_accepted_at | TIMESTAMP | NOT NULL | Consent timestamp |
+| status | ENUM('PENDING','APPROVED','REJECTED') | NOT NULL, DEFAULT 'PENDING' | Moderation status |
+| decision_note | TEXT | NULL | Optional internal admin note |
+| decided_by | BIGINT UNSIGNED | FK(users.id), NULL, ON DELETE SET NULL | Admin who decided |
+| decided_at | TIMESTAMP | NULL | Decision timestamp |
+| created_at | TIMESTAMP | NULL | Created timestamp |
+| updated_at | TIMESTAMP | NULL | Updated timestamp |
+
+**Indexes:** `(status, created_at)`, `(user_id, created_at)`
+
+**Ownership and rules:**
+- `raffles-service` is the only writer; it reads `users` for the contact snapshot and never writes identity tables.
+- `user_id`, name, email and phone always come from the authenticated session, never from request input.
+- Public responses expose no contact, user id or consent evidence; contact is ADMIN-only.
+- Approving or rejecting only updates this table. It never creates a raffle, order, payment or notification.
+- `PENDING -> APPROVED|REJECTED` happens once; a second decision returns 409.
 
 ## 4. Concurrency & Double-Sell Prevention
 
@@ -357,3 +406,5 @@ COMMIT;
 | 1.6 | 2026-11-06 | S4: `payments-service` is the only writer of `payments`/`payment_webhook_events`; `orders-service` performs every sale/release/order-status transition through the signed payment-result command. Cross-service atomicity is a convergent saga (order/number first, payment row second); the payment row is locked but never written by orders-service |
 | 1.7 | 2026-11-11 | S11: added `user_consents` (auth-owned consent evidence: type, document version, decision, timestamp, source, user). Additive migration implemented and verified in `rifacloud_test`; not applied to the main schema. Business entities and reservation/payment rules unchanged |
 | 1.8 | 2026-11-12 | S11 closed: `user_consents` migration applied to `rifacloud` with explicit authorization; `rifacloud_auth` grant verified; controlled registration confirmed PRIVACY/TERMS/MARKETING rows and was cleaned up. Business entities and rules unchanged |
+| 1.9 | 2026-11-14 | S12: additive fields for opt-in automatic draw (`draw_mode`, `draw_at`, blocker/attempt metadata) and auditable `raffle_results` (source, masked public name, winner references, candidate hash/index, evidence). Existing raffles default to MANUAL; no historical data backfill |
+| 1.10 | 2026-11-15 | S13: added raffle-owned `raffle_proposals` with authenticated `user_id`, server-side contact snapshot, consent version/timestamp, PENDING/APPROVED/REJECTED moderation, optional internal note and decision identity. Applied only to `rifacloud_test`; no historical table changed |

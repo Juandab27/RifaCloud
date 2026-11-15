@@ -774,9 +774,73 @@ Detailed scenarios and acceptance criteria are in
 - **No distributed transactions:** orders/payments extraction requires
   idempotent commands and compensation, not two-phase commit.
 - **Sandbox only:** no real money.
-- **Manual result publication:** no automatic winner selection.
+- **Manual result publication:** manual flow remains supported; opt-in automatic draw is an additive S12 capability, never enabled on historical raffles.
 - **Phase-gated external dependencies:** P2 payment/email, P3 deployment, P4
   legal.
+
+### 12.1 S12 automatic sales closure and draw
+
+- `raffles.draw_mode` is `MANUAL` by default. Only `AUTOMATIC` raffles are
+  processed by the scheduler; existing rows are never backfilled.
+- `ends_at` is the sales end and `draw_at` is the scheduled draw. Automatic mode
+  requires both and enforces a configurable minimum buffer (default 30 minutes).
+- `scheduler` calls the signed internal command
+  `POST /internal/raffles/process-due` on `raffles-service`.
+  `/internal/` remains blocked at Nginx.
+- `raffles-service` owns the draw transaction: it locks the raffle row, closes
+  due sales, validates blockers, reads eligible `SOLD` numbers whose orders are
+  `PAID` and payments `APPROVED`, selects with `random_int`, inserts the unique
+  `raffle_results` row and transitions to `FINISHED`.
+- The scheduler command is an optimization; the guarantees are the row lock,
+  `UNIQUE(raffle_results.raffle_id)` and idempotent command.
+- Automatic draws are blocked by active reservations, `PENDING_PAYMENT` orders,
+  `PENDING`/`UNKNOWN` payments and unresolved refund incidents. No winner is
+  published while any blocker remains.
+- `orders-service` locks the same raffle row when applying a payment result. If
+  the raffle has a result or its automatic draw cutoff has passed, a new
+  approval becomes `REQUIRES_REFUND`/`REFUND_REQUIRED`; it never becomes `SOLD`.
+- The result stores source, masked public name, winner references (internal),
+  candidate count/hash, selected index, random method, draw version and evidence.
+  Public APIs expose only the number and masked name.
+- Manual publication remains available for `CLOSED` raffles and shares the
+  unique-result invariant. Manual results skip automatic draw; automatic results
+  reject a second manual publication.
+- `raffles-service` receives read-only access to `orders`/`payments` for the
+  candidate snapshot; it never writes them. The draw itself writes only
+  `raffles` and `raffle_results`.
+- If no SOLD number exists or a blocker cannot be cleared, the raffle stays
+  `CLOSED` with `draw_blocked_reason`; administrators must resolve or cancel it.
+  There is no automatic winner, refund or cancellation.
+
+### 12.2 S13 authenticated raffle proposals
+
+- `raffles-service` owns `raffle_proposals`; it reads `users`/`sessions` with
+  least-privilege SELECT and never writes identity, raffle, order or payment
+  rows during moderation.
+- Public route: `POST /api/proposals`, authenticated with the shared session.
+  The browser sends only `title`, `description` and `privacy_accepted`.
+  `user_id`, name, email, phone, status and consent version in the body are
+  ignored; contact is read from the `users` row of the session user.
+- Consent evidence (`privacy_version`, `privacy_accepted_at`) is stored on the
+  proposal. The version comes from `LEGAL_CONSENT_VERSION`, never from input.
+- Throttling is per authenticated user and MySQL-backed: a configurable
+  cooldown (`PROPOSAL_COOLDOWN_SECONDS`, default 30) and daily limit
+  (`PROPOSAL_DAILY_LIMIT`, default 3). Exceeding either returns 429 with
+  `Retry-After`.
+- Admin routes are `/api/admin/proposals` (paginated list with optional status),
+  `/api/admin/proposals/metrics` (pending/approved/rejected counters),
+  `/api/admin/proposals/{id}`, and
+  `/api/admin/proposals/{id}/(approve|reject)`. All require the shared ADMIN
+  session and CSRF, matching `raffles-service` administration.
+- Contact snapshots are returned only by admin routes. The public creation
+  response contains only id, title, description, status and timestamps.
+- `PENDING -> APPROVED|REJECTED` is a single conditional UPDATE. A repeated or
+  concurrent decision returns 409.
+- Approval is a moderation decision only. It never creates a raffle, number,
+  order, payment or notification.
+- Nginx exposes only the exact public route and the admin proposal routes;
+  `/internal/` remains blocked and contact data never reaches the public
+  catalog.
 
 ## 13. Historical Architecture (v1.2, preserved)
 
@@ -812,3 +876,6 @@ internal-only, fail-closed payments) remain unchanged.
 | 2.13 | 2026-11-07 | S10.3 admin dashboard: read-only aggregates `GET /api/admin/raffles/metrics` (PUBLISHED raffles), `GET /api/admin/orders/metrics` (PAID orders and SOLD numbers) and `GET /api/admin/payments/incidents/metrics` (UNKNOWN + REFUND_REQUIRED payments), each authenticated as ADMIN in its owning service. Nginx exposes exact routes with a controlled JSON 503; `/admin/dashboard` shows partial availability without inventing zeros. 28/28 E2E on `rifacloud_test`, 20/20 Playwright, 129/129 orders integration, 77/77 payments integration, 42/42 S6, 44/44 S7, 39/39 payments E2E, 12/12 auth and 193/193 monolith. No migration or main-data change. |
 | 2.14 | 2026-11-11 | S11 privacy/transparency: `auth-service` adds the auth-owned `user_consents` evidence table (type, document version, decision, timestamp, source) and versioned registration consent; public privacy/terms/regulatory pages, footer legal links and a contextual checkout clarification (simulated gateway vs Mercado Pago sandbox). Additive migration verified in `rifacloud_test`; main schema application was still pending at that point. No reservation, payment or raffle rule changed. |
 | 2.15 | 2026-11-12 | S11 closed on the main schema with explicit authorization: migration `2026_11_11_000011` applied to `rifacloud`, `user_consents` grant added to `rifacloud_auth`, and a controlled API registration verified `PRIVACY`/`TERMS` accepted and `MARKETING` declined with version `2026-11-11`; test user, sessions and consent rows were deleted. Auth 12/12, Playwright 26/26, TypeScript clean. |
+| 2.16 | 2026-11-14 | S12 automatic sales closure/draw: opt-in `draw_mode`/`draw_at`, scheduler-to-raffles-service signed command, SOLD+PAID+APPROVED candidate snapshot, CSPRNG selection, audit fields, masked public winner, blockers and late-payment row-lock guard. Manual flow preserved; historical raffles remain MANUAL. |
+| 2.17 | 2026-11-15 | S12 activated on `rifacloud` with explicit authorization: new timestamped backup verified by gzip hash and a temporary-database restore, migration `2026_11_14_000013` applied, and only the three S12 `GRANT SELECT` statements added. Orders/payments/numbers/raffles/results hashes matched the pre-migration baseline; all five historical raffles remain `MANUAL`, the existing result remains `MANUAL`, and `raffles:process-due` ran with `drawn=0`. Normal eight-container stack rebuilt against `rifacloud`. |
+| 2.18 | 2026-11-15 | S13 raffle proposals implemented and validated on `rifacloud_test`: authenticated `POST /api/proposals` with session-derived contact snapshot and server-side consent version, MySQL-backed throttle, ADMIN list/detail/metrics and single-decision approve/reject with internal note. Public contract exposes no contact; approval creates no raffle. Migration and grants remain pending on `rifacloud`. |

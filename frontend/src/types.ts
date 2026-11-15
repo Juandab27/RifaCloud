@@ -12,6 +12,8 @@ export type RaffleStatus = 'DRAFT' | 'PUBLISHED' | 'CLOSED' | 'FINISHED'
 
 export interface RaffleResult {
   winning_number: number
+  public_winner_name: string | null
+  source: 'MANUAL' | 'AUTOMATIC'
   published_at: string | null
   evidence_description: string | null
   evidence_url: string | null
@@ -26,10 +28,13 @@ export interface Raffle {
   max_number: number
   total_numbers: number
   status: RaffleStatus
+  draw_mode: 'MANUAL' | 'AUTOMATIC'
   reservation_minutes: number
   max_numbers_per_order: number
   starts_at: string | null
   ends_at: string | null
+  draw_at: string | null
+  draw_blocked_reason?: string | null
   numbers_count?: number
   result?: RaffleResult | null
   created_at: string | null
@@ -73,8 +78,10 @@ export interface RafflePayload {
   price_per_number: number
   min_number: number
   max_number: number
+  draw_mode: 'MANUAL' | 'AUTOMATIC'
   starts_at: string | null
   ends_at: string | null
+  draw_at: string | null
 }
 
 export type OrderStatus =
@@ -165,4 +172,49 @@ export interface OrderMetrics {
 
 export interface PaymentIncidentMetrics {
   pending_incidents: number
+}
+
+export type ProposalStatus = 'PENDING' | 'APPROVED' | 'REJECTED'
+
+/** Public representation returned after submitting a proposal. */
+export interface RaffleProposal {
+  id: number
+  title: string
+  description: string
+  status: ProposalStatus
+  created_at: string | null
+}
+
+/** ADMIN-only representation with contact and moderation evidence. */
+export interface AdminRaffleProposal extends RaffleProposal {
+  user_id: number
+  contact: {
+    name: string
+    email: string
+    phone: string
+  }
+  privacy_version: string
+  privacy_accepted_at: string | null
+  decision: {
+    note: string | null
+    decided_at: string | null
+    by: {
+      id: number
+      name: string | null
+      email: string | null
+    } | null
+  } | null
+  updated_at: string | null
+}
+
+export interface ProposalMetrics {
+  pending: number
+  approved: number
+  rejected: number
+}
+
+export interface ProposalPayload {
+  title: string
+  description: string
+  privacy_accepted: boolean
 }

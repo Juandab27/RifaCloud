@@ -27,6 +27,7 @@ class RaffleService
             ]);
 
             $this->assertScheduleIsValid($raffle);
+            $this->assertDrawScheduleIsValid($raffle);
 
             $raffle->save();
 
@@ -56,6 +57,7 @@ class RaffleService
             // Validate the effective schedule so partial updates cannot leave
             // a stored end date at or before the new start date.
             $this->assertScheduleIsValid($raffle);
+            $this->assertDrawScheduleIsValid($raffle);
 
             $raffle->save();
 
@@ -99,6 +101,7 @@ class RaffleService
     public function publish(Raffle $raffle): Raffle
     {
         $this->assertScheduleIsValid($raffle);
+        $this->assertDrawScheduleIsValid($raffle);
 
         return $this->transition($raffle, RaffleStatus::PUBLISHED);
     }
@@ -113,6 +116,27 @@ class RaffleService
         if (! $raffle->hasValidSchedule()) {
             throw ValidationException::withMessages([
                 'ends_at' => 'The end date must be after the start date.',
+            ]);
+        }
+    }
+
+    private function assertDrawScheduleIsValid(Raffle $raffle): void
+    {
+        if (($raffle->draw_mode ?? 'MANUAL') !== 'AUTOMATIC') {
+            return;
+        }
+
+        if ($raffle->ends_at === null || $raffle->draw_at === null) {
+            throw ValidationException::withMessages([
+                'draw_at' => 'Automatic draws require a sales end and a draw date.',
+            ]);
+        }
+
+        $buffer = max(30, (int) config('rifacloud.draw_buffer_minutes'));
+
+        if ($raffle->draw_at->lessThan($raffle->ends_at->copy()->addMinutes($buffer))) {
+            throw ValidationException::withMessages([
+                'draw_at' => "The draw date must be at least {$buffer} minutes after sales end.",
             ]);
         }
     }

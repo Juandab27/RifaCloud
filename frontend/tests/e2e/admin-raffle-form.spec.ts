@@ -24,10 +24,12 @@ const raffle = {
   max_number: 10,
   total_numbers: 10,
   status: 'DRAFT',
+  draw_mode: 'MANUAL',
   reservation_minutes: 10,
   max_numbers_per_order: 50,
   starts_at: '2026-11-20T15:00:00+00:00',
   ends_at: '2026-11-25T15:00:00+00:00',
+  draw_at: null,
   numbers_count: 10,
   result: null,
   created_at: '2026-11-01T12:00:00+00:00',
@@ -128,13 +130,41 @@ test('editar una rifa existente no multiplica ni divide su precio', async ({ pag
   expect(payload.price_per_number).toBe(1000)
 })
 
+test('configura un sorteo automático con fecha posterior al cierre', async ({ page }) => {
+  await mockAdminForm(page)
+  await page.goto('/admin/raffles/1/edit')
+
+  await page.getByLabel('Modo de resultado').selectOption('AUTOMATIC')
+
+  const draw = page.getByLabel('Fecha del sorteo')
+  await draw.click()
+  await expect(page.getByRole('dialog', { name: 'Seleccionar fecha y hora' })).toBeVisible()
+  await page.getByRole('button', { name: '25 de noviembre de 2026' }).click()
+  await page.getByLabel('Hora', { exact: true }).selectOption('12')
+  await page.getByLabel('Minutos', { exact: true }).selectOption('0')
+  await page.getByRole('button', { name: 'Listo' }).click()
+
+  const requestPromise = page.waitForRequest(
+    (request) =>
+      request.method() === 'PUT' && new URL(request.url()).pathname === '/api/admin/raffles/1',
+  )
+
+  await page.getByRole('button', { name: 'Guardar cambios' }).click()
+
+  const request = await requestPromise
+  const payload = request.postDataJSON() as Record<string, unknown>
+
+  expect(payload.draw_mode).toBe('AUTOMATIC')
+  expect(payload.draw_at).toBe('2026-11-25T17:00:00.000Z')
+})
+
 test('rechaza una fecha de cierre igual o anterior al inicio antes de enviar', async ({
   page,
 }) => {
   await mockAdminForm(page)
   await page.goto('/admin/raffles/1/edit')
 
-  const end = page.getByLabel('Fin (opcional)')
+  const end = page.getByLabel('Fin de ventas (opcional)')
   await end.click()
   await page.getByRole('button', { name: '20 de noviembre de 2026' }).click()
   await page.getByRole('button', { name: 'Listo' }).click()

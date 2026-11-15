@@ -483,7 +483,103 @@ normal stack was restored afterwards and the main data was not touched.
   provider contracts/transfers, authorized operator route and main-schema
   migration authorization (Q-21 to Q-26).
 
-## 11. Change Log
+## 11. S12 Automatic Sales Closure and Draw
+
+| ID | Requirement | Acceptance Criteria | Test Method |
+|---|---|---|---|
+| AC-S12-01 | FR-017; FR-012 | An AUTOMATIC raffle stops accepting reservations when `ends_at` is reached; a reservation at or after the boundary is rejected. The scheduler closes the raffle without enabling automatic draw for historical raffles. | Feature/integration |
+| AC-S12-02 | FR-017 | `draw_at` is separate from `ends_at`; automatic mode requires both and rejects a draw date less than 30 minutes after sales end. Manual raffles remain valid with no draw date. | Unit/API |
+| AC-S12-03 | FR-017; AC-023 | The automatic draw selects only numbers with `raffle_numbers.status='SOLD'`, order `PAID` and payment `APPROVED`. With five numbers and only three sold, the winner is one of those three. | Integration |
+| AC-S12-04 | FR-017 | With no eligible SOLD number, the draw is blocked, the raffle stays `CLOSED`, and no `raffle_results` row is created. | Integration |
+| AC-S12-05 | FR-017; AC-018 | Active reservations, `PENDING_PAYMENT` orders, `PENDING` payments, `UNKNOWN` payments or unresolved refund incidents block the automatic draw. | Integration |
+| AC-S12-06 | FR-017; NFR-021 | Two concurrent draw executions produce exactly one result and one `FINISHED` transition; a second run is a no-op. | Concurrency |
+| AC-S12-07 | FR-017; AC-019 | A payment approved after the draw cutoff never changes a number to `SOLD`; it becomes `REQUIRES_REFUND`/`REFUND_REQUIRED` and the published result remains unchanged. | Integration |
+| AC-S12-08 | FR-017; NFR-022 | Public result exposes the winning number and a masked winner name only; email, phone, document, user id, order id and `draw_evidence` are not exposed. | API/E2E |
+| AC-S12-09 | FR-014; FR-017 | Existing manual publication remains available for `CLOSED` raffles. A manual result prevents an automatic draw; an automatic result rejects a second manual publication. | Integration/API |
+| AC-S12-10 | FR-017; NFR-014; NFR-021 | The result stores source, masked name, candidate count/hash, selected index, random method, draw version and timestamps as auditable evidence. CSPRNG is used without modulo bias. | Integration/code review |
+| AC-S12-11 | FR-017 | An AUTOMATIC raffle with `draw_at` in the future is shown publicly as “Sorteo pendiente” and remains visible until the result is published. | E2E |
+| AC-S12-12 | FR-017; NFR-018 | `raffles-service` remains the only writer of `raffles`/`raffle_results`; the scheduler calls a signed internal command. The draw survives a scheduler/container restart because due state is in MySQL. | Integration/restart |
+
+### S12 implementation evidence (2026-11-14)
+
+- Additive migration `2026_11_14_000013_add_automatic_draw_fields` was applied
+  and verified on `rifacloud_test`, then applied to `rifacloud` on 2026-11-15
+  with explicit authorization after a new verified backup and restore test.
+  Historical raffles remain `MANUAL` and existing results remain `MANUAL`.
+- Draw integration (`services/raffles-service/tests/draw_integration.php`):
+  **26/26** checks. A 5-number raffle with 3 SOLD selected only one of the 3;
+  zero SOLD, PENDING, UNKNOWN and active reservation cases stayed CLOSED with
+  no result; a second run did not duplicate the result.
+- Draw validation (`draw_validation.php`): **6/6** checks for AUTOMATIC/manual
+  mode, dates, normalization and the 30-minute buffer.
+- Manual compatibility (`manual_result_compat.php`): **7/7** checks; manual
+  publication remains FINISHED with `MANUAL` source, admin publisher, owner
+  references and masked public name.
+- Late payment (`services/orders-service/tests/draw_late_payment.php`):
+  **6/6** checks; an approval after the draw cutoff became
+  `REQUIRES_REFUND`/`REFUND_REQUIRED` and the number never became SOLD.
+- Scheduler E2E: `raffles:process-due` drew exactly one result; a second run
+  returned `drawn=0`; after restarting the scheduler/raffles-service the command
+  still ran and did not duplicate. `schedule:list` shows the task.
+- Admin API E2E: create/update/delete of an AUTOMATIC DRAFT raffle with
+  `draw_mode`/`draw_at`: **8/8** checks.
+- Monolith focused tests: `AdminRaffleTest` **16/16** and `CreateOrderTest`
+  **21/21**, plus the end-boundary rejection test.
+- Frontend: **22/22** focused Playwright tests (admin form, catalog, detail,
+  mobile, legal) and **11/11** after the final catalog-name change; unit checks
+  **18/18** raffle-state and **12/12** COP; TypeScript/build clean.
+- Eight test containers were healthy before activation; the normal stack now
+  runs all eight containers against `rifacloud`. `raffles:process-due` is
+  registered and ran with `drawn=0`, without changing historical raffles.
+
+**Activation (2026-11-15):** with explicit authorization, a new verified backup
+was restored in a temporary database, the S12 migration and the three
+`GRANT SELECT` statements were applied to `rifacloud`, and the normal stack was
+rebuilt and started. Data hashes (orders, payments, numbers, raffles, results)
+matched the pre-migration baseline. No automatic draw was executed and no
+payment was processed.
+
+## 12. S13 Authenticated Raffle Proposals
+
+| ID | Requirement | Acceptance Criteria | Test Method |
+|---|---|---|---|
+| AC-S13-01 | FR-018 | An authenticated USER can submit `title`, `description` and privacy acceptance. An anonymous request returns 401 and creates nothing. | Integration/API |
+| AC-S13-02 | FR-018; NFR-023 | `user_id`, name, email and phone are taken from the authenticated session and `users` row. Spoofed identity/contact fields in the body are ignored; a contact snapshot is stored. | Integration |
+| AC-S13-03 | FR-018 | Title and description have enforced length limits and privacy acceptance is mandatory. The consent version is set by the server and a timestamp is recorded. | Unit/integration |
+| AC-S13-04 | FR-018 | Repeated submissions are throttled per user (cooldown and daily limit) with HTTP 429 and `Retry-After`. | Integration |
+| AC-S13-05 | FR-018; NFR-023 | Proposal contact data is returned only to ADMIN sessions; a USER receives 403. Anonymous admin requests return 401. | Integration/API |
+| AC-S13-06 | FR-018 | ADMIN can approve or reject a PENDING proposal with an optional internal note. Status, deciding admin and timestamp persist; a second decision returns 409. | Integration/E2E |
+| AC-S13-07 | FR-018; NFR-023 | Approving a proposal does not create a raffle, number, order, payment or notification, and no raffle exists with the proposal title. | Integration |
+| AC-S13-08 | FR-018 | The public response has no contact or identity fields. The form is responsive, shows account contact read-only, and an anonymous visit redirects to login and returns to the form afterwards. | E2E/mobile |
+
+### S13 implementation evidence (2026-11-15)
+
+- Migration `2026_11_15_000014_create_raffle_proposals_table` applied and
+  verified only on `rifacloud_test`; `rifacloud` has no proposal table and no
+  proposal migration.
+- Proposal integration (`services/raffles-service/tests/proposals_integration.php`):
+  **41/41** checks, including anonymous 401, CSRF 419, spoofed contact ignored,
+  server-side consent version, validation, daily/cooldown 429, USER 403 on admin
+  routes, approve/reject persistence with decider/timestamp/note, 409 on a
+  second decision, and no raffle creation.
+- Real HTTP smoke on `rifacloud_test`: **23/23** checks with demo buyer/admin
+  sessions, including a spoofed `user_id`/contact payload, contact snapshot from
+  `users`, admin detail with phone, approval, and unchanged raffle count.
+- Playwright proposals: **4/4** (authenticated form without contact fields,
+  anonymous redirect and return to the form, admin approve/reject, mobile
+  without overflow). Full browser suite: **36/36**.
+- TypeScript typecheck and production build pass; unit checks **18/18**
+  raffle-state and **12/12** COP.
+- Regression: S12 draw **26/26**, S2 admin integration OK, manual result
+  **7/7**.
+- No orders, payments, draws, COP amounts, historical raffles or Mercado Pago
+  behavior changed. No notification was sent. No AWS resource was created.
+
+**Pending:** authorization to apply the proposal migration and grant to
+`rifacloud`, then rebuild/restart the normal stack. Until then the normal stack
+must not be treated as proposal-enabled.
+
+## 13. Change Log
 
 | Version | Date | Change |
 |---|---|---|
@@ -506,3 +602,5 @@ normal stack was restored afterwards and the main data was not touched.
 | 1.16 | 2026-11-07 | S10.3 evidence recorded: four read-only owner-service aggregates, ADMIN authorization, controlled 503 and partial-availability dashboard. 28/28 E2E on `rifacloud_test` (including admin order/incident lists and result publication), 20/20 Playwright, 129/129 orders, 77/77 payments, 42/42 S6, 44/44 S7, 39/39 payments E2E, 12/12 auth, 193/193 monolith; main data unchanged. |
 | 1.17 | 2026-11-11 | S11 added AC-S11-01 to AC-S11-08: informed privacy/terms consent with version evidence, separate optional marketing consent, public privacy/terms/regulatory pages, footer legal links, contextual checkout clarification (simulated gateway vs Mercado Pago sandbox), data-rights limitations and real-launch requirements. 4/4 consent tests, 6/6 Playwright legal/checkout tests and 19/19 auth-service integration; main schema not migrated. |
 | 1.18 | 2026-11-12 | S11 closed on main with explicit authorization: migration and `user_consents` grant applied, controlled API registration verified PRIVACY/TERMS/MARKETING rows at version `2026-11-11`, cleanup returned users to 8. Auth 12/12, Playwright 26/26, TypeScript clean. |
+| 1.19 | 2026-11-14 | S12 added AC-S12-01 to AC-S12-12 for opt-in automatic closure/draw, SOLD+PAID+APPROVED candidates, blockers, idempotency, late-payment cutoff, masked public winner, audit evidence and manual compatibility. Historical raffles remain manual. |
+| 1.20 | 2026-11-15 | S13 added AC-S13-01 to AC-S13-08 for authenticated proposal submission, server-derived contact snapshot, validation/consent, rate limiting, admin-only contact, approve/reject persistence, no raffle creation and responsive/redirect behavior. Validated on `rifacloud_test`; main migration pending. |

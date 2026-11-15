@@ -252,18 +252,20 @@ export default function RaffleDetailPage() {
             <p className="raffle-hero-description">{raffle.description}</p>
           )}
 
-          {(raffle.starts_at || raffle.ends_at) && (
+          {(raffle.starts_at || raffle.ends_at || raffle.draw_at) && (
             <p className="raffle-window">
               <Icon name="info" size={14} />
               {publicState === 'UPCOMING' && raffle.starts_at
                 ? `Venta desde el ${formatDate(raffle.starts_at)}`
                 : publicState === 'OPEN' && raffle.ends_at
                   ? `Venta hasta el ${formatDate(raffle.ends_at)}`
-                  : publicState === 'CLOSED' && raffle.ends_at
-                    ? `Venta cerrada el ${formatDate(raffle.ends_at)}`
-                    : raffle.starts_at
-                      ? `Inicio: ${formatDate(raffle.starts_at)}`
-                      : `Cierre: ${formatDate(raffle.ends_at)}`}
+                  : publicState === 'DRAW_PENDING' && raffle.draw_at
+                    ? `Sorteo programado para el ${formatDate(raffle.draw_at)}`
+                    : publicState === 'CLOSED' && raffle.ends_at
+                      ? `Venta cerrada el ${formatDate(raffle.ends_at)}`
+                      : raffle.starts_at
+                        ? `Inicio: ${formatDate(raffle.starts_at)}`
+                        : `Cierre: ${formatDate(raffle.ends_at)}`}
             </p>
           )}
 
@@ -282,6 +284,12 @@ export default function RaffleDetailPage() {
               <dt>Total de números</dt>
               <dd>{raffle.total_numbers}</dd>
             </div>
+            {raffle.draw_at && (
+              <div>
+                <dt>Fecha del sorteo</dt>
+                <dd>{formatDate(raffle.draw_at)}</dd>
+              </div>
+            )}
           </dl>
         </header>
       )}
@@ -327,6 +335,12 @@ export default function RaffleDetailPage() {
               </p>
             </div>
             <dl className="raffle-result-meta">
+              {raffle.result.public_winner_name && (
+                <div>
+                  <dt>Ganador</dt>
+                  <dd>{raffle.result.public_winner_name}</dd>
+                </div>
+              )}
               <div>
                 <dt>Fecha de publicación</dt>
                 <dd>{formatDate(raffle.result.published_at)}</dd>

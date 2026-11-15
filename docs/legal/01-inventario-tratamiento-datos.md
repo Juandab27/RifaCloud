@@ -1,7 +1,7 @@
 # 01 — Inventario de tratamiento de datos personales
 
 **Proyecto:** RifaCloud
-**Versión:** 2026-11-11
+**Versión:** 2026-11-14
 **Estado:** Borrador interno para revisión jurídica
 **Alcance:** prototipo académico y estado real del repositorio a 2026-11-11
 

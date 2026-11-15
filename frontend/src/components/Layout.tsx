@@ -125,6 +125,9 @@ export default function Layout() {
               <NavLink to="/" end onClick={() => setMenuOpen(false)}>
                 Catálogo
               </NavLink>
+              <NavLink to="/proposals/new" onClick={() => setMenuOpen(false)}>
+                Proponer una rifa
+              </NavLink>
               {user && (
                 <NavLink to="/orders" onClick={() => setMenuOpen(false)}>
                   Mis compras
@@ -137,6 +140,9 @@ export default function Layout() {
                   </NavLink>
                   <NavLink to="/admin/raffles" onClick={() => setMenuOpen(false)}>
                     Administración
+                  </NavLink>
+                  <NavLink to="/admin/proposals" onClick={() => setMenuOpen(false)}>
+                    Propuestas
                   </NavLink>
                 </>
               )}

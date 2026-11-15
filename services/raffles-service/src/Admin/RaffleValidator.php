@@ -15,7 +15,10 @@ use DateTimeZone;
  */
 final class RaffleValidator
 {
-    public function __construct(private readonly int $maxNumbers) {}
+    public function __construct(
+        private readonly int $maxNumbers,
+        private readonly int $drawBufferMinutes = 30,
+    ) {}
 
     /**
      * @param  array<string, mixed>  $input
@@ -89,7 +92,7 @@ final class RaffleValidator
             $errors['max_number'][] = 'The max number field must be greater than or equal to min number.';
         }
 
-        foreach (['starts_at', 'ends_at'] as $field) {
+        foreach (['starts_at', 'ends_at', 'draw_at'] as $field) {
             $label = str_replace('_', ' ', $field);
 
             if (! array_key_exists($field, $input)) {
@@ -111,6 +114,16 @@ final class RaffleValidator
             }
 
             $data[$field] = $normalized;
+        }
+
+        if (array_key_exists('draw_mode', $input)) {
+            $drawMode = $input['draw_mode'];
+
+            if (! is_string($drawMode) || ! in_array($drawMode, ['MANUAL', 'AUTOMATIC'], true)) {
+                $errors['draw_mode'][] = 'The draw mode field must be MANUAL or AUTOMATIC.';
+            } else {
+                $data['draw_mode'] = $drawMode;
+            }
         }
 
         if (
@@ -155,6 +168,37 @@ final class RaffleValidator
             throw ValidationException::single(
                 'ends_at',
                 'The end date must be after the start date.',
+            );
+        }
+    }
+
+    /**
+     * Automatic draws need a sales end, a draw date and the approved buffer.
+     *
+     * @throws ValidationException
+     */
+    public function assertValidDrawSchedule(
+        ?string $drawMode,
+        ?string $endsAt,
+        ?string $drawAt,
+    ): void {
+        if ($drawMode !== 'AUTOMATIC') {
+            return;
+        }
+
+        if ($endsAt === null || $endsAt === '' || $drawAt === null || $drawAt === '') {
+            throw ValidationException::single(
+                'draw_at',
+                'Automatic draws require a sales end and a draw date.',
+            );
+        }
+
+        $minimum = strtotime($endsAt) + ($this->drawBufferMinutes * 60);
+
+        if (strtotime($drawAt) < $minimum) {
+            throw ValidationException::single(
+                'draw_at',
+                "The draw date must be at least {$this->drawBufferMinutes} minutes after sales end.",
             );
         }
     }

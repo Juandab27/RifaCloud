@@ -39,6 +39,9 @@ final class RafflePresenter
             'max_number' => $max,
             'total_numbers' => $max - $min + 1,
             'status' => (string) $row['status'],
+            'draw_mode' => (string) ($row['draw_mode'] ?? 'MANUAL'),
+            'draw_at' => self::iso8601($row['draw_at'] ?? null),
+            'draw_blocked_reason' => $row['draw_blocked_reason'] ?? null,
             'reservation_minutes' => $reservationMinutes,
             'max_numbers_per_order' => $maxNumbersPerOrder,
             'starts_at' => self::iso8601($row['starts_at']),
@@ -46,6 +49,8 @@ final class RafflePresenter
             'numbers_count' => (int) ($row['numbers_count'] ?? 0),
             'result' => $result === null ? null : [
                 'winning_number' => (int) $result['winning_number'],
+                'public_winner_name' => $result['public_winner_name'] ?? null,
+                'source' => (string) ($result['published_source'] ?? 'MANUAL'),
                 'published_at' => self::iso8601($result['published_at']),
                 'evidence_description' => $result['evidence_description'] === null
                     ? null

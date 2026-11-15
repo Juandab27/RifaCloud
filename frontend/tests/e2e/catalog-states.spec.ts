@@ -24,6 +24,12 @@ test.describe('Catálogo: estados temporales', () => {
     const finished = page.locator('.raffle-card', { hasText: 'Rifa finalizada' })
     await expect(finished.locator('.status')).toHaveText('Finalizada')
     await expect(finished.locator('.raffle-card-result')).toContainText('Ganador: N.º 1.234')
+    await expect(finished.locator('.raffle-card-result')).toContainText('Ana P.')
     await expect(finished.locator('.raffle-card-cta')).toHaveText('Ver resultado')
+
+    const pending = page.locator('.raffle-card', { hasText: 'Rifa en sorteo' })
+    await expect(pending.locator('.status')).toHaveText('Sorteo pendiente')
+    await expect(pending).toContainText('Sorteo programado para el')
+    await expect(pending.locator('.raffle-card-cta')).toHaveText('Ver detalles')
   })
 })

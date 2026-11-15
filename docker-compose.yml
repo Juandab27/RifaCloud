@@ -26,10 +26,16 @@ services:
     volumes:
       - ./src:/var/www
     environment:
-      # The monolith scheduler sends the signed expiry/reconcile commands to
-      # the owning services; it never writes their state locally (S3/S4).
+      # The monolith scheduler sends the signed expiry/reconcile/draw commands
+      # to the owning services; it never writes their state locally (S3/S4/S12).
       ORDERS_SERVICE_URL: http://orders-service
       PAYMENTS_SERVICE_URL: http://payments-service
+      RAFFLES_SERVICE_URL: http://raffles-service
+      ORDERS_INTERNAL_TIMEOUT: ${ORDERS_INTERNAL_TIMEOUT:-5}
+      PAYMENTS_INTERNAL_TIMEOUT: ${PAYMENTS_INTERNAL_TIMEOUT:-10}
+      RAFFLES_INTERNAL_TIMEOUT: ${RAFFLES_INTERNAL_TIMEOUT:-5}
+      DRAW_BUFFER_MINUTES: ${DRAW_BUFFER_MINUTES:-30}
+      DRAW_BATCH_LIMIT: ${DRAW_BATCH_LIMIT:-20}
     depends_on:
       mysql:
         condition: service_healthy
@@ -47,6 +53,12 @@ services:
     environment:
       ORDERS_SERVICE_URL: http://orders-service
       PAYMENTS_SERVICE_URL: http://payments-service
+      RAFFLES_SERVICE_URL: http://raffles-service
+      ORDERS_INTERNAL_TIMEOUT: ${ORDERS_INTERNAL_TIMEOUT:-5}
+      PAYMENTS_INTERNAL_TIMEOUT: ${PAYMENTS_INTERNAL_TIMEOUT:-10}
+      RAFFLES_INTERNAL_TIMEOUT: ${RAFFLES_INTERNAL_TIMEOUT:-5}
+      DRAW_BUFFER_MINUTES: ${DRAW_BUFFER_MINUTES:-30}
+      DRAW_BATCH_LIMIT: ${DRAW_BATCH_LIMIT:-20}
     depends_on:
       mysql:
         condition: service_healthy
@@ -84,6 +96,13 @@ services:
       RESERVATION_MINUTES: ${RESERVATION_MINUTES:-10}
       ORDER_MAX_NUMBERS: ${ORDER_MAX_NUMBERS:-50}
       RAFFLE_MAX_NUMBERS: ${RAFFLE_MAX_NUMBERS:-10000}
+      DRAW_BUFFER_MINUTES: ${DRAW_BUFFER_MINUTES:-30}
+      DRAW_BATCH_LIMIT: ${DRAW_BATCH_LIMIT:-20}
+      RAFFLES_INTERNAL_CLOCK_SKEW: ${RAFFLES_INTERNAL_CLOCK_SKEW:-60}
+      # S13 proposals: server-side consent version and per-user throttle.
+      LEGAL_CONSENT_VERSION: ${LEGAL_CONSENT_VERSION:-2026-11-14}
+      PROPOSAL_DAILY_LIMIT: ${PROPOSAL_DAILY_LIMIT:-3}
+      PROPOSAL_COOLDOWN_SECONDS: ${PROPOSAL_COOLDOWN_SECONDS:-30}
     depends_on:
       mysql:
         condition: service_healthy
@@ -199,7 +218,7 @@ services:
       SESSION_ENCRYPT: "false"
       SANCTUM_STATEFUL_DOMAINS: ${SANCTUM_STATEFUL_DOMAINS:-localhost,127.0.0.1}
       # S11: must match the monolith and the public documents.
-      LEGAL_CONSENT_VERSION: ${LEGAL_CONSENT_VERSION:-2026-11-11}
+      LEGAL_CONSENT_VERSION: ${LEGAL_CONSENT_VERSION:-2026-11-14}
       # Shared cache table so login/registration throttling survives across
       # PHP-FPM workers.
       CACHE_STORE: database

@@ -15,8 +15,8 @@ The project is developed as a university assignment for Cloud Computing and must
 
 | Actor | Description | Responsibilities |
 |---|---|---|
-| **User (USER)** | Registered customer | Register, log in, browse raffles, select numbers, make payments, view their orders, receive notifications |
-| **Administrator (ADMIN)** | Platform administrator | Create/configure raffles, define number ranges and pricing, publish/close raffles, manage payment incidents, manually publish results with evidence |
+| **User (USER)** | Registered customer | Register, log in, browse raffles, select numbers, make payments, view their orders, receive notifications, propose a raffle with their account contact |
+| **Administrator (ADMIN)** | Platform administrator | Create/configure raffles, define number ranges and pricing, publish/close raffles, manage payment incidents, configure automatic draws, manually publish results with evidence, review raffle proposals |
 
 ## 3. Scope
 
@@ -31,6 +31,7 @@ The project is developed as a university assignment for Cloud Computing and must
 - Order and purchase history for users
 - Administrative panel for raffle management
 - Manual result publication by admin
+- Opt-in automatic draw with auditable evidence and masked winner name
 - Email notifications via queue (decoupled from purchase flow)
 - Resilient error handling and failure management
 - Docker Compose deployment on single EC2 instance
@@ -70,6 +71,8 @@ The project is developed as a university assignment for Cloud Computing and must
 | FR-014 | Admins can manually publish results with winner number, date, and evidence | ADMIN | Must | Must correspond to valid number in raffle |
 | FR-015 | Admins can manage payment review cases | ADMIN | Must | For uncertain payment results |
 | FR-016 | Registration must require informed acceptance of the privacy policy and prototype terms, recorded with document version, date and user; promotional consent must be optional and separate | USER | Must | S11; no real raffle operation authorized |
+| FR-017 | When a raffle is configured as AUTOMATIC, the system must close sales at the sales end, draw a winner at the scheduled draw date, select only SOLD numbers from PAID orders with APPROVED payments, publish the winning number and a masked winner name with auditable evidence, and preserve the existing manual result flow | ADMIN / SYSTEM | Must | S12; opt-in only, minimum 30-minute buffer, blocked on pending/uncertain payments or active reservations, one result per raffle |
+| FR-018 | A registered and authenticated user must be able to propose a raffle using only a title, a description and explicit privacy acceptance; the server must take name, email and phone from the authenticated user, keep a contact snapshot, throttle submissions, keep contact data out of public endpoints, and let an ADMIN approve or reject with an optional internal note, recording who decided and when | USER / ADMIN | Must | S13; approval does not create a raffle or any financial record |
 
 ## 5. Non-Functional Requirements
 
@@ -95,6 +98,9 @@ The project is developed as a university assignment for Cloud Computing and must
 | NFR-018 | Each domain owns its data; other services access it through an approved contract or read-only grant | Data Integrity | Must | Enforced by code, grants and contract tests |
 | NFR-019 | Failure of one service must not silently corrupt or fake another domain's state | Resilience | Must | Controlled 503, fail closed, no fake orders/payments |
 | NFR-020 | Consent evidence must be versioned, dated and linked to the authenticated user; public privacy/terms/regulatory pages must remain accessible | Privacy / Transparency | Must | S11; migration and grant applied to `rifacloud` on 2026-11-12 |
+| NFR-021 | Automatic draw must be idempotent, concurrency-safe and audit-ready; it must never publish a winner while payments or reservations are uncertain | Integrity / Audit | Must | S12; row lock, unique result, CSPRNG, candidate hash and evidence |
+| NFR-022 | Public results must expose only the winning number and a masked winner name; email, phone, document, user id and order id must never be exposed publicly | Privacy | Must | S12 |
+| NFR-023 | Proposal identity and contact must be derived exclusively from the authenticated session; submissions must be rate-limited per user, contact data must be admin-only, and approving a proposal must never create a raffle, order, payment or notification | Security / Privacy | Must | S13 |
 
 ## 6. Assumptions
 
@@ -146,4 +152,6 @@ is the approved target and is reached in stages (S3-S5 in
 | 1.4 | 2026-11-05 | S1 auth-service implemented and verified; current-state note updated (no requirement change) |
 | 1.5 | 2026-11-06 | S2 raffle administration implemented and verified; current-state note updated (no requirement change) |
 | 1.6 | 2026-11-11 | S11: added FR-016 (informed privacy/terms consent with version evidence and separate optional marketing consent) and NFR-020 (consent evidence and public legal pages); legal drafts remain unvalidated and do not authorize real raffles |
+| 1.7 | 2026-11-14 | S12: added FR-017 (opt-in automatic sales closure and draw), NFR-021 (draw idempotency/audit) and NFR-022 (masked public winner). Manual results remain supported; historical raffles are not auto-enabled |
 | 1.7 | 2026-11-12 | S11 closed on the main schema: `user_consents` migration and auth-service grant applied with explicit authorization; controlled registration verified and cleaned up. No requirement change |
+| 1.8 | 2026-11-15 | S13: added FR-018 (authenticated raffle proposals with server-side contact snapshot, throttling and admin moderation) and NFR-023 (identity from session, admin-only contact, approval creates no business record). Validated only on `rifacloud_test`; main migration pending |

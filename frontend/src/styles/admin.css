@@ -532,3 +532,24 @@
     margin-top: 0;
   }
 }
+
+/* S13 proposals: moderation detail and submitted description. */
+.proposal-detail {
+  margin-bottom: 1.25rem;
+}
+
+.proposal-detail .page-header {
+  margin-bottom: 0.75rem;
+}
+
+.proposal-description {
+  white-space: pre-wrap;
+  margin: 0.75rem 0 1rem;
+  color: var(--text);
+}
+
+.proposal-decision {
+  margin-top: 1rem;
+  padding-left: 0.9rem;
+  border-left: 2px solid var(--accent-line);
+}

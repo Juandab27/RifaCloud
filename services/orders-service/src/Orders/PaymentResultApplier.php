@@ -65,6 +65,8 @@ final class PaymentResultApplier
         try {
             $order = $this->lockOrder($result['order_id']);
             $payment = $this->lockPayment($result['payment_id'], $result['order_id']);
+            $raffle = $this->lockRaffle((int) $order['raffle_id']);
+            $afterDraw = $this->isAfterDrawCutoff($raffle);
 
             $this->assertMatches($payment, $result);
             $this->assertEligible($order, $result);
@@ -85,7 +87,7 @@ final class PaymentResultApplier
                 ];
             }
 
-            $decision = $this->decide($order, $payment, $result);
+            $decision = $this->decide($order, $payment, $result, $afterDraw);
 
             $paymentChanged = $decision['payment_status'] !== (string) $payment['status'];
             $orderChanged = $decision['order_status'] !== (string) $order['status'];
@@ -207,7 +209,7 @@ final class PaymentResultApplier
     private function lockOrder(int $orderId): array
     {
         $statement = $this->pdo->prepare(
-            'SELECT id, user_id, status, total_amount, expires_at, paid_at
+            'SELECT id, user_id, raffle_id, status, total_amount, expires_at, paid_at
              FROM orders
              WHERE id = :id
              LIMIT 1
@@ -246,6 +248,60 @@ final class PaymentResultApplier
         }
 
         return $payment;
+    }
+
+    /**
+     * The draw and the payment-result command serialize on this row. A payment
+     * that arrives after the raffle result or the automatic draw cutoff must
+     * never turn a number into SOLD.
+     *
+     * @return array<string, mixed>|null
+     */
+    private function lockRaffle(int $raffleId): ?array
+    {
+        $statement = $this->pdo->prepare(
+            'SELECT id, status, draw_mode, draw_at
+             FROM raffles
+             WHERE id = :id
+             LIMIT 1
+             FOR UPDATE',
+        );
+        $statement->execute([':id' => $raffleId]);
+        $row = $statement->fetch();
+
+        return $row === false ? null : $row;
+    }
+
+    /**
+     * @param  array<string, mixed>|null  $raffle
+     */
+    private function isAfterDrawCutoff(?array $raffle): bool
+    {
+        if ($raffle === null) {
+            return false;
+        }
+
+        if ((string) $raffle['status'] === 'FINISHED') {
+            return true;
+        }
+
+        if ($this->raffleHasResult((int) $raffle['id'])) {
+            return true;
+        }
+
+        return (string) ($raffle['draw_mode'] ?? 'MANUAL') === 'AUTOMATIC'
+            && $raffle['draw_at'] !== null
+            && $this->parseDate((string) $raffle['draw_at']) <= $this->utcNow();
+    }
+
+    private function raffleHasResult(int $raffleId): bool
+    {
+        $statement = $this->pdo->prepare(
+            'SELECT 1 FROM raffle_results WHERE raffle_id = :raffle_id LIMIT 1',
+        );
+        $statement->execute([':raffle_id' => $raffleId]);
+
+        return $statement->fetchColumn() !== false;
     }
 
     /**
@@ -361,7 +417,7 @@ final class PaymentResultApplier
      * @param  array<string, mixed>  $result
      * @return array{payment_status: string, order_status: string, evidence: array<string, mixed>, numbers: list<array<string, mixed>>|null}
      */
-    private function decide(array $order, array $payment, array $result): array
+    private function decide(array $order, array $payment, array $result, bool $afterDraw): array
     {
         $currentPayment = PaymentState::from((string) $payment['status']);
         $currentOrder = OrderStatus::from((string) $order['status']);
@@ -373,7 +429,9 @@ final class PaymentResultApplier
                 && $order['expires_at'] !== null
                 && $this->parseDate((string) $order['expires_at']) <= $this->utcNow());
 
-        $lateApproval = $reservationExpired || $currentOrder === OrderStatus::REJECTED;
+        $lateApproval = $reservationExpired
+            || $currentOrder === OrderStatus::REJECTED
+            || ($afterDraw && $currentOrder !== OrderStatus::PAID);
 
         if ($targetPayment === PaymentState::PENDING) {
             $this->assertPaymentTransition($currentPayment, PaymentState::PENDING);
@@ -428,6 +486,7 @@ final class PaymentResultApplier
                 $evidence = [
                     'provider_approved' => true,
                     'late_approval' => true,
+                    'after_draw' => $afterDraw,
                 ];
             } elseif ($this->numbersCanBeAssigned((int) $order['id'], $numbers)) {
                 $targetOrder = OrderStatus::PAID;

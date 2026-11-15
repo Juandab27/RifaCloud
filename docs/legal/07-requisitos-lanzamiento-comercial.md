@@ -1,7 +1,7 @@
 # 07 — Requisitos para un eventual lanzamiento comercial
 
 **Proyecto:** RifaCloud
-**Versión:** 2026-11-11
+**Versión:** 2026-11-14
 **Estado:** Lista de verificación; no implica que los requisitos estén cumplidos
 
 > Nada de esta lista autoriza a RifaCloud a operar rifas reales. Es una guía

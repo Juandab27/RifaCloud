@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace RifaCloud\RafflesService\Admin;
 
 use PDO;
+use RifaCloud\RafflesService\Draw\PublicWinnerName;
 
 /**
  * Business rules ported one-to-one from App\Modules\Raffles\Services\RaffleService.
@@ -69,6 +70,11 @@ final class RaffleAdminService
         $this->validator->assertValidSchedule(
             $data['starts_at'] ?? null,
             $data['ends_at'] ?? null,
+        );
+        $this->validator->assertValidDrawSchedule(
+            $data['draw_mode'] ?? 'MANUAL',
+            $data['ends_at'] ?? null,
+            $data['draw_at'] ?? null,
         );
 
         $raffleId = $this->transaction(function () use ($data, $admin): int {
@@ -169,6 +175,9 @@ final class RaffleAdminService
                 );
             }
 
+            $owner = $this->repository->findSoldNumberOwner($raffleId, $number);
+            $publicName = $owner === null ? null : PublicWinnerName::mask($owner['name']);
+
             $this->repository->insertResult(
                 $raffleId,
                 $number,
@@ -176,6 +185,10 @@ final class RaffleAdminService
                 $admin->userId,
                 $evidence,
                 $url === '' ? null : $url,
+                'MANUAL',
+                $owner['order_id'] ?? null,
+                $owner['user_id'] ?? null,
+                $publicName,
             );
             $this->repository->updateStatus($raffleId, 'FINISHED');
         });
@@ -214,10 +227,21 @@ final class RaffleAdminService
             $effectiveEndsAt = array_key_exists('ends_at', $data)
                 ? $data['ends_at']
                 : $raffle['ends_at'];
+            $effectiveDrawMode = array_key_exists('draw_mode', $data)
+                ? $data['draw_mode']
+                : ($raffle['draw_mode'] ?? 'MANUAL');
+            $effectiveDrawAt = array_key_exists('draw_at', $data)
+                ? $data['draw_at']
+                : ($raffle['draw_at'] ?? null);
 
             $this->validator->assertValidSchedule(
                 $effectiveStartsAt === null ? null : (string) $effectiveStartsAt,
                 $effectiveEndsAt === null ? null : (string) $effectiveEndsAt,
+            );
+            $this->validator->assertValidDrawSchedule(
+                $effectiveDrawMode === null ? null : (string) $effectiveDrawMode,
+                $effectiveEndsAt === null ? null : (string) $effectiveEndsAt,
+                $effectiveDrawAt === null ? null : (string) $effectiveDrawAt,
             );
 
             $rangeChanged = (array_key_exists('min_number', $data)
@@ -298,6 +322,13 @@ final class RaffleAdminService
             $this->validator->assertValidSchedule(
                 $raffle['starts_at'] === null ? null : (string) $raffle['starts_at'],
                 $raffle['ends_at'] === null ? null : (string) $raffle['ends_at'],
+            );
+            $this->validator->assertValidDrawSchedule(
+                isset($raffle['draw_mode']) ? (string) $raffle['draw_mode'] : 'MANUAL',
+                $raffle['ends_at'] === null ? null : (string) $raffle['ends_at'],
+                isset($raffle['draw_at']) && $raffle['draw_at'] !== null
+                    ? (string) $raffle['draw_at']
+                    : null,
             );
 
             $this->transition((string) $raffle['status'], 'PUBLISHED');

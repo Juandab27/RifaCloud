@@ -1,7 +1,7 @@
 # 02 — Política de Tratamiento de Datos Personales (borrador)
 
 **Proyecto:** RifaCloud
-**Versión:** 2026-11-11
+**Versión:** 2026-11-14
 **Estado:** Borrador para revisión jurídica humana
 **Base normativa de referencia:** Ley 1581 de 2012 y Decreto 1074 de 2015
 **Ámbito:** prototipo académico; no operación comercial autorizada
@@ -100,7 +100,7 @@ documento: requiere controles verificables y revisión jurídica.
 | Webhooks | Identificador, tipo, carga sanitizada | Idempotencia y auditoría | Sí, por funcionamiento técnico |
 | Notificaciones | Correo, nombre, contenido de la orden | Confirmaciones e incidencias | Sí, para la operación |
 | Consentimiento | Tipo, versión, decisión, fecha, usuario | Evidencia de autorización | Sí para privacidad y términos; opcional para marketing |
-| Resultados | Número, administrador, evidencia | Resultado de demostración | No aplica al comprador |
+| Resultados | Número ganador, nombre enmascarado, fecha, evidencia y auditoría | Resultado de demostración y transparencia | Sí, para publicar el resultado sin exponer datos de contacto |
 | Logs | Ruta, fecha, IP, agente de usuario, errores | Seguridad y diagnóstico | Sí, por funcionamiento técnico |
 
 Las finalidades se limitan a las descritas. No se usarán para publicidad de
@@ -246,7 +246,7 @@ totales superiores a 100.000 UVT). No se afirma que el registro esté realizado.
 
 ## 16. Vigencia y cambios
 
-Esta es la versión **2026-11-11** de un borrador. La versión definitiva debe
+Esta es la versión **2026-11-14** de un borrador. La versión definitiva debe
 indicar fecha de entrada en vigencia y período de vigencia de la base de datos
 (`[PERÍODO DE VIGENCIA PENDIENTE]`). Los cambios sustanciales se comunicarán
 antes de implementarse. Si cambia la finalidad, se solicitará una nueva

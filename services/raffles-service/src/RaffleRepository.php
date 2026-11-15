@@ -38,7 +38,7 @@ final class RaffleRepository
         $perPage = self::CATALOG_PAGE_SIZE;
 
         $total = (int) $this->pdo
-            ->query("SELECT COUNT(*) FROM raffles WHERE status IN ('PUBLISHED', 'FINISHED')")
+            ->query("SELECT COUNT(*) FROM raffles WHERE (status IN ('PUBLISHED', 'FINISHED') OR (status = 'CLOSED' AND draw_at IS NOT NULL))")
             ->fetchColumn();
 
         $lastPage = max(1, (int) ceil($total / $perPage));
@@ -54,13 +54,16 @@ final class RaffleRepository
                     r.min_number,
                     r.max_number,
                     r.status,
+                    r.draw_mode,
                     r.starts_at,
                     r.ends_at,
+                    r.draw_at,
                     r.created_at,
                     r.updated_at,
                     (SELECT COUNT(*) FROM raffle_numbers rn WHERE rn.raffle_id = r.id) AS numbers_count
                 FROM raffles r
-                WHERE r.status IN ('PUBLISHED', 'FINISHED')
+                WHERE (r.status IN ('PUBLISHED', 'FINISHED')
+                       OR (r.status = 'CLOSED' AND r.draw_at IS NOT NULL))
                 ORDER BY r.created_at DESC, r.id DESC
                 LIMIT :limit OFFSET :offset
             SQL,
@@ -93,13 +96,17 @@ final class RaffleRepository
                     r.min_number,
                     r.max_number,
                     r.status,
+                    r.draw_mode,
                     r.starts_at,
                     r.ends_at,
+                    r.draw_at,
                     r.created_at,
                     r.updated_at,
                     (SELECT COUNT(*) FROM raffle_numbers rn WHERE rn.raffle_id = r.id) AS numbers_count
                 FROM raffles r
-                WHERE r.id = :raffle_id AND r.status IN ('PUBLISHED', 'FINISHED')
+                WHERE r.id = :raffle_id
+                  AND (r.status IN ('PUBLISHED', 'FINISHED')
+                       OR (r.status = 'CLOSED' AND r.draw_at IS NOT NULL))
                 LIMIT 1
             SQL,
         );
@@ -122,7 +129,11 @@ final class RaffleRepository
     public function numbersForPublishedRaffle(int $raffleId, int $page, int $perPage): ?array
     {
         $exists = $this->pdo->prepare(
-            "SELECT 1 FROM raffles WHERE id = :raffle_id AND status IN ('PUBLISHED', 'FINISHED') LIMIT 1",
+            "SELECT 1 FROM raffles
+             WHERE id = :raffle_id
+               AND (status IN ('PUBLISHED', 'FINISHED')
+                    OR (status = 'CLOSED' AND draw_at IS NOT NULL))
+             LIMIT 1",
         );
         $exists->execute([':raffle_id' => $raffleId]);
 
@@ -247,7 +258,8 @@ final class RaffleRepository
         $ids = array_map(static fn (array $row): int => (int) $row['id'], $rows);
         $placeholders = implode(',', array_fill(0, count($ids), '?'));
         $statement = $this->pdo->prepare(
-            'SELECT raffle_id, winning_number, published_at, evidence_description, evidence_url
+            'SELECT raffle_id, winning_number, published_source, public_winner_name,
+                    published_at, evidence_description, evidence_url
              FROM raffle_results
              WHERE raffle_id IN ('.$placeholders.')',
         );

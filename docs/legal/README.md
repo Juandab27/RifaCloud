@@ -2,7 +2,7 @@
 
 **Proyecto:** RifaCloud
 **Estado:** Borradores académicos para revisión jurídica humana
-**Versión de los documentos:** `2026-11-11`
+**Versión de los documentos:** `2026-11-14`
 **Fecha de actualización del índice:** 2026-11-12
 
 > **Aviso importante**

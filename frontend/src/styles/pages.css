@@ -27,6 +27,11 @@
   font-size: var(--fs-lg);
   font-weight: 600;
   font-variant-numeric: tabular-nums;
+  overflow-wrap: anywhere;
+}
+
+.facts > div {
+  min-width: 0;
 }
 
 /* --- Selección de números ------------------------------------------------ */

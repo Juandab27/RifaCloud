@@ -223,7 +223,7 @@ final class OrderReservationService
             throw OrderConflictException::raffleNotStarted();
         }
 
-        if ($endsAt !== null && $endsAt < $now) {
+        if ($endsAt !== null && $endsAt <= $now) {
             throw OrderConflictException::raffleEnded();
         }
     }
